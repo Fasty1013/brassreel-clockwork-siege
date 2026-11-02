@@ -1,0 +1,31 @@
+{
+  "name": "brassreel-clockwork-siege",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "typecheck": "tsc --noEmit",
+    "sim": "tsx tools/sim/runner.ts",
+    "playtest": "tsx tests/e2e/playtestBrowser.ts"
+  },
+  "dependencies": {
+    "phaser": "^3.88.2",
+    "zod": "^3.24.2"
+  },
+  "devDependencies": {
+    "@types/node": "^22.13.5",
+    "@vitest/coverage-v8": "^3.2.7",
+    "puppeteer-core": "^25.16.0",
+    "ts-node": "^10.9.2",
+    "tsx": "^4.23.15",
+    "typescript": "^5.7.3",
+    "vite": "^6.2.0",
+    "vitest": "^3.0.6"
+  }
+}

@@ -1,0 +1,26 @@
+{
+  "botName": "RandomBot",
+  "totalRuns": 1000,
+  "victories": 202,
+  "defeats": 798,
+  "winRatePct": 20.2,
+  "averageWaveReached": 5.95,
+  "deathsByWave": {
+    "1": 0,
+    "2": 145,
+    "3": 45,
+    "4": 182,
+    "5": 45,
+    "6": 34,
+    "7": 28,
+    "8": 70,
+    "9": 104,
+    "10": 145
+  },
+  "totalSpins": 13211,
+  "totalLineHits": 78538,
+  "hitRatePct": 594.49,
+  "jackpotCount": 56,
+  "totalJams": 0,
+  "avgDurationPerWaveS": 207.1
+}

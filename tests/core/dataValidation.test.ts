@@ -1,0 +1,104 @@
+import { describe, it, expect } from 'vitest';
+import { UnitSchema } from '@data/schemas/unitSchema';
+import { ModSchema } from '@data/schemas/modSchema';
+import { EngineCoreSchema } from '@data/schemas/coreSchema';
+import { GadgetSchema } from '@data/schemas/gadgetSchema';
+import { EnemySchema } from '@data/schemas/enemySchema';
+import { WaveDefinitionSchema } from '@data/schemas/waveSchema';
+import { UNITS_DATA } from '@data/units';
+import { MODS_DATA } from '@data/mods';
+import { CORES_DATA } from '@data/cores';
+import { GADGETS_DATA } from '@data/gadgets';
+import { ENEMIES_DATA } from '@data/enemies';
+import { WAVES_DATA } from '@data/waves';
+import { t, setLocale } from '@data/i18n';
+
+describe('Data Catalog Validation Suite', () => {
+  it('validates all 32 unit definitions against UnitSchema', () => {
+    const units = Object.values(UNITS_DATA);
+    expect(units.length).toBe(32); // 28 faction + 1 scrap + 3 legendary
+
+    for (const unit of units) {
+      const res = UnitSchema.safeParse(unit);
+      if (!res.success) {
+        console.error('Unit validation failed for:', unit.id, res.error);
+      }
+      expect(res.success).toBe(true);
+    }
+  });
+
+  it('validates all 40 mod definitions against ModSchema', () => {
+    const mods = Object.values(MODS_DATA);
+    expect(mods.length).toBe(40);
+
+    for (const mod of mods) {
+      const res = ModSchema.safeParse(mod);
+      if (!res.success) {
+        console.error('Mod validation failed for:', mod.id, res.error);
+      }
+      expect(res.success).toBe(true);
+    }
+  });
+
+  it('validates all 20 engine core definitions against EngineCoreSchema', () => {
+    const cores = Object.values(CORES_DATA);
+    expect(cores.length).toBe(20);
+
+    for (const core of cores) {
+      const res = EngineCoreSchema.safeParse(core);
+      if (!res.success) {
+        console.error('Core validation failed for:', core.id, res.error);
+      }
+      expect(res.success).toBe(true);
+    }
+  });
+
+  it('validates all 30 gadget definitions against GadgetSchema', () => {
+    const gadgets = Object.values(GADGETS_DATA);
+    expect(gadgets.length).toBe(30);
+
+    for (const gadget of gadgets) {
+      const res = GadgetSchema.safeParse(gadget);
+      if (!res.success) {
+        console.error('Gadget validation failed for:', gadget.id, res.error);
+      }
+      expect(res.success).toBe(true);
+    }
+  });
+
+  it('validates all 13 enemy definitions against EnemySchema', () => {
+    const enemies = Object.values(ENEMIES_DATA);
+    expect(enemies.length).toBe(13); // 12 standard + 1 boss
+
+    for (const enemy of enemies) {
+      const res = EnemySchema.safeParse(enemy);
+      if (!res.success) {
+        console.error('Enemy validation failed for:', enemy.id, res.error);
+      }
+      expect(res.success).toBe(true);
+    }
+  });
+
+  it('validates all 10 wave definitions against WaveDefinitionSchema', () => {
+    expect(WAVES_DATA.length).toBe(10);
+
+    for (const wave of WAVES_DATA) {
+      const res = WaveDefinitionSchema.safeParse(wave);
+      if (!res.success) {
+        console.error('Wave validation failed for wave:', wave.waveNumber, res.error);
+      }
+      expect(res.success).toBe(true);
+    }
+  });
+
+  it('checks i18n lookup and interpolation in both EN and RU', () => {
+    setLocale('en');
+    expect(t('ui.wave', { current: 3, total: 10 })).toBe('Wave 3 / 10');
+    expect(t('unit.cog_knight.name')).toBe('Cog Knight');
+
+    setLocale('ru');
+    expect(t('ui.wave', { current: 3, total: 10 })).toBe('Волна 3 / 10');
+    expect(t('unit.cog_knight.name')).toBe('Рыцарь Шестерни');
+  });
+});
+

@@ -1,0 +1,26 @@
+{
+  "botName": "GreedyBot",
+  "totalRuns": 1000,
+  "victories": 243,
+  "defeats": 757,
+  "winRatePct": 24.3,
+  "averageWaveReached": 7.89,
+  "deathsByWave": {
+    "1": 0,
+    "2": 0,
+    "3": 0,
+    "4": 53,
+    "5": 85,
+    "6": 36,
+    "7": 28,
+    "8": 96,
+    "9": 194,
+    "10": 265
+  },
+  "totalSpins": 33552,
+  "totalLineHits": 198927,
+  "hitRatePct": 592.89,
+  "jackpotCount": 124,
+  "totalJams": 0,
+  "avgDurationPerWaveS": 276.8
+}
