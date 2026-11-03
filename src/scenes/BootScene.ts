@@ -1,6 +1,10 @@
 import Phaser from 'phaser';
 import { AssetLoader } from '../fx/AssetLoader';
 import { CogKnightArt } from '../art/characters/cogKnight';
+import { SpringArcherArt } from '../art/characters/springArcher';
+import { ScrapperEnemyArt } from '../art/characters/scrapperEnemy';
+import { DroneEnemyArt } from '../art/characters/droneEnemy';
+import { ProjectilesArt } from '../art/projectiles';
 import { SymbolArt } from '../art/symbols';
 import { BackdropArt } from '../art/environment/backdrop';
 import { UIFrameArt } from '../art/ui/frames';
@@ -14,8 +18,12 @@ export class BootScene extends Phaser.Scene {
     // 1. Initialize Hybrid Progressive Asset Loader (procedural baseline + overrides)
     AssetLoader.init(this);
 
-    // 2. Register bespoke retro pixel-art suites (P1 Benchmark)
+    // 2. Register bespoke retro pixel-art suites (P1 & P2 Benchmark)
     CogKnightArt.registerAnimations(this);
+    SpringArcherArt.registerAnimations(this);
+    ScrapperEnemyArt.registerAnimations(this);
+    DroneEnemyArt.registerAnimations(this);
+    ProjectilesArt.registerAll(this);
     SymbolArt.registerAllSymbols(this);
     BackdropArt.registerBackdrop(this);
     UIFrameArt.registerAllUI(this);

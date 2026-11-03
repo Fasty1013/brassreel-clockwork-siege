@@ -64,22 +64,30 @@ export class MenuScene extends Phaser.Scene {
       letterSpacing: 6
     }).setOrigin(0.5);
 
-    const loreText = this.add.text(width / 2, 370, 'Казино-кузница Нового Брассхольма под осадой паровых орд.\nКрутите барабаны 3×3, сплавляйте автоматонов и защитите Котёл!', {
-      fontFamily: 'sans-serif',
-      fontSize: '20px',
-      color: '#adb5bd',
-      align: 'center',
-      lineSpacing: 10
-    }).setOrigin(0.5);
+    const isRu = getLocale() === 'ru';
+    const loreText = this.add.text(
+      width / 2, 
+      370, 
+      isRu 
+        ? 'Кузница-Казино Нью-Брассхольма осаждена автоматонами барона.\nКрути барабаны 3×3, призывай паровых бойцов и защити Котёл!'
+        : 'The Forge-Casino of New Brassholm is besieged by steam swarms.\nSpin the 3×3 reels, summon automatons, and defend The Boiler!', 
+      {
+        fontFamily: 'sans-serif',
+        fontSize: '20px',
+        color: '#adb5bd',
+        align: 'center',
+        lineSpacing: 10
+      }
+    ).setOrigin(0.5);
 
     // Start Game Button
-    const startBtn = this.add.rectangle(width / 2, 540, 360, 72, 0xd4a373);
+    const startBtn = this.add.rectangle(width / 2, 540, 380, 72, 0xd4a373);
     startBtn.setStrokeStyle(4, 0xffd166);
     startBtn.setInteractive({ useHandCursor: true });
 
-    this.startBtnText = this.add.text(width / 2, 540, 'НАЧАТЬ ОБОРОНУ ▶', {
+    this.startBtnText = this.add.text(width / 2, 540, isRu ? 'В БОЙ [ПРОБЕЛ] ⚔' : 'START DEFENSE [SPACE] ⚔', {
       fontFamily: 'monospace',
-      fontSize: '24px',
+      fontSize: '22px',
       color: '#1f1610',
       fontStyle: 'bold'
     }).setOrigin(0.5);
@@ -121,11 +129,11 @@ export class MenuScene extends Phaser.Scene {
     this.archiveModal = new ArchiveModal(this);
 
     // Archive Button
-    const archiveBtn = this.add.rectangle(width / 2 - 130, 630, 240, 48, 0x2b221a);
+    const archiveBtn = this.add.rectangle(width / 2 - 140, 630, 240, 48, 0x2b221a);
     archiveBtn.setStrokeStyle(2, 0xffd166);
     archiveBtn.setInteractive({ useHandCursor: true });
 
-    this.add.text(width / 2 - 130, 630, 'АРХИВ КУЗНИЦЫ ⚙️', {
+    this.add.text(width / 2 - 140, 630, isRu ? '📜 Архив Кузницы' : '📜 Archives', {
       fontFamily: 'monospace',
       fontSize: '15px',
       color: '#ffd166',
@@ -139,11 +147,11 @@ export class MenuScene extends Phaser.Scene {
     });
 
     // Language Toggle Button (RU / EN)
-    const langBtn = this.add.rectangle(width / 2 + 130, 630, 220, 48, 0x2b221a);
+    const langBtn = this.add.rectangle(width / 2 + 140, 630, 220, 48, 0x2b221a);
     langBtn.setStrokeStyle(2, 0x8c5836);
     langBtn.setInteractive({ useHandCursor: true });
 
-    this.langBtnText = this.add.text(width / 2 + 130, 630, `ЯЗЫК / LANG: ${getLocale().toUpperCase()}`, {
+    this.langBtnText = this.add.text(width / 2 + 140, 630, `ЯЗЫК / LANG: ${getLocale().toUpperCase()}`, {
       fontFamily: 'monospace',
       fontSize: '15px',
       color: '#adb5bd',
@@ -156,19 +164,19 @@ export class MenuScene extends Phaser.Scene {
       const nextLang = getLocale() === 'ru' ? 'en' : 'ru';
       setLocale(nextLang);
       this.langBtnText.setText(`ЯЗЫК / LANG: ${nextLang.toUpperCase()}`);
-      this.startBtnText.setText(nextLang === 'ru' ? 'НАЧАТЬ ОБОРОНУ ▶' : 'START DEFENSE ▶');
+      this.startBtnText.setText(nextLang === 'ru' ? 'В БОЙ [ПРОБЕЛ] ⚔' : 'START DEFENSE [SPACE] ⚔');
       loreText.setText(
         nextLang === 'ru'
-          ? 'Казино-кузница Нового Брассхольма под осадой паровых орд.\nКрутите барабаны 3×3, сплавляйте автоматонов и защитите Котёл!'
-          : 'The Forge-Casino of New Brassholm is besieged by steam swarms.\nSpin the 3×3 reels, smelt automatons, and defend The Boiler!'
+          ? 'Кузница-Казино Нью-Брассхольма осаждена автоматонами барона.\nКрути барабаны 3×3, призывай паровых бойцов и защити Котёл!'
+          : 'The Forge-Casino of New Brassholm is besieged by steam swarms.\nSpin the 3×3 reels, summon automatons, and defend The Boiler!'
       );
     });
 
     // Instructions Box
-    const rulesBox = this.add.rectangle(width / 2, 820, 900, 140, 0x1b1714);
+    const rulesBox = this.add.rectangle(width / 2, 820, 940, 150, 0x1b1714);
     rulesBox.setStrokeStyle(1, 0x495057);
 
-    this.add.text(width / 2, 775, 'ПРАВИЛА И СИСТЕМЫ:', {
+    this.add.text(width / 2, 765, isRu ? 'ИНСТРУКТАЖ МАСТЕРА:' : 'FOREMAN INSTRUCTIONS:', {
       fontFamily: 'monospace',
       fontSize: '15px',
       color: '#ffd166',
@@ -178,10 +186,15 @@ export class MenuScene extends Phaser.Scene {
     this.add.text(
       width / 2,
       835,
-      '1. 3 бесплатных спина за волну + доп. спины за Пар (Heat растёт).\n' +
-      '2. Линии призывают автоматонов (Шестерня, Пружина, Фитиль, Катушка).\n' +
-      '3. Перетаскивайте карты на поле боя для защиты или друг на друга для Smelt (слияние).\n' +
-      '4. Не допустите прорыва врагов к Котлу (10 давлений).',
+      isRu
+        ? '1. Слот слева крутится за шестерни — совпадение 3 символов в ряд призывает бойца.\n' +
+          '2. Расставляй защитников на зеленом лугу перетаскиванием мыши.\n' +
+          '3. Круглая кнопка с черепом в правом углу или ENTER запускает волну врагов.\n' +
+          '4. Одолей 10 волн врагов в каждом Акте, чтобы победить Парового Барона!'
+        : '1. Spin the slot on the left — matching 3 symbols on a line summons an automaton.\n' +
+          '2. Deploy your defenders onto the green meadow by dragging with the mouse.\n' +
+          '3. Click the round skull valve button at bottom-right or hit ENTER to launch the wave.\n' +
+          '4. Defeat 10 waves per Act to overthrow the Steam Baron!',
       {
         fontFamily: 'sans-serif',
         fontSize: '15px',

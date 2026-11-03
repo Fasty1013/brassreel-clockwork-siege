@@ -9,15 +9,22 @@ export interface GridSlot {
   tileBg: Phaser.GameObjects.Rectangle;
 }
 
+/**
+ * GridView — Tactical Battlefield Grid on the Retro Meadow Lawn
+ * Renders subtle, semi-transparent brass cell brackets during PREP phase,
+ * and fades out during BATTLE so combatants fight naturally on the grass.
+ */
 export class GridView extends Phaser.GameObjects.Container {
   public slots: GridSlot[][] = [];
-  public tileWidth = 80;
-  public tileHeight = 80;
+  public tileWidth = 140;
+  public tileHeight = 72;
+  private divider: Phaser.GameObjects.Rectangle;
+  private boilerLine: Phaser.GameObjects.Rectangle;
 
   constructor(scene: Phaser.Scene, x: number, y: number) {
     super(scene, x, y);
 
-    // Build 8x5 discrete grid
+    // Build discrete grid matching lawn coordinates
     for (let c = 0; c < BALANCE.GRID_COLS; c++) {
       this.slots[c] = [];
       const isPlayerZone = c < BALANCE.PLAYER_DEPLOY_COLS;
@@ -26,12 +33,15 @@ export class GridView extends Phaser.GameObjects.Container {
         const tileX = c * this.tileWidth + this.tileWidth / 2;
         const tileY = r * this.tileHeight + this.tileHeight / 2;
 
-        const tileColor = isPlayerZone
-          ? (c + r) % 2 === 0 ? 0x2b221a : 0x382c22
-          : (c + r) % 2 === 0 ? 0x1b1918 : 0x242120;
-
-        const tile = scene.add.rectangle(tileX, tileY, this.tileWidth - 4, this.tileHeight - 4, tileColor);
-        tile.setStrokeStyle(1, isPlayerZone ? 0x8c5836 : 0x495057, 0.6);
+        // Subtle brass bracket for player deploy zone, transparent for enemy lane
+        const tile = scene.add.rectangle(tileX, tileY, this.tileWidth - 8, this.tileHeight - 6);
+        if (isPlayerZone) {
+          tile.setFillStyle(0x2d3a1f, 0.22); // Soft lawn shadow
+          tile.setStrokeStyle(1, 0xd4a373, 0.45); // Delicate brass border
+        } else {
+          tile.setFillStyle(0x000000, 0.0);
+          tile.setStrokeStyle(1, 0x534764, 0.15); // Faint rail lane
+        }
         this.add(tile);
 
         this.slots[c][r] = {
@@ -46,14 +56,27 @@ export class GridView extends Phaser.GameObjects.Container {
 
     // Border dividing Player defense zone and No Man's Land
     const divideX = BALANCE.PLAYER_DEPLOY_COLS * this.tileWidth;
-    const divider = scene.add.rectangle(divideX, (BALANCE.GRID_ROWS * this.tileHeight) / 2, 4, BALANCE.GRID_ROWS * this.tileHeight, 0xffd166, 0.8);
-    this.add(divider);
+    this.divider = scene.add.rectangle(divideX, (BALANCE.GRID_ROWS * this.tileHeight) / 2, 2, BALANCE.GRID_ROWS * this.tileHeight, 0xffd166, 0.7);
+    this.add(this.divider);
 
-    // Boiler defense line on Column 0 (left edge)
-    const boilerLine = scene.add.rectangle(0, (BALANCE.GRID_ROWS * this.tileHeight) / 2, 6, BALANCE.GRID_ROWS * this.tileHeight, 0xe63946, 0.9);
-    this.add(boilerLine);
+    // Boiler defense line on Column 0 (left edge of meadow)
+    this.boilerLine = scene.add.rectangle(0, (BALANCE.GRID_ROWS * this.tileHeight) / 2, 4, BALANCE.GRID_ROWS * this.tileHeight, 0xe63946, 0.85);
+    this.add(this.boilerLine);
 
     scene.add.existing(this);
+  }
+
+  /**
+   * Toggles tactical grid overlay visibility between PREP and BATTLE phases.
+   */
+  public setBattleMode(isBattle: boolean): void {
+    const targetAlpha = isBattle ? 0.0 : 1.0;
+    this.scene.tweens.add({
+      targets: [this.divider, ...this.slots.flat().map(s => s.tileBg)],
+      alpha: targetAlpha,
+      duration: 250,
+      ease: 'Quad.easeInOut'
+    });
   }
 
   /**
@@ -63,33 +86,36 @@ export class GridView extends Phaser.GameObjects.Container {
     const localX = worldX - this.x;
     const localY = worldY - this.y;
 
-    const col = Math.floor(localX / this.tileWidth);
-    const row = Math.floor(localY / this.tileHeight);
+    for (let c = 0; c < BALANCE.GRID_COLS; c++) {
+      for (let r = 0; r < BALANCE.GRID_ROWS; r++) {
+        const slot = this.slots[c][r];
+        const halfW = this.tileWidth / 2;
+        const halfH = this.tileHeight / 2;
 
-    if (col >= 0 && col < BALANCE.GRID_COLS && row >= 0 && row < BALANCE.GRID_ROWS) {
-      return this.slots[col][row];
+        if (
+          localX >= slot.x - halfW &&
+          localX <= slot.x + halfW &&
+          localY >= slot.y - halfH &&
+          localY <= slot.y + halfH
+        ) {
+          return slot;
+        }
+      }
     }
     return null;
   }
 
-  public highlightPlayerSlots(active: boolean): void {
-    for (let c = 0; c < BALANCE.PLAYER_DEPLOY_COLS; c++) {
-      for (let r = 0; r < BALANCE.GRID_ROWS; r++) {
-        const slot = this.slots[c][r];
-        if (active) {
-          slot.tileBg.setStrokeStyle(2, 0xffd166, 0.9);
-        } else {
-          slot.tileBg.setStrokeStyle(1, 0x8c5836, 0.6);
-        }
-      }
-    }
-  }
-
+  /**
+   * Returns world coordinates for the center of a given grid slot.
+   */
   public getSlotWorldPos(col: number, row: number): { x: number; y: number } {
-    const slot = this.slots[col][row];
+    const slot = this.slots[col]?.[row];
+    if (slot) {
+      return { x: this.x + slot.x, y: this.y + slot.y };
+    }
     return {
-      x: this.x + slot.x,
-      y: this.y + slot.y
+      x: this.x + (col * this.tileWidth + this.tileWidth / 2),
+      y: this.y + (row * this.tileHeight + this.tileHeight / 2)
     };
   }
 }

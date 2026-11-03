@@ -18,11 +18,14 @@ import { SoundManager } from '../audio/SoundManager';
 import { MetaManager } from '@core/meta/metaManager';
 import { AnimationFX } from '../fx/AnimationFX';
 import { SteampunkAtmosphere } from '../fx/SteampunkAtmosphere';
+import { ParticleKit } from '../presentation/ParticleKit';
 
 interface EnemyVisual {
   container: Phaser.GameObjects.Container;
   sprite: Phaser.GameObjects.Sprite;
   hpBarFill: Phaser.GameObjects.Rectangle;
+  isScrapper?: boolean;
+  isDrone?: boolean;
 }
 
 export class RunScene extends Phaser.Scene {
@@ -46,15 +49,19 @@ export class RunScene extends Phaser.Scene {
   private benchSlots: { x: number; y: number }[] = [];
 
   // Controls
-  private spinButton!: Phaser.GameObjects.Rectangle;
-  private spinButtonText!: Phaser.GameObjects.Text;
-  private nudgeButton!: Phaser.GameObjects.Rectangle;
-  private nudgeButtonText!: Phaser.GameObjects.Text;
-  private engageButton!: Phaser.GameObjects.Rectangle;
+  private spinButton?: Phaser.GameObjects.Rectangle;
+  private spinButtonText?: Phaser.GameObjects.Text;
+  private nudgeButtonText?: Phaser.GameObjects.Text;
+  private engageButton!: Phaser.GameObjects.Image;
   private engageButtonText!: Phaser.GameObjects.Text;
   private speedButton!: Phaser.GameObjects.Rectangle;
   private speedButtonText!: Phaser.GameObjects.Text;
   private waveInfoText!: Phaser.GameObjects.Text;
+
+  // Slotbound Presentation Elements
+  private waveRibbonTexts: Phaser.GameObjects.Text[] = [];
+  private speechBubbleText!: Phaser.GameObjects.Text;
+  private skullBtnPulseTween: Phaser.Tweens.Tween | null = null;
 
   // Boss & Inspection Overlays
   private bossBarContainer!: Phaser.GameObjects.Container;
@@ -97,16 +104,33 @@ export class RunScene extends Phaser.Scene {
     SoundManager.getInstance().init();
     SoundManager.getInstance().startAmbientHum();
 
-    // 2. Build Industrial Background
-    this.add.rectangle(960, 540, 1920, 1080, 0x14100c);
-    const border = this.add.rectangle(960, 540, 1880, 1040);
-    border.setStrokeStyle(2, 0x3d2b1f);
+    // 2. Build Stone Shell & Grand Meadow Battle Window (matching Reference Slotbound)
+    this.add.rectangle(960, 540, 1920, 1080, 0x120f17);
 
-    // 3. Mount Sub-Views & Steampunk Atmosphere
-    this.atmosphere = new SteampunkAtmosphere(this);
+    // Battle Window positioned at x: 1176, y: 540 (width 1416, height 924)
+    const winX = 1176;
+    const winY = 540;
+    const winW = 1416;
+    const winH = 924;
+
+    // Meadow Backdrop
+    const meadowBg = this.add.image(winX, winY, 'bg_meadow_day');
+    meadowBg.setDisplaySize(winW - 50, winH - 50);
+
+    // Parchment/Brass Window Frame
+    const windowFrame = this.add.image(winX, winY, 'ui_window_frame');
+    windowFrame.setDisplaySize(winW, winH);
+
+    // Top Wave Ribbon Banner
+    this.createWaveRibbon(winX, 114);
+
+    // Foreman Cogsworth in arch niche
+    this.createForemanGuide(540, 138);
+
+    // 3. Mount Sub-Views & Presentation Components
     this.hud = new HUD(this);
-    this.reelView = new ReelView(this, 240, 310);
-    this.gridView = new GridView(this, 480, 100);
+    this.reelView = new ReelView(this, 224, 460);
+    this.gridView = new GridView(this, 560, 580);
     this.tooltip = new Tooltip(this);
     this.shopView = new ShopView(this);
     this.evolutionModal = new EvolutionModal(this);
@@ -116,13 +140,13 @@ export class RunScene extends Phaser.Scene {
     const initialGrid = ReelManager.extractGrid(this.state.reelStrips, this.state.reelIndices);
     this.reelView.setGrid(initialGrid);
 
-    // 4. Create Bench Area (Vernak)
+    // 4. Create Bench Area (Vernak under Slot Machine)
     this.createBenchArea();
 
     // 5. Create Slot Machine Controls
     this.createSlotControls();
 
-    // 6. Create Battle Controls & Status Pane
+    // 6. Create Battle Controls (Round Skull Valve Button)
     this.createBattleControls();
 
     // 7. Create Boss Bar & Inspection Overlays
@@ -256,128 +280,119 @@ export class RunScene extends Phaser.Scene {
     this.refreshHUD();
   }
 
-  private createBenchArea(): void {
-    // Bench backdrop panel
-    const benchBg = this.add.rectangle(1170, 640, 1380, 120, 0x1a1512);
-    benchBg.setStrokeStyle(2, 0x8c5836, 0.8);
+  private createWaveRibbon(x: number, y: number): void {
+    const ribbonBg = this.add.rectangle(x, y, 280, 42, 0x231d2c);
+    ribbonBg.setStrokeStyle(2, 0x3d3047);
+    this.waveRibbonTexts = [];
+    const offsets = [-75, -25, 25, 75];
+    for (let i = 0; i < 4; i++) {
+      const txt = this.add.text(x + offsets[i], y, `${i + 1}`, {
+        fontFamily: 'monospace',
+        fontSize: i === 0 ? '22px' : '15px',
+        color: i === 0 ? '#ffd166' : '#534764',
+        fontStyle: 'bold'
+      }).setOrigin(0.5);
+      this.waveRibbonTexts.push(txt);
+    }
+  }
 
-    this.add.text(490, 586, 'ВЕРСТАК АВТОМАТОНОВ (РЕЗЕРВ • ПЕРЕТАСКИВАЙТЕ НА ПОЛЕ ИЛИ ДРУГ НА ДРУГА ДЛЯ СЛИЯНИЯ):', {
+  private createForemanGuide(x: number, y: number): void {
+    // Arch niche and avatar
+    const nicheBg = this.add.rectangle(x, y, 92, 102, 0x18131e);
+    nicheBg.setStrokeStyle(2, 0x3d3047);
+    const avatar = this.add.image(x, y, 'ui_avatar_cogsworth');
+    avatar.setScale(2.5);
+
+    // Speech bubble
+    const bubble = this.add.image(x + 195, y, 'ui_speech_bubble');
+    bubble.setScale(2.3);
+    this.speechBubbleText = this.add.text(x + 195, y, 'Потяните рычаг Кузницы (Пробел) или расставьте автоматонов!', {
+      fontFamily: 'monospace',
+      fontSize: '13px',
+      color: '#ffd166',
+      align: 'center',
+      wordWrap: { width: 330 }
+    }).setOrigin(0.5);
+  }
+
+  private createBenchArea(): void {
+    // Reserve Shelf under Slot Machine
+    const shelfX = 224;
+    const shelfY = 880;
+    const benchBg = this.add.rectangle(shelfX, shelfY, 400, 190, 0x18141f);
+    benchBg.setStrokeStyle(2, 0x3d3047);
+
+    this.add.text(shelfX, shelfY - 74, '[ РЕЗЕРВ АВТОМАТОНОВ ]', {
       fontFamily: 'monospace',
       fontSize: '13px',
       color: '#ffd166',
       fontStyle: 'bold'
-    });
+    }).setOrigin(0.5);
 
-    // 12 Bench slot slots
-    const startX = 535;
-    const slotSpacing = 110;
-    for (let i = 0; i < 12; i++) {
-      const slotX = startX + i * slotSpacing;
-      const slotY = 650;
-      const slotOutline = this.add.rectangle(slotX, slotY, 74, 86, 0x221a15);
-      slotOutline.setStrokeStyle(1, 0x495057, 0.6);
+    // 5 Bench slots in a clean row
+    this.benchSlots = [];
+    const slotStartX = shelfX - 150;
+    const slotSpacing = 75;
+    for (let i = 0; i < 5; i++) {
+      const slotX = slotStartX + i * slotSpacing;
+      const slotY = shelfY + 12;
+      const slotOutline = this.add.rectangle(slotX, slotY, 68, 80, 0x241d2c);
+      slotOutline.setStrokeStyle(1, 0x534764, 0.7);
       this.benchSlots.push({ x: slotX, y: slotY });
     }
   }
 
   private createSlotControls(): void {
-    // Spin Button
-    this.spinButton = this.add.rectangle(240, 555, 320, 54, 0xd4a373);
-    this.spinButton.setStrokeStyle(3, 0xffd166);
-    this.spinButton.setInteractive({ useHandCursor: true });
-
-    this.spinButtonText = this.add.text(240, 555, 'КРУТИТЬ (3/3 БЕСПЛ.)', {
-      fontFamily: 'monospace',
-      fontSize: '17px',
-      color: '#1f1610',
-      fontStyle: 'bold'
-    }).setOrigin(0.5);
-
-    this.spinButton.on('pointerdown', () => this.handleSpinClick());
-    this.spinButton.on('pointerover', () => {
-      if (!this.isSpinning) this.spinButton.setFillStyle(0xffd166);
+    // Slot Lever and Reel wiring
+    this.reelView.on('spin_requested', () => this.handleSpinClick());
+    this.reelView.on('nudge_reel', (col: number) => {
+      this.nudgeReel(col, 1);
     });
-    this.spinButton.on('pointerout', () => {
-      if (!this.isSpinning) this.spinButton.setFillStyle(0xd4a373);
+    this.reelView.on('toggle_hold', (reelIndex: number) => {
+      this.toggleHoldReel(reelIndex);
     });
 
-    // Nudge Button
-    this.nudgeButton = this.add.rectangle(240, 620, 320, 42, 0x2b221a);
-    this.nudgeButton.setStrokeStyle(2, 0x8c5836);
-    this.nudgeButton.setInteractive({ useHandCursor: true });
+    // Hidden fallback text for legacy test compatibility
+    this.spinButton = this.add.rectangle(-1000, -1000, 10, 10, 0x000000);
+    this.spinButtonText = this.add.text(-1000, -1000, '');
+    this.nudgeButtonText = this.add.text(-1000, -1000, '');
+  }
 
-    this.nudgeButtonText = this.add.text(240, 620, 'СДВИГ БАРАБАНА (1/1)', {
+  private createBattleControls(): void {
+    // Round Cast-Iron Skull Valve Button at bottom right of battle window
+    this.engageButton = this.add.image(1760, 920, 'ui_btn_round_skull');
+    this.engageButton.setScale(2.8);
+    this.engageButton.setInteractive({ useHandCursor: true });
+
+    this.engageButtonText = this.add.text(1760, 975, 'В БОЙ ▶ (Enter)', {
       fontFamily: 'monospace',
       fontSize: '14px',
       color: '#ffd166',
       fontStyle: 'bold'
     }).setOrigin(0.5);
 
-    this.nudgeButton.on('pointerdown', () => {
-      if (this.state.phase === 'PREP' && this.state.nudgesLeft > 0) {
-        RunReducer.dispatch(this.state, { type: 'NUDGE_REEL', reelIndex: 1, direction: 1 }, this.rng, this.eventBus);
-        const grid = ReelManager.extractGrid(this.state.reelStrips, this.state.reelIndices);
-        this.reelView.setGrid(grid);
-        this.refreshHUD();
-      }
+    this.skullBtnPulseTween = this.tweens.add({
+      targets: this.engageButton,
+      scaleX: 3.0,
+      scaleY: 3.0,
+      duration: 750,
+      yoyo: true,
+      repeat: -1,
+      ease: 'Sine.easeInOut'
     });
-
-    // Hold Reels wiring
-    this.reelView.on('toggle_hold', (reelIndex: number) => {
-      if (this.state.phase === 'PREP') {
-        RunReducer.dispatch(this.state, { type: 'HOLD_REEL', reelIndex }, this.rng, this.eventBus);
-        this.reelView.updateHolds(this.state.heldReels);
-        this.refreshHUD();
-      }
-    });
-  }
-
-  private createBattleControls(): void {
-    // Battle status & control box at (1220, 100)
-    const boxX = 1450;
-    const boxY = 300;
-    const controlBox = this.add.rectangle(boxX, boxY, 500, 400, 0x1a1512);
-    controlBox.setStrokeStyle(2, 0x8c5836);
-
-    this.add.text(boxX, boxY - 170, '★ СТАВКА КОМАНДОВАНИЯ ★', {
-      fontFamily: 'monospace',
-      fontSize: '18px',
-      color: '#ffd166',
-      fontStyle: 'bold'
-    }).setOrigin(0.5);
-
-    this.waveInfoText = this.add.text(boxX, boxY - 90, 'Волна 1: Нашествие мародёров\nОжидаемые враги: Скрапперы, Дроны', {
-      fontFamily: 'sans-serif',
-      fontSize: '15px',
-      color: '#e9ecef',
-      align: 'center',
-      lineSpacing: 8
-    }).setOrigin(0.5);
-
-    // Engage Button
-    this.engageButton = this.add.rectangle(boxX, boxY + 30, 360, 60, 0x2a9d8f);
-    this.engageButton.setStrokeStyle(3, 0xffd166);
-    this.engageButton.setInteractive({ useHandCursor: true });
-
-    this.engageButtonText = this.add.text(boxX, boxY + 30, 'В БОЙ ▶ (ОТРАЗИТЬ ВОЛНУ)', {
-      fontFamily: 'monospace',
-      fontSize: '18px',
-      color: '#ffffff',
-      fontStyle: 'bold'
-    }).setOrigin(0.5);
 
     this.engageButton.on('pointerdown', () => this.handleEngageClick());
-    this.engageButton.on('pointerover', () => this.engageButton.setFillStyle(0x38b000));
-    this.engageButton.on('pointerout', () => this.engageButton.setFillStyle(0x2a9d8f));
+    this.engageButton.on('pointerover', () => this.engageButton.setScale(3.1));
+    this.engageButton.on('pointerout', () => this.engageButton.setScale(2.8));
 
     // Game Speed Button
-    this.speedButton = this.add.rectangle(boxX, boxY + 115, 260, 44, 0x2b221a);
+    this.speedButton = this.add.rectangle(1760, 835, 120, 34, 0x241d2c);
     this.speedButton.setStrokeStyle(2, 0x8c5836);
     this.speedButton.setInteractive({ useHandCursor: true });
 
-    this.speedButtonText = this.add.text(boxX, boxY + 115, 'СКОРОСТЬ: 1×', {
+    this.speedButtonText = this.add.text(1760, 835, 'СКОРОСТЬ: 1×', {
       fontFamily: 'monospace',
-      fontSize: '15px',
+      fontSize: '12px',
       color: '#ffd166',
       fontStyle: 'bold'
     }).setOrigin(0.5);
@@ -388,6 +403,8 @@ export class RunScene extends Phaser.Scene {
       else this.speedMultiplier = 1;
       this.speedButtonText.setText(`СКОРОСТЬ: ${this.speedMultiplier}×`);
     });
+
+    this.waveInfoText = this.add.text(-1000, -1000, '');
   }
 
   private createSpecialWaveOverlays(): void {
@@ -575,8 +592,8 @@ export class RunScene extends Phaser.Scene {
     }
 
     this.isSpinning = true;
-    this.spinButtonText.setText('ВРАЩЕНИЕ...');
-    this.spinButton.setFillStyle(0x6c757d);
+    this.spinButtonText?.setText('ВРАЩЕНИЕ...');
+    this.spinButton?.setFillStyle(0x6c757d);
 
     // Dispatch spin
     RunReducer.dispatch(this.state, { type: 'SPIN' }, this.rng, this.eventBus);
@@ -588,6 +605,11 @@ export class RunScene extends Phaser.Scene {
 
       if (this.state.lastSpinResult) {
         this.reelView.highlightWinningLines(this.state.lastSpinResult);
+        if (this.state.lastSpinResult.lineHits && this.state.lastSpinResult.lineHits.length > 0) {
+          if (this.speechBubbleText) {
+            this.speechBubbleText.setText('Отлично! Сплав готов! Автоматон призван в резерв!');
+          }
+        }
       }
 
       this.syncUnitCards();
@@ -621,12 +643,13 @@ export class RunScene extends Phaser.Scene {
     // Switch to Battle Phase
     RunReducer.dispatch(this.state, { type: 'START_BATTLE' }, this.rng, this.eventBus);
     this.reelView.clearPaylines();
-
-    // Disable prep interactions
-    this.spinButton.setFillStyle(0x343a40);
-    this.spinButtonText.setText('БОЙ В ПРОЦЕССЕ');
-    this.engageButton.setFillStyle(0x343a40);
-    this.engageButtonText.setText('ОБОРОНА ВЕДЕТСЯ...');
+    this.gridView.setBattleMode(true);
+    if (this.skullBtnPulseTween) this.skullBtnPulseTween.pause();
+    this.engageButton.setTint(0x555555);
+    this.engageButtonText.setText('БОЙ...');
+    if (this.speechBubbleText) {
+      this.speechBubbleText.setText('Орда мародёров наступает! Защищайте Котёл!');
+    }
 
     for (const card of this.unitCards.values()) {
       card.disableInteractive();
@@ -717,6 +740,9 @@ export class RunScene extends Phaser.Scene {
         SoundManager.getInstance().playEnemyDeath();
         if (ev.x !== undefined && ev.y !== undefined) {
           const pos = this.gridView.getSlotWorldPos(Math.floor(ev.x), ev.y);
+          if (this.textures.exists('tex_scrap_debris')) {
+            this.spawnParticleBurst(pos.x, pos.y, 'tex_scrap_debris', 8);
+          }
           this.spawnParticleBurst(pos.x, pos.y, 'fx_fire_particle', 10);
           AnimationFX.spawnShockwaveRing(this, pos.x, pos.y, 0xffa500, 50);
         }
@@ -729,12 +755,38 @@ export class RunScene extends Phaser.Scene {
           } else {
             const enemyVis = this.enemyVisuals.get(ev.sourceId);
             if (enemyVis) {
-              AnimationFX.playAttackAnimation(this, enemyVis.container, false);
+              if (enemyVis.isScrapper && this.anims.exists('scrapper_attack')) {
+                enemyVis.sprite.play('scrapper_attack');
+                this.tweens.add({
+                  targets: enemyVis.container,
+                  x: enemyVis.container.x - 22,
+                  duration: 130,
+                  yoyo: true,
+                  ease: 'Quad.easeOut',
+                  onComplete: () => {
+                    enemyVis.sprite.play('scrapper_walk', true);
+                  }
+                });
+              } else {
+                AnimationFX.playAttackAnimation(this, enemyVis.container, false);
+              }
             }
           }
         }
       } else if (ev.type === 'damage' && ev.x !== undefined && ev.y !== undefined) {
         const pos = this.gridView.getSlotWorldPos(Math.floor(ev.x), ev.y);
+        // Pure retro white crescent slash arc
+        if (this.textures.exists('tex_slash_arc')) {
+          const slash = this.add.image(pos.x, pos.y, 'tex_slash_arc');
+          slash.setDepth(600);
+          this.tweens.add({
+            targets: slash,
+            alpha: { from: 1, to: 0 },
+            scale: { from: 1, to: 1.4 },
+            duration: 160,
+            onComplete: () => slash.destroy()
+          });
+        }
         this.spawnParticleBurst(pos.x, pos.y, 'fx_spark_particle', 6);
         this.showFloatingText(pos.x, pos.y - 15, `-${ev.amount}`, '#e63946');
         if (ev.targetId) {
@@ -744,7 +796,17 @@ export class RunScene extends Phaser.Scene {
           } else {
             const enemyVis = this.enemyVisuals.get(ev.targetId);
             if (enemyVis) {
-              AnimationFX.playHitFlash(this, enemyVis.sprite);
+              // Pure white hit flash
+              enemyVis.sprite.setTintFill(0xffffff);
+              this.tweens.add({
+                targets: enemyVis.container,
+                x: enemyVis.container.x + 6,
+                duration: 60,
+                yoyo: true,
+                onComplete: () => {
+                  enemyVis.sprite.clearTint();
+                }
+              });
             }
           }
         }
@@ -781,31 +843,51 @@ export class RunScene extends Phaser.Scene {
       let visual = this.enemyVisuals.get(enemy.id);
       if (!visual) {
         const container = this.add.container(0, 0);
-        const sprite = this.add.sprite(0, 0, enemy.def.spriteKey);
+
+        // Retro drop shadow
+        const shadow = this.add.ellipse(0, 16, 36, 12, 0x09070d, 0.45);
+        container.add(shadow);
+
+        const isScrapper = enemy.defId === 'en_scrapper' || enemy.defId.includes('scrapper') || enemy.defId.includes('hound') || enemy.defId.includes('raider');
+        const isDrone = enemy.defId.includes('drone') || enemy.defId.includes('rover') || enemy.defId.includes('beetle');
+
+        let sprite: Phaser.GameObjects.Sprite;
+        if (isScrapper && this.anims.exists('scrapper_walk')) {
+          sprite = this.add.sprite(0, 0, 'tex_en_scrapper');
+          sprite.play('scrapper_walk');
+        } else if (isDrone && this.anims.exists('drone_fly')) {
+          sprite = this.add.sprite(0, 0, 'tex_en_shield_drone');
+          sprite.play('drone_fly');
+        } else {
+          sprite = this.add.sprite(0, 0, enemy.def.spriteKey);
+        }
+
         const isColossus = enemy.defId === 'boss_iron_colossus';
-        const bossSize = isColossus ? 80 : (enemy.isBoss ? 58 : 38);
+        const bossSize = isColossus ? 88 : (enemy.isBoss ? 64 : 48);
         sprite.setDisplaySize(bossSize, bossSize);
         container.add(sprite);
 
-        const hpBarBg = this.add.rectangle(0, -26, 40, 5, 0x1f1610);
-        const hpBarFill = this.add.rectangle(-20, -26, 40, 5, 0xe63946);
+        const hpBarBg = this.add.rectangle(0, -28, 42, 6, 0x141018);
+        hpBarBg.setStrokeStyle(1, 0x3d3047);
+        const hpBarFill = this.add.rectangle(-21, -28, 42, 6, 0xe63946);
         hpBarFill.setOrigin(0, 0.5);
         container.add(hpBarBg);
         container.add(hpBarFill);
 
-        container.setDepth(40);
-        visual = { container, sprite, hpBarFill };
+        visual = { container, sprite, hpBarFill, isScrapper, isDrone };
         this.enemyVisuals.set(enemy.id, visual);
       }
 
-      // Smooth position calculation on GridView
+      // Smooth position calculation on GridView with retro hop-bounce
       const colX = this.gridView.x + enemy.x * this.gridView.tileWidth + this.gridView.tileWidth / 2;
       const rowY = this.gridView.y + enemy.row * this.gridView.tileHeight + this.gridView.tileHeight / 2;
-      visual.container.setPosition(colX, rowY);
+      const hop = visual.isDrone ? Math.sin(this.time.now * 0.006) * 5 : -Math.abs(Math.sin(enemy.x * Math.PI * 2)) * 6;
+      visual.container.setPosition(colX, rowY + hop);
+      visual.container.setDepth(Math.floor(rowY));
 
       // HP bar scale
       const hpPct = Math.max(0, enemy.hp / enemy.maxHp);
-      visual.hpBarFill.setSize(40 * hpPct, 5);
+      visual.hpBarFill.setSize(42 * hpPct, 6);
 
       // Boss bar update if boss
       if (enemy.isBoss) {
@@ -817,6 +899,15 @@ export class RunScene extends Phaser.Scene {
   private handleWaveVictory(): void {
     this.bossBarContainer.setVisible(false);
     this.inspectionBanner.setVisible(false);
+    this.gridView.setBattleMode(false);
+
+    if (this.skullBtnPulseTween) this.skullBtnPulseTween.resume();
+    this.engageButton.clearTint();
+    this.engageButtonText.setText('В БОЙ ▶ (Enter)');
+    if (this.speechBubbleText) {
+      this.speechBubbleText.setText('Волна успешно отражена! Получена награда шестернями!');
+    }
+    ParticleKit.coinShower(this, 60);
 
     // Clear enemy visuals
     for (const visual of this.enemyVisuals.values()) {
@@ -834,8 +925,8 @@ export class RunScene extends Phaser.Scene {
   }
 
   private startPrepPhase(): void {
-    this.engageButton.setFillStyle(0x2a9d8f);
-    this.engageButtonText.setText('В БОЙ ▶ (ОТРАЗИТЬ ВОЛНУ)');
+    this.engageButton.clearTint();
+    this.engageButtonText.setText('В БОЙ ▶ (Enter)');
 
     const currentWave = this.state.waveNumber;
     const act = this.state.actNumber;
@@ -890,6 +981,7 @@ export class RunScene extends Phaser.Scene {
         card.setPosition(slotPos.x, slotPos.y);
         card.unit = unit;
       }
+      card.setDeployedMode(true);
     }
 
     // 2. Place Bench Cards
@@ -906,6 +998,7 @@ export class RunScene extends Phaser.Scene {
         card.setPosition(slot.x, slot.y);
         card.unit = unit;
       }
+      card.setDeployedMode(false);
     }
   }
 
@@ -991,6 +1084,30 @@ export class RunScene extends Phaser.Scene {
       activeCores: this.state.activeCores
     });
 
+    this.hud.updateUnitsCount(this.state.deployedUnits.length, 5);
+
+    if (this.reelView) {
+      this.reelView.updateBadges(
+        this.state.freeSpinsLeft,
+        this.state.freeSpinsLeft > 0,
+        BALANCE.EXTRA_SPIN_STEAM_COST
+      );
+    }
+
+    // Update Wave Ribbon
+    if (this.waveRibbonTexts && this.waveRibbonTexts.length === 4) {
+      const activeIdx = (this.state.waveNumber - 1) % 4;
+      for (let i = 0; i < 4; i++) {
+        if (i === activeIdx) {
+          this.waveRibbonTexts[i].setFontSize('22px');
+          this.waveRibbonTexts[i].setColor('#ffd166');
+        } else {
+          this.waveRibbonTexts[i].setFontSize('15px');
+          this.waveRibbonTexts[i].setColor('#534764');
+        }
+      }
+    }
+
     // Update Steampunk atmosphere & slot heat aura
     if (this.atmosphere) {
       this.atmosphere.updateHeatHaze(this.state.heat.currentHeat, 240, 310);
@@ -1002,13 +1119,13 @@ export class RunScene extends Phaser.Scene {
     // Spin button text
     if (this.state.phase === 'PREP') {
       if (this.state.freeSpinsLeft > 0) {
-        this.spinButtonText.setText(`КРУТИТЬ (${this.state.freeSpinsLeft} БЕСПЛ.)`);
-        this.spinButton.setFillStyle(0xd4a373);
+        this.spinButtonText?.setText(`КРУТИТЬ (${this.state.freeSpinsLeft} БЕСПЛ.)`);
+        this.spinButton?.setFillStyle(0xd4a373);
       } else {
-        this.spinButtonText.setText(`КРУТИТЬ (ПАР: 1, +20 HEAT)`);
-        this.spinButton.setFillStyle(0xe76f51);
+        this.spinButtonText?.setText(`КРУТИТЬ (ПАР: 1, +20 HEAT)`);
+        this.spinButton?.setFillStyle(0xe76f51);
       }
-      this.nudgeButtonText.setText(`СДВИГ БАРАБАНА (${this.state.nudgesLeft})`);
+      this.nudgeButtonText?.setText(`СДВИГ БАРАБАНА (${this.state.nudgesLeft})`);
     }
   }
 

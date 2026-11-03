@@ -4,12 +4,14 @@ using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.IO;
 using System.Net;
+using System.Net.Sockets;
+using System.Text;
 using System.Threading;
 using System.Windows.Forms;
 
 namespace Brassreel {
     static class Program {
-        static HttpListener listener;
+        static TcpListener tcpListener;
         static volatile bool running = true;
         static string distPath;
         static int activePort = 38888;
@@ -17,144 +19,151 @@ namespace Brassreel {
         static string browserExePath = "";
         static string profileDir = "";
         static string portFilePath = "";
-
         static string logFilePath = "";
 
         static void Log(string msg) {
             try {
-                File.AppendAllText(logFilePath, "[" + DateTime.Now.ToString("HH:mm:ss.fff") + "] " + msg + "\r\n");
+                string line = "[" + DateTime.Now.ToString("HH:mm:ss.fff") + "] " + msg + "\r\n";
+                File.AppendAllText(logFilePath, line);
+                Console.WriteLine(line);
             } catch {}
         }
 
         [STAThread]
         static void Main(string[] args) {
             logFilePath = Path.Combine(Path.GetTempPath(), "BRASSREEL_log.txt");
-            Log("=== Main started ===");
+            Log("==========================================");
+            Log("=== BRASSREEL Launcher Starting ===");
+
             AppDomain.CurrentDomain.UnhandledException += (s, e) => {
-                Log("UnhandledException: " + e.ExceptionObject.ToString());
+                Log("FATAL AppDomain.UnhandledException: " + e.ExceptionObject);
             };
             Application.ThreadException += (s, e) => {
-                Log("ThreadException: " + e.Exception.ToString());
+                Log("FATAL Application.ThreadException: " + e.Exception);
             };
+
             portFilePath = Path.Combine(Path.GetTempPath(), "BRASSREEL_port.txt");
 
-            // Ensure single-instance per user session
+            // 1. Single-instance mutex check
             bool createdNew;
-            Log("Creating mutex...");
-            using (Mutex singleMutex = new Mutex(true, "BRASSREEL_ClockworkSiege_Singleton_Mutex", out createdNew)) {
-                Log("Mutex created: createdNew=" + createdNew);
-                if (!createdNew) {
-                    Log("Secondary instance detected. Opening browser URL and exiting.");
-                    // Already running - re-open game URL in default browser and exit
-                    int targetPort = 38888;
-                    try {
-                        if (File.Exists(portFilePath)) {
-                            string pStr = File.ReadAllText(portFilePath).Trim();
-                            int parsed;
-                            if (int.TryParse(pStr, out parsed) && parsed > 0) {
-                                targetPort = parsed;
-                            }
-                        }
-                    } catch {}
+            Mutex singleMutex = null;
+            try {
+                singleMutex = new Mutex(true, "BRASSREEL_ClockworkSiege_Singleton_Mutex", out createdNew);
+            } catch (Exception ex) {
+                Log("Mutex exception: " + ex.Message);
+                createdNew = true;
+            }
 
-                    try {
-                        Process.Start("http://127.0.0.1:" + targetPort + "/");
-                    } catch {}
-                    return;
-                }
+            if (!createdNew) {
+                Log("Existing instance detected. Re-opening game in browser...");
+                int targetPort = 38888;
+                try {
+                    if (File.Exists(portFilePath)) {
+                        string pStr = File.ReadAllText(portFilePath).Trim();
+                        int parsed;
+                        if (int.TryParse(pStr, out parsed) && parsed > 0) targetPort = parsed;
+                    }
+                } catch {}
 
+                string u = "http://127.0.0.1:" + targetPort + "/";
+                try { Process.Start(u); } catch {}
+                return;
+            }
+
+            try {
                 Application.EnableVisualStyles();
                 Application.SetCompatibleTextRenderingDefault(false);
 
+                // Locate dist folder
                 string baseDir = AppDomain.CurrentDomain.BaseDirectory;
                 distPath = Path.Combine(baseDir, "dist");
-                
                 if (!Directory.Exists(distPath) || !File.Exists(Path.Combine(distPath, "index.html"))) {
                     string parentDist = Path.Combine(Directory.GetParent(baseDir).FullName, "dist");
                     if (Directory.Exists(parentDist) && File.Exists(Path.Combine(parentDist, "index.html"))) {
                         distPath = parentDist;
                     } else {
                         MessageBox.Show(
-                            "Папка 'dist' или файл 'dist\\index.html' не найдены!\n\nПожалуйста, запустите сборку игры перед стартом:\nnpm run build", 
-                            "BRASSREEL: Ошибка запуска", 
+                            "Папка 'dist' не найдена! Сначала соберите проект командой: npm run build", 
+                            "BRASSREEL: Ошибка", 
                             MessageBoxButtons.OK, 
                             MessageBoxIcon.Error
                         );
                         return;
                     }
                 }
+                Log("Serving assets from: " + distPath);
 
-                // 1. Bind exclusively to 127.0.0.1 (Loopback).
-                // Binding ONLY to 127.0.0.1 requires NO Windows admin privileges and avoids all HTTP.sys prefix reservation conflicts!
-                bool serverStarted = false;
+                // 2. Start bulletproof TcpListener on 127.0.0.1 (Zero admin rights, zero HTTP.sys URL reservation issues)
+                bool serverBound = false;
                 for (int p = 38888; p <= 38920; p++) {
                     try {
-                        listener = new HttpListener();
-                        listener.Prefixes.Add("http://127.0.0.1:" + p + "/");
-                        listener.Start();
+                        tcpListener = new TcpListener(IPAddress.Loopback, p);
+                        tcpListener.Start();
                         activePort = p;
-                        serverStarted = true;
-                        try {
-                            File.WriteAllText(portFilePath, p.ToString());
-                        } catch {}
+                        serverBound = true;
+                        Log("TcpListener successfully bound and listening on 127.0.0.1:" + p);
+                        try { File.WriteAllText(portFilePath, p.ToString()); } catch {}
                         break;
-                    } catch {
-                        if (listener != null) {
-                            try { listener.Close(); } catch {}
-                            listener = null;
+                    } catch (Exception ex) {
+                        Log("Port " + p + " bind failed: " + ex.Message);
+                        if (tcpListener != null) {
+                            try { tcpListener.Stop(); } catch {}
+                            tcpListener = null;
                         }
                     }
                 }
 
-                if (!serverStarted) {
+                if (!serverBound) {
                     MessageBox.Show(
-                        "Не удалось запустить локальный сервер на портах 38888-38920.",
-                        "BRASSREEL: Ошибка сети",
-                        MessageBoxButtons.OK,
+                        "Не удалось привязать сетевой порт 38888-38920.", 
+                        "BRASSREEL: Сетевая ошибка", 
+                        MessageBoxButtons.OK, 
                         MessageBoxIcon.Error
                     );
                     return;
                 }
 
-                // Micro-server loop in dedicated background thread
-                Thread serverThread = new Thread(RunServer);
+                // Dedicated server thread
+                Thread serverThread = new Thread(RunTcpServer);
                 serverThread.IsBackground = true;
+                serverThread.Name = "BrassreelTcpServer";
                 serverThread.Start();
 
-                // 2. Locate Chrome, Edge or Brave
+                // 3. Locate Chrome / Edge / Brave
                 browserExePath = FindBrowser();
+                Log("Browser detected: " + (string.IsNullOrEmpty(browserExePath) ? "None (system default)" : browserExePath));
 
-                // 3. Prepare dedicated profile directory so Chrome runs an isolated, non-delegated process
+                // 4. Dedicated profile for Chrome app mode
                 profileDir = Path.Combine(Path.GetTempPath(), "BRASSREEL_Profile");
                 try {
-                    if (!Directory.Exists(profileDir)) {
-                        Directory.CreateDirectory(profileDir);
-                    }
+                    if (!Directory.Exists(profileDir)) Directory.CreateDirectory(profileDir);
                 } catch {}
 
-                // 4. Initialize System Tray Icon
+                // 5. System tray icon
                 InitTrayIcon();
 
-                // 5. Launch Game Window in standalone App Mode
+                // 6. Launch Game Window
                 LaunchBrowserApp();
 
-                // 6. Enter Windows Forms message loop (keeps running in tray until user exits)
-                Log("Entering Application.Run()");
+                // 7. Keep message loop running
+                Log("Entering WinForms message loop...");
                 Application.Run();
-                Log("Exited Application.Run()");
-
-                // Cleanup on exit
+                Log("WinForms message loop finished.");
+            } catch (Exception ex) {
+                Log("Fatal exception in Main: " + ex);
+            } finally {
                 running = false;
-                try {
-                    if (File.Exists(portFilePath)) File.Delete(portFilePath);
-                } catch {}
+                try { if (File.Exists(portFilePath)) File.Delete(portFilePath); } catch {}
                 if (trayIcon != null) {
-                    trayIcon.Visible = false;
-                    trayIcon.Dispose();
+                    try { trayIcon.Visible = false; trayIcon.Dispose(); } catch {}
                 }
-                try {
-                    if (listener != null) listener.Stop();
-                } catch {}
+                if (tcpListener != null) {
+                    try { tcpListener.Stop(); } catch {}
+                }
+                if (singleMutex != null) {
+                    try { singleMutex.ReleaseMutex(); singleMutex.Dispose(); } catch {}
+                }
+                Log("=== Launcher cleanly exited ===");
             }
         }
 
@@ -164,6 +173,7 @@ namespace Brassreel {
 
         static void LaunchBrowserApp() {
             string url = GetGameUrl();
+            Log("Launching game at: " + url);
 
             if (!string.IsNullOrEmpty(browserExePath) && File.Exists(browserExePath)) {
                 try {
@@ -174,15 +184,15 @@ namespace Brassreel {
                         profileDir, url
                     );
                     psi.UseShellExecute = false;
-                    Process.Start(psi);
+                    Process p = Process.Start(psi);
+                    if (p != null) Log("Launched browser process PID=" + p.Id);
                     return;
-                } catch {}
+                } catch (Exception ex) {
+                    Log("Browser launch error: " + ex.Message);
+                }
             }
 
-            // Fallback to default browser
-            try {
-                Process.Start(url);
-            } catch {}
+            try { Process.Start(url); } catch {}
         }
 
         static string FindBrowser() {
@@ -198,9 +208,7 @@ namespace Brassreel {
             };
 
             foreach (string c in candidates) {
-                if (File.Exists(c)) {
-                    return c;
-                }
+                if (File.Exists(c)) return c;
             }
             return "";
         }
@@ -213,7 +221,6 @@ namespace Brassreel {
                         using (Graphics g = Graphics.FromImage(bmp)) {
                             g.SmoothingMode = SmoothingMode.AntiAlias;
                             g.Clear(Color.Transparent);
-                            // Brass gear base
                             using (Brush b = new SolidBrush(Color.FromArgb(28, 20, 14))) {
                                 g.FillEllipse(b, 2, 2, 28, 28);
                             }
@@ -235,7 +242,6 @@ namespace Brassreel {
                 }
 
                 ContextMenu menu = new ContextMenu();
-                
                 MenuItem titleItem = new MenuItem("BRASSREEL: Clockwork Siege (Порт: " + activePort + ")");
                 titleItem.Enabled = false;
                 menu.MenuItems.Add(titleItem);
@@ -251,7 +257,8 @@ namespace Brassreel {
 
                 menu.MenuItems.Add("-");
 
-                menu.MenuItems.Add("Завершить игру (Выход)", (s, e) => {
+                menu.MenuItems.Add("Закрыть игру (выход)", (s, e) => {
+                    Log("User clicked Exit in tray menu.");
                     Application.Exit();
                 });
 
@@ -263,72 +270,112 @@ namespace Brassreel {
                 trayIcon.DoubleClick += (s, e) => {
                     try { Process.Start(GetGameUrl()); } catch {}
                 };
-            } catch {}
+            } catch (Exception ex) {
+                Log("InitTrayIcon error: " + ex.Message);
+            }
         }
 
-        static void RunServer() {
+        static void RunTcpServer() {
+            Log("RunTcpServer thread active.");
             while (running) {
                 try {
-                    var context = listener.GetContext();
-                    ThreadPool.QueueUserWorkItem((ctxObj) => {
-                        var ctx = (HttpListenerContext)ctxObj;
-                        try {
-                            string rawPath = ctx.Request.Url.AbsolutePath.TrimStart('/');
-                            rawPath = Uri.UnescapeDataString(rawPath);
-                            if (string.IsNullOrEmpty(rawPath)) rawPath = "index.html";
-
-                            string filePath = Path.Combine(distPath, rawPath.Replace('/', Path.DirectorySeparatorChar));
-                            if (File.Exists(filePath)) {
-                                string ext = Path.GetExtension(filePath).ToLowerInvariant();
-                                string mime = "application/octet-stream";
-                                switch (ext) {
-                                    case ".html": mime = "text/html; charset=utf-8"; break;
-                                    case ".js": mime = "application/javascript; charset=utf-8"; break;
-                                    case ".css": mime = "text/css; charset=utf-8"; break;
-                                    case ".json": mime = "application/json; charset=utf-8"; break;
-                                    case ".png": mime = "image/png"; break;
-                                    case ".jpg":
-                                    case ".jpeg": mime = "image/jpeg"; break;
-                                    case ".svg": mime = "image/svg+xml"; break;
-                                    case ".ico": mime = "image/x-icon"; break;
-                                    case ".woff2": mime = "font/woff2"; break;
-                                    case ".woff": mime = "font/woff"; break;
-                                    case ".ttf": mime = "font/ttf"; break;
-                                    case ".mp3": mime = "audio/mpeg"; break;
-                                    case ".ogg": mime = "audio/ogg"; break;
-                                    case ".wav": mime = "audio/wav"; break;
-                                    case ".wasm": mime = "application/wasm"; break;
-                                }
-
-                                ctx.Response.ContentType = mime;
-                                ctx.Response.Headers.Add("Access-Control-Allow-Origin", "*");
-                                ctx.Response.Headers.Add("Cache-Control", "no-cache");
-
-                                if (ctx.Request.HttpMethod == "HEAD") {
-                                    ctx.Response.ContentLength64 = new FileInfo(filePath).Length;
-                                    ctx.Response.StatusCode = 200;
-                                    ctx.Response.Close();
-                                    return;
-                                }
-
-                                using (FileStream fs = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.Read)) {
-                                    ctx.Response.ContentLength64 = fs.Length;
-                                    byte[] buffer = new byte[65536];
-                                    int read;
-                                    while ((read = fs.Read(buffer, 0, buffer.Length)) > 0) {
-                                        ctx.Response.OutputStream.Write(buffer, 0, read);
-                                    }
-                                }
-                            } else {
-                                ctx.Response.StatusCode = 404;
-                            }
-                        } catch {} finally {
-                            try { ctx.Response.OutputStream.Close(); } catch {}
-                        }
-                    }, context);
+                    TcpClient client = tcpListener.AcceptTcpClient();
+                    ThreadPool.QueueUserWorkItem(HandleClient, client);
                 } catch {
                     if (!running) break;
                 }
+            }
+            Log("RunTcpServer thread finished.");
+        }
+
+        static void HandleClient(object clientObj) {
+            TcpClient client = (TcpClient)clientObj;
+            try {
+                using (NetworkStream ns = client.GetStream()) {
+                    ns.ReadTimeout = 5000;
+                    ns.WriteTimeout = 5000;
+
+                    byte[] reqBuffer = new byte[8192];
+                    int bytesRead = ns.Read(reqBuffer, 0, reqBuffer.Length);
+                    if (bytesRead <= 0) return;
+
+                    string reqText = Encoding.ASCII.GetString(reqBuffer, 0, bytesRead);
+                    string[] lines = reqText.Split(new string[] { "\r\n" }, StringSplitOptions.None);
+                    if (lines.Length == 0) return;
+
+                    string reqLine = lines[0];
+                    string[] parts = reqLine.Split(' ');
+                    if (parts.Length < 2) return;
+
+                    string method = parts[0];
+                    string rawPath = parts[1];
+
+                    // Remove query string
+                    int qIdx = rawPath.IndexOf('?');
+                    if (qIdx >= 0) rawPath = rawPath.Substring(0, qIdx);
+                    rawPath = rawPath.TrimStart('/');
+                    rawPath = Uri.UnescapeDataString(rawPath);
+                    if (string.IsNullOrEmpty(rawPath)) rawPath = "index.html";
+
+                    string filePath = Path.Combine(distPath, rawPath.Replace('/', Path.DirectorySeparatorChar));
+
+                    if (File.Exists(filePath)) {
+                        string ext = Path.GetExtension(filePath).ToLowerInvariant();
+                        string mime = "application/octet-stream";
+                        switch (ext) {
+                            case ".html": mime = "text/html; charset=utf-8"; break;
+                            case ".js": mime = "application/javascript; charset=utf-8"; break;
+                            case ".css": mime = "text/css; charset=utf-8"; break;
+                            case ".json": mime = "application/json; charset=utf-8"; break;
+                            case ".png": mime = "image/png"; break;
+                            case ".jpg":
+                            case ".jpeg": mime = "image/jpeg"; break;
+                            case ".svg": mime = "image/svg+xml"; break;
+                            case ".ico": mime = "image/x-icon"; break;
+                            case ".woff2": mime = "font/woff2"; break;
+                            case ".woff": mime = "font/woff"; break;
+                            case ".ttf": mime = "font/ttf"; break;
+                            case ".mp3": mime = "audio/mpeg"; break;
+                            case ".ogg": mime = "audio/ogg"; break;
+                            case ".wav": mime = "audio/wav"; break;
+                            case ".wasm": mime = "application/wasm"; break;
+                        }
+
+                        FileInfo fi = new FileInfo(filePath);
+                        long fileLength = fi.Length;
+
+                        string headers = string.Format(
+                            "HTTP/1.1 200 OK\r\n" +
+                            "Content-Type: {0}\r\n" +
+                            "Content-Length: {1}\r\n" +
+                            "Access-Control-Allow-Origin: *\r\n" +
+                            "Cache-Control: no-cache\r\n" +
+                            "Connection: close\r\n\r\n",
+                            mime, fileLength
+                        );
+
+                        byte[] headerBytes = Encoding.ASCII.GetBytes(headers);
+                        ns.Write(headerBytes, 0, headerBytes.Length);
+
+                        if (method != "HEAD") {
+                            using (FileStream fs = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.Read)) {
+                                byte[] fileBuf = new byte[65536];
+                                int read;
+                                while ((read = fs.Read(fileBuf, 0, fileBuf.Length)) > 0) {
+                                    ns.Write(fileBuf, 0, read);
+                                }
+                            }
+                        }
+                    } else {
+                        string notFound = "HTTP/1.1 404 Not Found\r\nContent-Type: text/plain\r\nContent-Length: 9\r\nConnection: close\r\n\r\nNot Found";
+                        byte[] notFoundBytes = Encoding.ASCII.GetBytes(notFound);
+                        ns.Write(notFoundBytes, 0, notFoundBytes.Length);
+                    }
+                    ns.Flush();
+                }
+            } catch {
+            } finally {
+                try { client.Close(); } catch {}
             }
         }
     }
