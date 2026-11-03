@@ -87,20 +87,25 @@ graph TD
 
 ---
 
-## 🚀 Quickstart & Commands
+## 🚀 Quickstart & How To Play
 
-### Prerequisites
-- [Node.js](https://nodejs.org/) (v20+ recommended)
-- npm / yarn / pnpm
+### 🎮 Option 1: Native Windows Executable (.exe)
+Simply double-click **`BRASSREEL.exe`** (or **`PLAY.bat`**) in the root directory!
+- Runs instantly in a native, standalone, borderless 1920×1080 desktop window.
+- Zero browser UI (no URL bars or tabs), full WebGL acceleration, and WebAudio SFX.
+- Full keyboard shortcuts suite (Space, Enter, 1/2/3, Q/W/E, V, P, F11, M).
 
-### Installation
+### 🌐 Option 2: Web Browser Local Server
 ```bash
-git clone https://github.com/Fasty1013/brassreel-clockwork-siege.git
-cd brassreel-clockwork-siege
 npm install
+npm run build
+npm run preview
 ```
+Then open `http://localhost:4173/` in any browser.
 
-### Development
+---
+
+## 🛠️ Developer Commands
 ```bash
 # Start Vite development server
 npm run dev

@@ -13,7 +13,8 @@
     "typecheck": "tsc --noEmit",
     "sim": "tsx tools/sim/runner.ts",
     "playtest": "tsx tests/e2e/playtestBrowser.ts",
-    "desktop:preview": "vite preview"
+    "desktop:preview": "vite preview",
+    "build:exe": "powershell -Command \"& 'C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\csc.exe' /target:winexe /out:BRASSREEL.exe /r:System.Windows.Forms.dll /r:System.Drawing.dll launcher\\Launcher.cs\""
   },
   "dependencies": {
     "phaser": "^3.88.2",
@@ -22,6 +23,7 @@
   "devDependencies": {
     "@types/node": "^22.13.5",
     "@vitest/coverage-v8": "^3.2.7",
+    "electron": "^45.2.1",
     "puppeteer-core": "^25.16.0",
     "ts-node": "^10.9.2",
     "tsx": "^4.23.15",
