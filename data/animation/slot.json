@@ -1,0 +1,66 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "name": "Slot Machine Presentation & Animation Timings",
+  "version": "1.0.0",
+  "lever": {
+    "anticipationOffsetPx": -6,
+    "anticipationDurationMs": 90,
+    "anticipationEase": "Quad.easeOut",
+    "pullDownOffsetPx": 28,
+    "pullDownDurationMs": 120,
+    "pullDownEase": "Quad.easeIn",
+    "springReboundOffsetPx": -4,
+    "springReboundDurationMs": 260,
+    "springReboundEase": "Back.easeOut",
+    "steamPuffFrameEvent": 2
+  },
+  "reels": {
+    "accelerationDurationMs": 250,
+    "accelerationEase": "Quad.easeIn",
+    "spinBlurSpeedPxPerSec": 960,
+    "minSpinDurationMs": 600,
+    "staggerStopDelayMs": 380,
+    "overshootBouncePx": 4,
+    "overshootDurationMs": 120,
+    "overshootEase": "Back.easeOut",
+    "anticipationSlowdownMult": 0.35,
+    "anticipationDurationMs": 1200,
+    "anticipationChassisVibratePx": 1
+  },
+  "winSequence": {
+    "screenDimAlpha": 0.45,
+    "dimFadeInMs": 180,
+    "lineTraceDurationMs": 320,
+    "symbolBounceScale": 1.25,
+    "symbolBounceDurationMs": 220,
+    "symbolSparkleParticleCount": 16,
+    "linePerLineDelayMs": 680,
+    "comboPopupBounceMs": 300
+  },
+  "summon": {
+    "tokenFlightDurationMs": 450,
+    "tokenFlightArcHeightPx": -40,
+    "tokenParticleTrailIntervalMs": 25,
+    "cellGlowColor": "#b5e48c",
+    "cellGlowFadeDurationMs": 600,
+    "whiteSilhouetteDurationMs": 180,
+    "smokeRingParticleCount": 12,
+    "popupCardDelayMs": 240,
+    "popupCardDurationMs": 300
+  },
+  "jam": {
+    "chassisShakeDurationMs": 450,
+    "chassisShakeIntensity": 3,
+    "redAlertLampBlinks": 4,
+    "smokePlumeCount": 8
+  },
+  "jackpot": {
+    "hitStopFreezeMs": 150,
+    "slowMotionDurationMs": 600,
+    "slowMotionTimeScale": 0.3,
+    "coinShowerParticleCount": 160,
+    "coinShowerDurationMs": 2800,
+    "cardRevealStaggerMs": 350,
+    "skipAllowedAfterMs": 1000
+  }
+}

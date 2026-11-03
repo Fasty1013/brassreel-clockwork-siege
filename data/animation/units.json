@@ -1,0 +1,115 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "name": "Unit Animation Frame Specifications & Event Hooks",
+  "version": "1.0.0",
+  "globalFps": 10,
+  "states": {
+    "idle": {
+      "frames": 4,
+      "fps": 8,
+      "loop": true,
+      "verticalBobPx": [0, -1, -2, -1],
+      "scaleY": [1.0, 1.02, 1.04, 1.02],
+      "events": {
+        "frame_1": "steam_wisp_trigger"
+      }
+    },
+    "move": {
+      "frames": 6,
+      "fps": 10,
+      "loop": true,
+      "hopOffsetPx": [0, -2, -3, -1, 0, 0],
+      "shadowScale": [1.0, 0.85, 0.8, 0.9, 1.0, 1.05],
+      "events": {
+        "frame_2": "step_dust_left",
+        "frame_5": "step_dust_right"
+      }
+    },
+    "attack_melee": {
+      "frames": 5,
+      "fps": 12,
+      "loop": false,
+      "offsetsPx": [
+        { "x": -2, "y": 0 },
+        { "x": -4, "y": -1 },
+        { "x": 6, "y": 0 },
+        { "x": 3, "y": 0 },
+        { "x": 0, "y": 0 }
+      ],
+      "events": {
+        "frame_1": "windup_swoosh_sfx",
+        "frame_2": "spawn_slash_arc_and_damage",
+        "frame_4": "recover_idle"
+      }
+    },
+    "attack_ranged": {
+      "frames": 5,
+      "fps": 12,
+      "loop": false,
+      "offsetsPx": [
+        { "x": 1, "y": 0 },
+        { "x": 2, "y": -1 },
+        { "x": -5, "y": 0 },
+        { "x": -2, "y": 0 },
+        { "x": 0, "y": 0 }
+      ],
+      "events": {
+        "frame_1": "bow_tension_sfx",
+        "frame_2": "release_arrow_projectile",
+        "frame_3": "muzzle_smoke_puff"
+      }
+    },
+    "cast": {
+      "frames": 5,
+      "fps": 10,
+      "loop": false,
+      "offsetsPx": [
+        { "x": 0, "y": 0 },
+        { "x": 0, "y": -3 },
+        { "x": 0, "y": -4 },
+        { "x": 0, "y": -2 },
+        { "x": 0, "y": 0 }
+      ],
+      "events": {
+        "frame_2": "charge_plasma_sfx",
+        "frame_3": "discharge_lightning_arc"
+      }
+    },
+    "hit": {
+      "frames": 2,
+      "fps": 12,
+      "loop": false,
+      "whiteoutFlash": true,
+      "knockbackPx": -3,
+      "events": {
+        "frame_0": "hit_flash_white_and_spark",
+        "frame_1": "restore_palette"
+      }
+    },
+    "death": {
+      "frames": 6,
+      "fps": 12,
+      "loop": false,
+      "scrapScatterParts": 8,
+      "gravity": 480,
+      "groundBounce": 0.45,
+      "events": {
+        "frame_0": "death_flash_and_shatter",
+        "frame_2": "spawn_smoke_cloud",
+        "frame_5": "destroy_container"
+      }
+    },
+    "spawn": {
+      "frames": 5,
+      "fps": 12,
+      "loop": false,
+      "silhouetteWhiteFrames": 2,
+      "squashStretch": [0.6, 1.35, 0.9, 1.05, 1.0],
+      "events": {
+        "frame_0": "spawn_cell_glow",
+        "frame_2": "smoke_ring_expand",
+        "frame_4": "enter_idle"
+      }
+    }
+  }
+}

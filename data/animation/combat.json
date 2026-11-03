@@ -1,0 +1,61 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "name": "Combat VFX Timings, Juice & Particle System Profiles",
+  "version": "1.0.0",
+  "juice": {
+    "hitStopNormalMs": 0,
+    "hitStopCritMs": 40,
+    "hitStopEliteDeathMs": 60,
+    "cameraShakeNormal": { "durationMs": 120, "intensity": 0.003 },
+    "cameraShakeHeavy": { "durationMs": 240, "intensity": 0.010 },
+    "cameraShakeBreach": { "durationMs": 400, "intensity": 0.018 }
+  },
+  "damageNumbers": {
+    "normal": {
+      "fontSizePx": 8,
+      "color": "#ffffff",
+      "strokeColor": "#0b090f",
+      "strokeThickness": 2,
+      "floatUpDistancePx": 12,
+      "durationMs": 650,
+      "ease": "Quad.easeOut"
+    },
+    "crit": {
+      "fontSizePx": 10,
+      "color": "#ffd166",
+      "strokeColor": "#3a2215",
+      "strokeThickness": 2,
+      "floatUpDistancePx": 18,
+      "bounceOvershoot": 1.25,
+      "durationMs": 850,
+      "ease": "Back.easeOut"
+    }
+  },
+  "projectiles": {
+    "arrow": {
+      "speedPxPerSec": 420,
+      "gravity": 120,
+      "trailParticle": "fx_smoke_particle",
+      "trailIntervalMs": 40
+    },
+    "bomb": {
+      "speedPxPerSec": 240,
+      "arcHeightPx": -60,
+      "rotationRadsPerSec": 12,
+      "trailParticle": "fx_spark_particle",
+      "explosionRadiusTiles": 1.2
+    },
+    "plasma": {
+      "speedPxPerSec": 560,
+      "isHoming": true,
+      "trailParticle": "fx_electric_particle",
+      "chainArcRadiusTiles": 2.5
+    }
+  },
+  "bossTransitions": {
+    "phaseIntroZoomScale": 1.12,
+    "phaseIntroDurationMs": 950,
+    "phaseNovaRingCount": 3,
+    "steamJetEruptionFrames": 8
+  }
+}

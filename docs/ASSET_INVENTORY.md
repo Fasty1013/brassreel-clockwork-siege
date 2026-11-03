@@ -1,273 +1,128 @@
-# BRASSREEL: Clockwork Siege — Comprehensive Asset Inventory & Art Pipeline Specification
+# BRASSREEL: Clockwork Siege — Comprehensive Asset Inventory & Replacement Matrix
 
-**Document Version:** 1.0.0 (Planning Milestone P0)  
-**Lead Discipline:** Art & VFX / Lead Architect / UI/UX  
-**Target Resolution:** 1920×1080 (Aspect Ratio: 16:9, Phaser Scale Mode: `FIT`, Pixel-Art Crisp)  
-**Asset Baseline:** 100% Procedural Vector-Canvas & WebAudio Engine  
-
----
-
-## 📊 Executive Summary & Asset Metrics
-
-| Category | Defined Asset Count | Base Resolution | Render Method | Current Source File |
-|---|:---:|:---:|:---:|---|
-| **Slot Strip Symbols** | 6 (+ 6 Gilded) | 48×48 px | HTML5 Canvas (Procedural) | `src/fx/proceduralAssets.ts` |
-| **Playable Units (Defenders)** | 33 Regular + 3 Legendary | 32×32 / 48×48 px | HTML5 Canvas (Procedural) | `src/fx/proceduralAssets.ts` |
-| **Enemies (Acts 1, 2, 3)** | 20 Regular Mobs | 32×32 px | HTML5 Canvas (Procedural) | `src/fx/proceduralAssets.ts` |
-| **Bosses (3 Acts × Multi-Phase)** | 3 Bosses (7 Distinct Phases) | 64×64 / 96×96 px | HTML5 Canvas (Procedural) | `src/fx/proceduralAssets.ts` |
-| **Projectiles & Trajectories** | 5 Types | 16×16 / 32×16 px | HTML5 Canvas (Procedural) | `src/fx/proceduralAssets.ts` |
-| **VFX Particles & Shaders** | 6 Particle textures + Payline vectors | 8×8 / 16×16 px | Canvas + Phaser Particles | `src/fx/proceduralAssets.ts` |
-| **Grid & Battlefield Environments** | 2 Tile types + 3 Act Backdrops | 64×64 / 1920×1080 px | Canvas + Procedural Vector | `src/scenes/RunScene.ts` |
-| **UI Widgets, Badges & Seals** | 18 UI components | Dynamic / Vector | Canvas / Phaser Graphics | `src/ui/**` |
-| **WebAudio SFX & Ambience** | 13 Synthesized Audio Profiles | Dynamic 44.1kHz | Web Audio API Oscillators | `src/audio/SoundManager.ts` |
-| **Total Inventory Footprint** | **112 Total Visual & Audio Assets** | **All In-Memory** | **Zero External Downloads** | **~45 KB Code Bundle** |
+**Version:** 2.0.0 (Visual Overhaul — Planning P0)  
+**Target Reference:** *Slotbound* (`/docs/reference/gameplay.mp4`)  
+**Resolution Standard:** Native 640×360 canvas with integer ×3 nearest-neighbor scaling to 1920×1080.  
+**Core Rule:** Zero primitive geometric placeholders (rectangles, circles, solid fills) in final delivery. Every entity is authentic 2D pixel art with frame-by-frame animation (8–12 FPS).
 
 ---
 
-## 1. Slot Machine & Forge Symbols (48×48 px)
+## 1. Placeholder Audit & Replacement Matrix
 
-The 3×3 slot machine forge is the primary mechanic of BRASSREEL. Each symbol has a standard version and a gilded (+50% stats) golden-rimmed version.
-
-| Asset Key | Display Name | Faction / Category | Visual Motifs & Color Palette | Status |
-|---|---|---|---|:---:|
-| `sym_cog` | Cogwheel | Cog (Defense/Armor) | Heavy 8-toothed brass cog, bronze rim, dark iron hub (`#d4a373`, `#8c5836`, `#22150c`) | ✅ Implemented |
-| `sym_spring` | Tension Coil | Spring (Speed/Crit) | Coiled tempered steel spring, emerald/copper accents (`#52b788`, `#2d6a4f`, `#1b4332`) | ✅ Implemented |
-| `sym_fuse` | Detonation Core | Fuse (AoE/Burn) | Pyrite bomb casing, burning spark fuse, ruby glow (`#e63946`, `#f4a261`, `#780000`) | ✅ Implemented |
-| `sym_coil` | Tesla Arc | Coil (Shock/Shield) | Twin copper cathode towers with cyan electric arc plasma (`#00f5d4`, `#00bbf9`, `#03045e`) | ✅ Implemented |
-| `sym_wild` | Clockwork Joker | Wild Substitute | Ornate brass automaton jester mask with ruby eye lenses (`#f39c12`, `#e74c3c`, `#2c3e50`) | ✅ Implemented |
-| `sym_crown` | Imperial Crown | Jackpot Trigger | Gilded 3-peak royal crown adorned with sapphire and ruby gears (`#ffd700`, `#e67e22`, `#8e44ad`) | ✅ Implemented |
-| `sym_*_gilded` | Gilded Variants | All 6 Symbols | Radiant animated golden outline aura + 1.5× sparkle particles (`#fff3b0`, `#ffd700`) | ✅ Dynamic |
-
----
-
-## 2. Playable Automaton Defenders (32×32 & 48×48 px)
-
-Units summon from payline matches and evolve through the Smelt Crucible across 3 tiers (★1 → ★2 → ★3).
-
-### 2.1 Scrap Tier (Tier 0)
-| Asset Key | Unit Name | Tier | Size | Visual Characteristics | Status |
-|---|---|:---:|:---:|---|:---:|
-| `tex_scrap_bot` | Scrap Bot | 0 | 32×32 | Asymmetrical tin chassis, rusted iron limbs, flickering yellow optical sensor | ✅ Implemented |
-
-### 2.2 Faction 1: Cog Automatons (Brass / Heavy Armor / Vanguard)
-| Asset Key | Unit Name | Tier | Branch | Visual Characteristics | Status |
-|---|---|:---:|:---:|---|:---:|
-| `tex_cog_knight` | Cog Knight | 1 | Base | Polished brass cuirass, steam-powered broadsword, heavy rivets | ✅ Implemented |
-| `tex_cog_bulwark` | Cog Bulwark | 2 | A | Tower shield with interlocking cog barriers, reinforced shoulder pauldrons | ✅ Implemented |
-| `tex_cog_ramhead` | Cog Ramhead | 2 | B | Massive hydraulic battering piston head, pneumatic steam pipes | ✅ Implemented |
-| `tex_cog_fortress` | Iron Fortress | 3 | A1 | Triple-reinforced mobile iron bunker, deployable blast barricades | ✅ Implemented |
-| `tex_cog_aegis` | Radiant Aegis | 3 | A2 | Reflective golden mirror armor, divine brass halo projecting defensive field | ✅ Implemented |
-| `tex_cog_juggernaut` | Steam Juggernaut | 3 | B1 | Quadrupedal steam titan with spinning hydraulic flails and smoking chimneys | ✅ Implemented |
-| `tex_cog_siegebreaker` | Siegebreaker | 3 | B2 | Twin rotary drill arms, spiked treads, glowing orange furnace core | ✅ Implemented |
-
-### 2.3 Faction 2: Spring Automatons (Verdigris Copper / Long-Range / Chrono-Speed)
-| Asset Key | Unit Name | Tier | Branch | Visual Characteristics | Status |
-|---|---|:---:|:---:|---|:---:|
-| `tex_spring_archer` | Spring Archer | 1 | Base | Elegant coiled-wire recurve bow, green verdigris plates, gear quiver | ✅ Implemented |
-| `tex_spring_sharpshooter` | Sharpshooter | 2 | A | Extended monocular brass scope, high-velocity spring rail barrel | ✅ Implemented |
-| `tex_spring_repeater` | Spring Repeater | 2 | B | Triple-barrel rotary clockwork crossbow, dual tension drums | ✅ Implemented |
-| `tex_spring_ballista` | Heavy Ballista | 3 | A1 | Tripod siege ballista firing pressurized kinetic harpoons | ✅ Implemented |
-| `tex_spring_eagle` | Clockwork Eagle | 3 | A2 | Elevated aerial perched mechanical raptor with panoramic brass wings | ✅ Implemented |
-| `tex_spring_volley` | Volley Master | 3 | B1 | Quad-mounted rapid fire array saturating grid lanes with steel quarrels | ✅ Implemented |
-| `tex_spring_chrono` | Chrono Hunter | 3 | B2 | Temporal pendulum chassis, blue chronosphere distortion around bowstring | ✅ Implemented |
-
-### 2.4 Faction 3: Fuse Automatons (Pyrite & Obsidian / Artillery / Explosive Burn)
-| Asset Key | Unit Name | Tier | Branch | Visual Characteristics | Status |
-|---|---|:---:|:---:|---|:---:|
-| `tex_fuse_sapper` | Fuse Sapper | 1 | Base | Leather-wrapped demolition pack, smoking matchcord, throwing bombs | ✅ Implemented |
-| `tex_fuse_pyromancer` | Pyromancer | 2 | A | High-pressure kerosene bellows, flame cone nozzle, glowing burner backpack | ✅ Implemented |
-| `tex_fuse_demolitionist` | Demolitionist | 2 | B | Heavy iron hazard vest, twin cluster dynamite bundles, goggles | ✅ Implemented |
-| `tex_fuse_mortar` | Siege Mortar | 3 | A1 | Cast-iron high-angle howitzer tube, smoke trails, recoil dampers | ✅ Implemented |
-| `tex_fuse_hellfire` | Hellfire Battery | 3 | A2 | Incendiary napalm projector leaving blazing ground patches | ✅ Implemented |
-| `tex_fuse_blast_dynamo` | Blast Dynamo | 3 | B1 | Gyroscopic kinetic bomb centrifuge causing chain shockwaves | ✅ Implemented |
-| `tex_fuse_doom_barricade` | Doom Barricade | 3 | B2 | Spiked suicide bastion triggering devastating 3×3 explosion on breach | ✅ Implemented |
-
-### 2.5 Faction 4: Coil Automatons (Cobalt & Silver / Arc Plasma / Energy Barrier)
-| Asset Key | Unit Name | Tier | Branch | Visual Characteristics | Status |
-|---|---|:---:|:---:|---|:---:|
-| `tex_coil_sparker` | Coil Sparker | 1 | Base | Handheld Leyden jar capacitors, sparking dual prong conductors | ✅ Implemented |
-| `tex_coil_conduit` | Arc Conduit | 2 | A | Resonator spire channeling bouncing chain lightning between enemies | ✅ Implemented |
-| `tex_coil_dynamo` | Coil Dynamo | 2 | B | Spinning magneto flywheel generating electrostatic barrier pulses | ✅ Implemented |
-| `tex_coil_tesla` | Tesla Spire | 3 | A1 | Towering toroidal Tesla coil discharging continuous blinding electric bolts | ✅ Implemented |
-| `tex_coil_storm` | Storm Generator | 3 | A2 | Ionized cloud projector showering entire vertical lane in localized lightning | ✅ Implemented |
-| `tex_coil_shield` | Barrier Matrix | 3 | B1 | Hexagonal energy dome projector granting absorbing shields to allies | ✅ Implemented |
-| `tex_coil_overload` | Overload Engine | 3 | B2 | Critical reactor radiating hazardous EMP waves when damaged | ✅ Implemented |
-
-### 2.6 Grand Automatons (Legendary Tier 3 — Jackpot Choice)
-| Asset Key | Unit Name | Tier | Size | Visual Characteristics | Status |
-|---|---|:---:|:---:|---|:---:|
-| `tex_legendary_leviathan` | The Iron Leviathan | 3 (Leg) | 48×48 | Massive brass dreadnought chassis, twin front grinders, impenetrable plating | ✅ Implemented |
-| `tex_legendary_solarion` | Solarion Prime | 3 (Leg) | 48×48 | Radiant gold solar accumulator lens firing penetrating full-screen thermal beam | ✅ Implemented |
-| `tex_legendary_chrono` | Chronos Engine | 3 (Leg) | 48×48 | Grand clockwork zodiac astrolabe slowing down all enemies by 60% globally | ✅ Implemented |
+### 1.1 Slot Machine Chassis & Controls
+| Entity | Current Placeholder | Reference Equivalent | Target Art Specification | Required Frames & States | Native Size | Priority | Method |
+|---|---|---|---|---|:---:|:---:|:---:|
+| **Slot Chassis** | Flat rectangle `0x1f1610` with single border | Ornate purple/stone casing with horn skull and ropes | Heavy dark-iron steampunk furnace cabinet, brass rivets, pipe fittings, pressure dials, top crown-boiler | `idle` (quivering steam, flickering vacuum lamps), `overheat` (cherry-red furnace glow), `jam` (black smoke venting) | 160×280 px | **P1** | **B / D** |
+| **Top Crown-Boiler** | Text `★ GORN-SLOT 3×3 ★` | Carved horn skull & bone teeth | Steampunk brass boiler dome with twin exhaust stacks, pressure manometer, valve wheel | `idle` (pulsing steam wisps 4f), `vent` (heavy steam eruption 6f) | 140×56 px | **P1** | **B / D** |
+| **Slot Reels (×3)** | 3 separate containers with plain lines | 3 vertical parchment strips with clipped ends | 3 light parchment-grey textured mechanical reels, top & bottom drop shadows | `idle`, `spin_blur` (motion-blurred strip), `stop_overshoot` (3f bounce down and lock) | 36×140 px (each) | **P1** | **B / D** |
+| **Slot Lever** | Button rectangle `КРУТИТЬ` | Red ball handle on white metal crank | Brass articulated lever arm with polished ruby/red ball knob, mounted on right side of cabinet | `rest` (up), `anticipation` (pulled back 4f), `release_spring` (violent rebound with sparks 5f) | 28×80 px | **P1** | **B / D** |
+| **Nudge Buttons (×3)** | Plain grey rectangles `СДВИГ БАРАБАНА` | Downward arrow buttons under each reel | Brass wedge arrow buttons with beveled edges and cog teeth | `normal`, `hover`, `pressed`, `highlight` (flashing white/gold border during almost-win) | 28×18 px | **P1** | **B / D** |
+| **Hold Chains (×3)** | Grey buttons `HOLD` | Heavy padlock and chains | Heavy forged iron chains wrapping the reel with brass padlock | `unlocked` (hidden), `locking_chain` (chains wrap with clink 4f), `locked` (padlock clamped) | 36×120 px | **P2** | **B / D** |
+| **Spin Counter & Cost Badges** | Text string `(ПАР: 1, +20 HEAT)` | Left spin bag badge, center gold cost badge | Embossed brass cartouches: left = steam gauge spin counter, center = golden coin purse cost badge, right = paytable book button | `idle`, `pulse_cost` (shakes on spin), `insufficient` (red blink) | 36×16 px | **P1** | **B / D** |
+| **Paytable Book Button** | Non-existent (no paytable modal) | Open tome icon in top-right of slot frame | Small leather-bound engineer manual with brass bookmark | `normal`, `hover`, `open_modal` | 18×18 px | **P2** | **B / D** |
+| **Lower Machine Shelf** | Pitch black empty space | Dark stone shelf with item pedestals | Riveted brass utility shelf holding equipped Engine Cores and passive relics | `empty_slot` (engraved brass socket), `filled_slot` (socketed core pulsing) | 140×44 px | **P2** | **B / D** |
 
 ---
 
-## 3. Adversaries & Siegebringers (Enemies & Bosses)
+### 1.2 Slot Reel Symbols (28×28 Native px)
+*All symbols drawn with 1px dark contour, 3–4 tonal shades, high-contrast silhouette readable at a glance.*
 
-Enemies besiege the Boiler across 3 escalating Acts (30 waves).
-
-### 3.1 Act 1: The Slag Heaps (Industrial Rust Marauders)
-| Asset Key | Enemy Name | Role | Size | Visual Characteristics | Status |
-|---|---|---|:---:|---|:---:|
-| `tex_en_scrapper` | Scrapper Bot | Swarm Melee | 32×32 | Rusted bipedal junk collector with jagged iron cleaver | ✅ Implemented |
-| `tex_en_steam_rover` | Steam Rover | Fast Skirmisher | 32×32 | Low-slung tricycle buggy with puffing smokestack | ✅ Implemented |
-| `tex_en_beetle` | Clockwork Beetle | Armored Vanguard | 32×32 | Thick iron shell carapace, snapping hydraulic pincers | ✅ Implemented |
-| `tex_en_sniper` | Scrap Sniper | Backline Ranged | 32×32 | Long scavenged rifle, optical red monocular targeting laser | ✅ Implemented |
-| `tex_en_shield_drone` | Shield Drone | Support Buffer | 32×32 | Floating brass quad-rotor projecting kinetic bubble | ✅ Implemented |
-| `tex_en_hound` | Piston Hound | Fast Flanker | 32×32 | Quadrupedal mechanical canine with razor steel jaws | ✅ Implemented |
-| `tex_en_mortar` | Mortar Crawler | Artillery | 32×32 | Heavy 6-legged spider chassis carrying lobbed shell launcher | ✅ Implemented |
-| `tex_en_bomber` | Steam Bomber | Kamikaze | 32×32 | Red pressurized boiler tank charging forward to detonate | ✅ Implemented |
-| `tex_en_borer` | Heavy Borer | Line Breaker | 32×32 | Conical spiral mining drill grinding through barricades | ✅ Implemented |
-| `tex_en_prowler` | Shock Prowler | Disruptor | 32×32 | Slender carbon-steel panther emitting crackling static | ✅ Implemented |
-| `tex_en_golem` | Spire Golem | Heavy Tank | 32×32 | Massive slag-brick behemoth with crushing iron fists | ✅ Implemented |
-| `tex_en_raider` | Boiler Raider | Elite Raider | 32×32 | Steampunk brigand captain wielding twin steam revolvers | ✅ Implemented |
-| `tex_boss_steam_baron` | **The Steam Baron (Boss 1)** | Act 1 Boss | 64×64 | Locomotive-plated war baron with rotating Gatling arm; Phase 2 vents superheated white steam | ✅ Implemented |
-
-### 3.2 Act 2: The Rust Swamps (Corrosive & Toxic Automatons)
-| Asset Key | Enemy Name | Role | Size | Visual Characteristics | Status |
-|---|---|---|:---:|---|:---:|
-| `tex_en_acid_drone` | Acid Drone | Flying Corrosive | 32×32 | Leaking glass vial fuselage spraying verdant toxic mist | ✅ Implemented |
-| `tex_en_rust_creeper` | Rust Creeper | Ambush Disabler | 32×32 | Slime-coated caterpillar corroding defender armor | ✅ Implemented |
-| `tex_en_bog_stalker` | Bog Stalker | Lurking Behemoth | 32×32 | Stilted swamp walker with harpoon cable winch | ✅ Implemented |
-| `tex_en_toxic_leech` | Toxic Leech | Life Drainer | 32×32 | Segmented suction pump draining energy barriers | ✅ Implemented |
-| `tex_boss_corrosion_empress` | **Corrosion Empress (Boss 2)** | Act 2 Boss | 64×64 | Giant mechanical queen hornet with pulsating green acid venom sacs; Phase 2 hatches parasitic broods | ✅ Implemented |
-
-### 3.3 Act 3: Baron's Citadel (Elite High-Tech Imperial Automatons)
-| Asset Key | Enemy Name | Role | Size | Visual Characteristics | Status |
-|---|---|---|:---:|---|:---:|
-| `tex_en_clockwork_executioner` | Executioner | Heavy Decapitation | 32×32 | Armored paladin swinging a spinning circular buzz-saw | ✅ Implemented |
-| `tex_en_siege_engine` | Siege Engine | Long-Range Trebuchet | 32×32 | Heavy tracked vehicle firing cluster mortar salvos | ✅ Implemented |
-| `tex_en_dreadnought` | Citadel Dreadnought | Heavy Wall | 32×32 | Towering fortress walker with double-layered reactive armor | ✅ Implemented |
-| `tex_en_lightning_spire` | Lightning Spire | Mobile Battery | 32×32 | Mobile electrification pole connecting lethal grid laser gates | ✅ Implemented |
-| `tex_boss_iron_colossus` | **The Iron Colossus (Final Boss)** | Act 3 Final Boss | 96×96 | Multi-tile skyscraper automaton; Phase 1 Siege Mortars, Phase 2 Gatling Barrage, Phase 3 Meltdown Nova | ✅ Implemented |
+| Symbol Key | Current Placeholder | Reference Equivalent | Target Steampunk Pixel-Art Design | Animations / States | Priority | Method |
+|---|---|---|---|---|:---:|:---:|
+| `sym_cog` | 2D canvas circle with 8 teeth | Shield icon (blue/white) | Heavy 8-spoke brass cogwheel with polished bronze rim, center copper axle, metallic specular glint | `idle` (static), `spin_blur` (stretched), `win_bounce` (squash 1.25× + gold sparkle burst 4f) | **P1** | **B / D** |
+| `sym_spring` | Coiled green spiral arc | Recurve Bow icon | Tempered emerald-lacquered clockwork recurve bow with taught silver wire and gear cams | `idle`, `spin_blur`, `win_bounce` (quivers and releases green motes 4f) | **P1** | **B / D** |
+| `sym_fuse` | Red circle with orange dot | Magic Staff / Fire icon | Cast-iron demolition grenade with glowing sulfur fuse, ember sparks and brass casing | `idle` (fuse smoking 3f), `spin_blur`, `win_bounce` (fiery ember burst 4f) | **P1** | **B / D** |
+| `sym_coil` | Blue zig-zag stroke | Wizard Hat icon (blue/gold) | Twin cobalt capacitor prongs with crackling cyan electrostatic plasma ball | `idle` (plasma flicker 3f), `spin_blur`, `win_bounce` (electric arc flash 4f) | **P1** | **B / D** |
+| `sym_wild` | Yellow joker diamond | Knight Horse Head icon | Ornate golden automaton jester mask with ruby ocular lenses and brass jester bells | `idle` (gleam 4f), `spin_blur`, `win_bounce`, `transform` (flips with gold halo into target symbol 5f) | **P1** | **B / D** |
+| `sym_crown` | Orange crown polygon | Imperial Gold Crown | Imperial triple-crested clockwork crown set with sapphire and ruby gears, radiant gold frame | `idle` (pulsing shimmer 4f), `spin_blur`, `win_bounce` (jackpot coin fountain trigger) | **P1** | **B / D** |
+| `sym_*_gilded` | Golden circle border | Golden rim | Luminous gilded golden filigree border around symbol + continuous golden particle halo | `ambient_gild_sparkle` (loop 6f) | **P2** | **B / D** |
 
 ---
 
-## 4. Projectiles, VFX & Particle Systems
-
-| Asset Key | Type | Dimensions | Visual Description & Behavior |
-|---|---|:---:|---|
-| `proj_arrow` | Projectile | 16×16 px | High-speed sharpened steel bolt with spring trail |
-| `proj_bomb` | Projectile | 16×16 px | Arcing iron sphere with glowing fuse sparking in flight |
-| `proj_spark` | Projectile | 16×16 px | Cyan zigzag electrostatic bolt homing to enemy targets |
-| `fx_spark_particle` | Particle | 8×8 px | Fiery orange friction spark emitted on mechanical strikes |
-| `fx_smoke_particle` | Particle | 16×16 px | Volumetric billow of grey factory steam and boiler exhaust |
-| `fx_fire_particle` | Particle | 12×12 px | Blazing crimson/yellow explosion fire plume |
-| `fx_acid_particle` | Particle | 10×10 px | Toxic green sizzling splatter reducing armor |
-| `fx_electric_particle` | Particle | 8×8 px | Blinding neon-cyan lightning spark for Tesla chains |
-| `fx_payline_vector` | Dynamic Graphic | Screen-space | Glowing laser payline vectors (3 horizontal, 3 vertical, 2 diagonal) |
-| `fx_valve_eruption` | Dynamic Screen FX | 1920×1080 px | Full-screen whiteout steam eruption during Emergency Valve |
+### 1.3 Battle Window & Environmental Backdrop
+| Component | Current Placeholder | Reference Equivalent | Target Art Specification | Required Dimensions / Grid | Priority | Method |
+|---|---|---|---|---|:---:|:---:|
+| **Battle Window Frame** | None (canvas is open borderless void) | Beige parchment frame with torn corners, rivets, drop shadow | Ornate ivory-brass parchment border, reinforced iron corner brackets, engraved steam pressure scale | Window: x 140–620, y 22–330 (Native px) | **P1** | **B / D** |
+| **Window Backdrop (Act 1: Slag Heaps)** | Flat black `#14100c` | Sunny day: bright blue sky, golden cream sun, fluffy white clouds, 3-tier green trees, lush meadow | Bright sunny outskirts of New Brassholm: cyan sky, golden-cream sun, chunky white steam-clouds, distant brass clock towers, 3-tier lush trees, green meadow with rusty rails | Drawn on coarse **320×180 grid** (×6 on screen) for authentic chunky retro contrast | **P1** | **A / B** |
+| **Window Backdrop (Act 2: Rust Swamps)** | Flat black `#14100c` | Sunset / evening sky | Murky amber sunset, toxic mist, silhouetted rusted cranes, weeping willow trees, murky peat turf | 320×180 grid (sunset orange/purple palette) | **P5** | **A / B** |
+| **Window Backdrop (Act 3: Baron's Citadel)** | Flat black `#14100c` | Night sky | Stormy midnight purple, lightning flashes, towering gothic brass smokestacks, cobblestone iron courtyard | 320×180 grid (dark violet/gold lamps palette) | **P5** | **A / B** |
+| **Battlefield Grid** | 8×5 harsh bordered brown rectangles | Completely invisible meadow; units stand freely with shadows | **Zero visible grid lines during combat.** Subtle grid cell tile highlight ONLY appears when dragging a unit to deploy | 8 columns × 5 rows (Col width 45 px, row depth 14 px, y-sorted) | **P1** | **B / D** |
+| **Wave Ribbon Banner** | Plain text `Волна 1/30` | Dark purple ribbon with diamond ends and numbers `1 2 3 4` | Dark iron ribbon banner with diamond tips, brass wave numbers `1 2 3 4 5`, current wave enlarged and glowing | 120×18 px (centered top of battle window) | **P1** | **B / D** |
+| **Guide Niche & Avatar** | None | Top-left alcove with hooded silhouette | Top-left arched brass niche housing **Foreman Cogsworth** (brass automaton master with glowing ocular monocle) | `idle` (head tilt, monocle blink 4f), `talk` (mouthplate articulation 4f) | 32×32 px (niche 38×38 px) | **P1** | **B / D** |
+| **Start Battle Button** | Cyan flat rectangle `в БОЙ ▶` | Round black skull button in bottom-right | Heavy round cast-iron valve button with brass cog skull emblem, spring-loaded bevel | `normal`, `hover` (steam hisses), `pressed` (sinks 2px), `pulse` (heartbeat pulse when ready) | 36×36 px (round) | **P1** | **B / D** |
+| **Window Side Icons** | Plain text / scattered UI | Vertical icons on right edge (stats, shop sack, cancel cross) | 3 stamped brass round icon tabs: Stats Chart, Gold Supply Sack, Dismiss/Back cross | `normal`, `hover`, `active` | 18×18 px (each) | **P2** | **B / D** |
 
 ---
 
-## 5. Battlefield, Grid & UI Widgets
-
-| Asset Key | Category | Dimensions | Visual Style & Purpose |
-|---|---|:---:|---|
-| `tile_player` | Grid Tile | 64×64 px | Warm polished dark brass grid tile with beveled corner rivets (Columns 0–3) |
-| `tile_enemy` | Grid Tile | 64×64 px | Cold rusted cast-iron grating with hazard drainage (Columns 4–7) |
-| `ui_boiler_meter` | HUD Component | 240×48 px | Vintage brass boiler vessel with red liquid pressure level and glass gauge |
-| `ui_heat_gauge` | HUD Component | 180×60 px | Steampunk thermometer dial swinging from Safe (0%) to Overheat/Jam (100%) |
-| `ui_star_badges` | UI Icon | 18×18 px | ★1 (Bronze Gear), ★2 (Silver Cog), ★3 (Gilded Sunburst) |
-| `ui_faction_badges` | UI Icon | 24×24 px | 4 Distinct Faction Heraldic Crests (Cog, Spring, Fuse, Coil) |
-| `ui_slot_chassis` | Scene Frame | 420×460 px | Art-deco casino-forge cabinet with lever arm and reel viewing window |
+### 1.4 Top Floating HUD
+| Widget | Current Placeholder | Reference Equivalent | Target Art Specification | States & Animations | Native Size | Priority | Method |
+|---|---|---|---|---|:---:|:---:|
+| **Gold / Cogs Badge** | Text `Шестерни: 25` | Pill `[Gold icon] 350` | Stamped brass coin pill with spinning brass cog icon, ticking number display | `idle`, `coin_tally` (bounces up when collecting bounty) | 54×14 px | **P1** | **B / D** |
+| **Boiler Pressure HP** | Text `Давление котла: 10/10` | Pill `[Heart icon] 5` | Polished brass boiler vessel pill with ruby pressure dial (10/10) | `idle`, `damaged` (shakes, vents red steam) | 54×14 px | **P1** | **B / D** |
+| **Unit Capacity** | None (untracked in HUD) | Pill `[Man icon] 2/5` | Tiny brass automaton silhouette with capacity fraction `X/Y` | `normal`, `full` (warning amber) | 42×14 px | **P1** | **B / D** |
+| **Steam Reservoir** | Text `Пар: 3/5` | Pill `[Blue Crystal icon] 0` | Glass cylinder tube with boiling cyan steam vapor | `idle`, `consume_steam` (drops with bubble burst) | 46×14 px | **P1** | **B / D** |
+| **Wave / Boss Countdown** | Text `[Акт 1]` | Pill `[Swords] until 5 left` | Cross-wrench badge showing waves until inspection / boss | `normal`, `boss_alert` (flashing skull) | 68×14 px | **P1** | **B / D** |
 
 ---
 
-## 6. Procedural WebAudio SFX Engine (Zero External Audio Files)
+### 1.5 Playable Automaton Defenders (32×32 Native px)
+*Every unit is a character with helmet, weapon, armor plates, steam pipes, shadow beneath feet, and frame-by-frame animation (8–12 FPS).*
 
-| Sound Profile | Triggering Game Event | Synthesis Method | Duration |
-|---|---|---|:---:|
-| `playReelTick` | Reel spin step (per symbol) | Triangle wave frequency sweep (1200Hz → 300Hz) through bandpass filter | 35 ms |
-| `playReelStop` | Reel brake / lock | Sine wave body punch (160Hz → 45Hz) + Square wave mechanical clunk | 160 ms |
-| `playPaylineHit` | Payline match confirmed | Pentatonic brass bell chimes with frequency scaling by payout | 300 ms |
-| `playJackpot` | 3 Crowns Jackpot | Dual harmonic fanfare chord + rapid coin hopper payout simulation | 1200 ms |
-| `playValveRelease` | Emergency Valve trigger | High-gain white noise buffer passed through sweeping low-pass filter | 600 ms |
-| `playSmeltEvolution` | Smelt Crucible fusion | Pitch-rising sawtooth harmonic into resonant low-end bass drop | 450 ms |
-| `playCombatAttack` | Basic sword/fist hit | Short filtered pink noise burst + sine thump | 80 ms |
-| `playArrowShoot` | Spring archer volley | High-Q bandpass swept tick simulating taut bowstring snap | 70 ms |
-| `playExplosion` | Fuse bomb detonation | Low-frequency rumble (60Hz) blended with distortion noise clip | 500 ms |
-| `playShock` | Coil Tesla discharge | FM modulated carrier-modulator pair creating electric zapping arc | 120 ms |
-| `playBoilerDamage` | Enemy reaches boiler | Metallic hull breach collision clatter + alarm bell pulse | 400 ms |
-| `playGameOver` | Defeat / Victory | Melancholy low minor chord or triumphant brass crescendo | 2000 ms |
-| `playAmbientHum` | Background loop | Continuous 55Hz sub-bass factory drone + randomized periodic ticks | Endless |
-
----
-
-## 7. Comparative Analysis of Art Pipeline Options
-
-We evaluate four strategic directions for the game's ongoing art and visual pipeline:
-
-```mermaid
-graph TD
-    subgraph A["Option A: Enhanced Procedural Canvas"]
-        A1["Code-drawn in TypeScript"] --> A2["HTML5 Canvas Context2D"]
-        A2 --> A3["Zero HTTP / Zero Assets"]
-    end
-
-    subgraph B["Option B: Offline Pre-baked Spritesheet"]
-        B1["Headless Canvas Script"] --> B2["FreeTexPacker PNG & JSON"]
-        B2 --> B3["Phaser Texture Atlas"]
-    end
-
-    subgraph C["Option C: Hand-Crafted Aseprite Atlas"]
-        C1["Aseprite Pixel Art Files"] --> C2["CLI Export / TexturePacker"]
-        C2 --> C3["Manual Multi-frame Sheets"]
-    end
-
-    subgraph D["Option D (RECOMMENDED): Hybrid Progressive Pipeline"]
-        D1["Procedural Fallback (Always Ready)"] --> D3["Phaser Texture Cache"]
-        D2["External Spritesheet Override (When Present)"] --> D3
-        D3 --> D4["WebGL Post-Process Shaders (CRT, Heat Shimmer, Bloom)"]
-    end
-```
-
-### Detailed Options Comparison
-
-| Metric / Feature | Option A: Pure Procedural (Current) | Option B: Pre-baked Spritesheets | Option C: Dedicated Aseprite | Option D: Hybrid Progressive (Recommended) |
-|---|---|---|---|---|
-| **External File Dependency** | **Zero** (100% in JS bundle) | High (`sprites.png`, `sprites.json`) | High (Multiple `.aseprite` / `.png`) | **Zero Required** (Optional progressive enhancement) |
-| **Startup / Loading Time** | **< 20 ms** (Instant canvas draw) | 150–400 ms (HTTP texture fetch) | 200–500 ms (Texture atlas decoding) | **< 20 ms** (Procedural cache first) |
-| **Animation Fidelity** | Tween-based transforms (Squash, rotate) | Multi-frame flipbook | Rich hand-drawn micro-animations | **Dual**: Procedural tweens + multi-frame atlas overrides |
-| **Production Speed / Cost** | **Fastest** (Generative code algorithms) | Moderate (Requires headless render tool) | Slow (Hand-drawing 112+ assets) | **Fast & Future-Proof** (Keep game playable immediately) |
-| **Visual Quality** | Clean, minimalist, crisp pixel-art | Crisp, fixed-resolution pixel-art | Industry-tier detailed pixel-art | **Best of Both**: Clean baseline + shader bloom & CRT glow |
-| **Modding & Reskinning** | Difficult (Requires editing TS code) | Easy (Drop replacement `.png` into `/public`) | Easy (Standard texture atlas) | **Easiest** (Drop-in override without recompilation) |
+| Unit Key | Unit Name | Faction | Tier | Current Placeholder | Target Pixel-Art Design & Weaponry | Required Animation States (Frames) | Priority | Method |
+|---|---|:---:|:---:|---|---|---|:---:|:---:|
+| `tex_scrap_bot` | Scrap Bot | Scrap | 0 | Grey rectangle with red dot | Asymmetric tinplate scrapper with rusty cleaver, mismatched iron legs, wobbly antenna | `idle` (4f), `move` (6f hop), `attack` (5f slash), `hit` (2f), `death` (6f scrap scatter) | **P1** | **B / D** |
+| `tex_cog_knight` | Cog Knight | Cog | 1 | Small grey square with dot | Sturdy brass vanguard with heavy broadsword, round rivet shield, polished visor | `idle` (4f breathing), `move` (6f jump-walk), `attack` (5f sword slash + white arc), `hit` (2f), `death` (6f) | **P1 (BENCHMARK)** | **B / D** |
+| `tex_spring_archer` | Spring Archer | Spring | 1 | Small green square with dot | Slender verdigris copper ranger with coiled clockwork recurve bow, feathered cap, gear quiver | `idle` (4f), `move` (6f), `attack` (5f draw & arrow release), `hit` (2f), `death` (6f) | **P1** | **B / D** |
+| `tex_fuse_sapper` | Fuse Sapper | Fuse | 1 | Small red square with dot | Leather-aproned demolitionist with burning matchcord, iron bomb canister, protective goggles | `idle` (4f), `move` (6f), `attack` (5f fuse light & throw), `hit` (2f), `death` (6f) | **P1** | **B / D** |
+| `tex_coil_sparker` | Coil Sparker | Coil | 1 | Small blue square with dot | Robed electrostatic mechanist with dual copper wand prongs, crackling plasma aura | `idle` (4f), `move` (6f), `attack` (5f arc discharge), `cast` (5f), `hit` (2f), `death` (6f) | **P1** | **B / D** |
+| `tex_cog_bulwark` | Cog Bulwark | Cog | 2 | Square with shield outline | Tower-shield heavy tank with massive interlocking brass plates | Same 6 states (modular doll extension) | **P3** | **B / D** |
+| `tex_cog_ramhead` | Cog Ramhead | Cog | 2 | Square with horn outline | Pneumatic battering-ram automaton with piston horn | Same 6 states (modular doll extension) | **P3** | **B / D** |
+| `tex_spring_sharpshooter`| Sharpshooter | Spring | 2 | Green square with scope | Long-barrel brass sniper rifle with monocular scope | Same 6 states (modular doll extension) | **P3** | **B / D** |
+| `tex_spring_repeater` | Spring Repeater | Spring | 2 | Green square with cross | Triple-barrel rotary clockwork crossbow | Same 6 states (modular doll extension) | **P3** | **B / D** |
+| `tex_fuse_pyromancer` | Pyromancer | Fuse | 2 | Red square with flame | High-pressure kerosene bellows and flame projector nozzle | Same 6 states (modular doll extension) | **P3** | **B / D** |
+| `tex_fuse_demolitionist`| Demolitionist | Fuse | 2 | Red square with bomb | Twin dynamite bundles and reinforced blast apron | Same 6 states (modular doll extension) | **P3** | **B / D** |
+| `tex_coil_conduit` | Arc Conduit | Coil | 2 | Blue square with rod | Dual Tesla resonator rods channeling bouncing lightning | Same 6 states (modular doll extension) | **P3** | **B / D** |
+| `tex_coil_dynamo` | Coil Dynamo | Coil | 2 | Blue square with ring | Rotating magnetic flywheel projecting electrostatic shield | Same 6 states (modular doll extension) | **P3** | **B / D** |
+| *Tier 3 & Legendaries* | (16 Tier 3 + 3 Grand Automatons) | All | 3 | Colored squares with star text | Elaborate 48×48 px armored titans, glowing auras, dual-wielding, ornate crests | Same 6 states per unit (assembled via modular doll system) | **P5** | **B / D** |
 
 ---
 
-## 8. Strategic Recommendation: Option D (Hybrid Progressive Pipeline)
-
-The **Hybrid Progressive Pipeline (Option D)** is strongly recommended for BRASSREEL: Clockwork Siege:
-
-1. **Guaranteed Zero-Regression Baseline:**
-   - The game retains `src/fx/proceduralAssets.ts`. It will **never** throw a missing texture error, crash on offline launch, or fail during headless testing.
-2. **Modular TexturePacker / PNG Overrides:**
-   - Implement `AssetLoader.ts`: When loading a texture key (e.g., `tex_boss_steam_baron`), Phaser checks if an external high-detail sprite atlas exists in `public/assets/`. If found, it uses the enriched multi-frame animation; if absent, it silently and gracefully falls back to the canvas procedural asset.
-3. **WebGL Post-Processing Shaders:**
-   - Add lightweight GLSL fragment shaders to elevate the steampunk atmosphere:
-     - **Heat Distortion Shader:** Rippling furnace air over the 3×3 slot machine when Heat > 50%.
-     - **CRT / Brass Vignette:** Subtle scanlines and darkened brass corner vignette.
-     - **Electric Bloom:** Neon glow over Coil faction arcs and Jackpot sequences.
+### 1.6 Adversaries & Siegebringers (Enemies & Bosses)
+| Enemy Key | Name | Act | Role | Current Placeholder | Target Pixel-Art Design | Required Animation States | Priority | Method |
+|---|---|:---:|---|---|---|---|:---:|:---:|
+| `tex_en_scrapper` | Scrapper Marauder | 1 | Swarm Melee | Green/grey square | Bipedal rust-junk marauder with jagged scrap cleaver and leather hood | `idle` (4f), `move` (6f hop), `attack` (5f cleave), `hit` (2f), `death` (6f scrap scatter) | **P1** | **B / D** |
+| `tex_en_steam_rover` | Steam Rover | 1 | Fast Buggy | Grey square with wheel | Low tricycle steam buggy with smoking exhaust pipe and spiked grill | `idle` (4f), `move` (4f wheel roll), `attack` (4f ram), `hit` (2f), `death` (6f) | **P3** | **B / D** |
+| `tex_en_beetle` | Clockwork Beetle | 1 | Armored Wall | Grey beetle polygon | Thick cast-iron scarab with snapping hydraulic pincers | `idle` (4f), `move` (6f scuttle), `attack` (5f clamp), `hit` (2f), `death` (6f) | **P3** | **B / D** |
+| `tex_en_sniper` | Scrap Sniper | 1 | Ranged | Grey square with line | Scavenged rifleman with red optical scope and camouflage cloaking | `idle` (4f), `move` (6f), `attack` (5f shoot), `hit` (2f), `death` (6f) | **P3** | **B / D** |
+| `tex_en_shield_drone` | Shield Drone | 1 | Buffer | Floating blue circle | Hovering quad-rotor brass gyrocopter projecting kinetic barrier | `idle` (4f rotor spin), `move` (4f tilt), `cast` (4f pulse), `hit` (2f), `death` (6f) | **P3** | **B / D** |
+| `tex_en_hound` | Piston Hound | 1 | Fast Flanker | Grey dog polygon | Quadrupedal steel canine with pneumatic jaws and razor teeth | `idle` (4f pant), `move` (6f gallop), `attack` (5f bite lunge), `hit` (2f), `death` (6f) | **P3** | **B / D** |
+| `tex_boss_steam_baron`| **The Steam Baron** | 1 | Act 1 Boss | 64×64 circle with mustache | Locomotive-armored war baron with top hat, cigar smoke, spinning Gatling arm | **Phase 1:** `idle` (6f), `walk` (6f), `gatling` (8f), `steam_sweep` (6f), `hit` (2f); **Phase 2 (Overheat):** red hot hull, venting jets, charge attack | **P3** | **B / D** |
+| *Act 2 & 3 Enemies* | (8 Mobs + 2 Bosses) | 2 & 3 | Various | Primitive polygons | Toxic insectoids, acid drones, citadel knights, siege engines, Iron Colossus | Standard 6 states per enemy (assembled in P5) | **P5** | **B / D** |
 
 ---
 
-## 9. Phased Execution Roadmap
-
-- **Phase P0 (CURRENT):** Complete comprehensive `ASSET_INVENTORY.md` audit and establish the Art Pipeline strategy. **[Agent stops here for user verification]**
-- **Phase P1:** Implement the `AssetLoader` override layer with seamless procedural fallback.
-- **Phase P2:** Multi-frame animation expansion (walk cycles, recoil, hit flash, death dissolve).
-- **Phase P3:** Steampunk GLSL WebGL shaders (Heat shimmer, Electric Bloom, Steam smoke particles).
-- **Phase P4:** Production verification, visual regression testing, and final bundle packaging.
+### 1.7 UI Panels, Modals, Dialogue & VFX
+| Component | Current Implementation | Reference Equivalent | Target Art Specification | Priority | Method |
+|---|---|---|---|:---:|:---:|
+| **Slide-Out Unit Panel** | None (simple popup text) | Dark purple panel sliding from left over slot machine | Ornate 9-slice dark slate panel with brass trim, unit portrait, LV pip bar, 5 square mod sockets | **P4** | **B / D** |
+| **Tutorial Dialogue Bubble** | None (no tutorial) | Dark pink/purple rounded speech bubble with pointer to guide | Dark mulberry speech bubble with cream border, pointing tail to Cogsworth, white pixel font, `Click to continue` prompt | **P4** | **B / D** |
+| **Spotlight Dimmer** | None | Screen dims to 40% except highlighted element | Full-screen masking overlay `#0a080d` with cut-out hole and glowing border around target | **P2** | **Phaser Graphics** |
+| **Summon Cell Highlight** | None | Square cell lights up green with sparkles | 45×14 px diamond/square ground patch glowing `#b5e48c` with rising pixel sparkles | **P2** | **B / D** |
+| **Token Flying Arc** | None | Coin/symbol flies from slot to cell | 16×16 px circular faction token trailing colored pixel particles along a bezier arc | **P2** | **B / D** |
+| **White Silhouette Spawn** | None | Unit spawns as white silhouette then reveals | 3-frame spawn: pure white silhouette → squash bounce → full color with smoke ring | **P2** | **B / D** |
+| **Payline Vector Lines** | Canvas vector stroke | Neon pixel line tracing winning symbols | Crisp 2px pixelated neon line with moving white glint dash | **P2** | **B / D** |
+| **Hit Flash & Damage Numbers** | Red floating text `-[N]` | White silhouette flash on sprite + tiny pixel numbers | 2-frame pure white sprite flash (`setTintFill(0xffffff)`), floating 8px pixel numbers with drop shadow | **P1** | **B / D** |
+| **Sword Slash / Weapon Arc** | None | White crescent slash arc (2–3 frames) | Crescent 3-frame white/light-cyan slash swoosh attached to weapon tip | **P1** | **B / D** |
+| **Jackpot Coin Rain** | None | Cascade of pixel coins bouncing off frame | 150+ pooled gold and bronze coin particles with gravity, ground bounce, and sparkle glints | **P2** | **ParticleKit** |
+| **Foundry Shop Modal** | Full-screen brown panel with text buttons | Shopkeeper modal with card shelves and coin purse | Steampunk workshop interior with wooden shelf, 3 gadget cards with hover tilt, reel strip editor | **P4** | **B / D** |
 
 ---
 
-## 10. Verification Sign-Off Checklist for P0
+## 2. Technical Production Methods Matrix
 
-- [x] All 6 Slot Symbols cataloged (Normal + Gilded).
-- [x] All 36 Playable Automaton Defenders cataloged (T0 Scrap, 28 Faction Units, 3 Legendary Grand Automatons).
-- [x] All 24 Enemies & Bosses across Acts 1, 2, and 3 cataloged with dimensions and visual specs.
-- [x] All 5 Projectiles and 6 VFX Particle systems cataloged.
-- [x] All 13 Procedural WebAudio SFX routines cataloged with frequency and synthesis data.
-- [x] 4 Art Pipeline architectures evaluated with comparison matrix.
-- [x] Option D (Hybrid Progressive Pipeline) formulated with clear transition roadmap.
-
+| Method Code | Description | Scope in BRASSREEL Overhaul | Tools & Pipeline |
+|---|---|---|---|
+| **A** | **AI Generation + Strict Pixel Pipeline** | High-density backgrounds, complex organic landscape layers | Midjourney / Stable Diffusion pixel prompt → `/tools/sprites` (downsample, palette quantize, 1px contour) |
+| **B (Primary)** | **Modular Doll Pixel-Matrix Engine** | All 36 units, 24 enemies, UI 9-slice frames, chassis, icons | Hand-crafted base body doll + swappable weapon/armor layers + indexed palette swapper → Sprite Atlas |
+| **C** | **CC0 Verified Clean Base** | Initial motion curves, walk cycles reference | Kenney / OpenGameArt CC0 sprite reference curves (recolored and re-dressed) |
+| **D** | **External Artist / Aseprite Drop-in** | Final boss sheets, hero character art | Direct `.aseprite` / `.png` atlas drop into `/assets/art/` via automated JSON tag importer |
