@@ -71,10 +71,10 @@ describe('Deep Reducer Transitions & Game Loop Suite', () => {
     expect(state.reserveBench[0].mods[0].id).toBe(sacMod.id);
   });
 
-  it('advances through wave 10 boss clear to VICTORY phase', () => {
+  it('advances through wave 30 final boss clear to VICTORY phase', () => {
     const rng = PrngManager.createStreams('BOSS_VICTORY_TEST');
     const state = RunStateManager.createInitialState('BOSS_VICTORY_TEST');
-    state.waveNumber = 10; // Boss wave
+    state.waveNumber = 30; // Final Boss wave
 
     // Deploy 5 high-powered long-range defenders
     for (let i = 0; i < 5; i++) {

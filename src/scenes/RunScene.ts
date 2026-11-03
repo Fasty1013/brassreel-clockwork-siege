@@ -13,6 +13,8 @@ import { EvolutionModal } from '@ui/EvolutionModal';
 import { GADGETS_DATA } from '@data/gadgets';
 import { BALANCE } from '@data/balance';
 import { ReelManager } from '@core/reels/reels';
+import { SoundManager } from '../audio/SoundManager';
+import { MetaManager } from '@core/meta/metaManager';
 
 interface EnemyVisual {
   container: Phaser.GameObjects.Container;
@@ -54,6 +56,7 @@ export class RunScene extends Phaser.Scene {
   private bossBarFill!: Phaser.GameObjects.Rectangle;
   private bossBarText!: Phaser.GameObjects.Text;
   private inspectionBanner!: Phaser.GameObjects.Container;
+  private inspectionText!: Phaser.GameObjects.Text;
 
   // Wave Result Modal
   private waveResultContainer!: Phaser.GameObjects.Container;
@@ -72,6 +75,8 @@ export class RunScene extends Phaser.Scene {
     // 1. Initialize deterministic run state & PRNG
     const seed = '20261102';
     this.state = RunStateManager.createInitialState(seed);
+    const meta = MetaManager.load();
+    MetaManager.applyMetaToRun(this.state, meta);
     this.rng = PrngManager.createStreams(seed);
     this.eventBus = new EventBus();
 
@@ -82,6 +87,10 @@ export class RunScene extends Phaser.Scene {
     this.speedMultiplier = 1;
     this.combatAccumulator = 0;
     this.isSpinning = false;
+
+    // Audio init & ambient hum
+    SoundManager.getInstance().init();
+    SoundManager.getInstance().startAmbientHum();
 
     // 2. Build Industrial Background
     this.add.rectangle(960, 540, 1920, 1080, 0x14100c);
@@ -286,13 +295,13 @@ export class RunScene extends Phaser.Scene {
     inspectBg.setStrokeStyle(2, 0xffd166);
     this.inspectionBanner.add(inspectBg);
 
-    const inspectText = this.add.text(0, 0, '★ ПРОВЕРКА ОТК: Победить за 40 сек! Награда: +50 Шестерней ★', {
+    this.inspectionText = this.add.text(0, 0, '★ ПРОВЕРКА ОТК: Победить за 40 сек! Награда: +50 Шестерней ★', {
       fontFamily: 'monospace',
       fontSize: '14px',
       color: '#ffd166',
       fontStyle: 'bold'
     }).setOrigin(0.5);
-    this.inspectionBanner.add(inspectText);
+    this.inspectionBanner.add(this.inspectionText);
 
     this.inspectionBanner.setVisible(false);
     this.inspectionBanner.setDepth(200);
@@ -350,6 +359,7 @@ export class RunScene extends Phaser.Scene {
     // Valve usage
     this.hud.on('use_valve', (choice: 'slow' | 'heal') => {
       if (this.state.phase === 'BATTLE') {
+        SoundManager.getInstance().playValveHiss();
         RunReducer.dispatch(this.state, { type: 'USE_VALVE', choice }, this.rng, this.eventBus);
         this.refreshHUD();
       }
@@ -405,8 +415,10 @@ export class RunScene extends Phaser.Scene {
 
     // Smelt text floater
     this.eventBus.on('unit_smelted', (data) => {
+      SoundManager.getInstance().playSmelt();
       const card = this.unitCards.get(data.targetId);
       if (card) {
+        this.spawnParticleBurst(card.x, card.y, 'fx_spark_particle', 12);
         this.showFloatingText(card.x, card.y - 30, `+${data.xpAdded} XP (Сплав!)`, '#ffd166');
       }
     });
@@ -471,8 +483,25 @@ export class RunScene extends Phaser.Scene {
 
     // Check boss or inspection
     if (this.state.waveNumber === 10) {
+      this.bossBarText.setText('★ ПАРОВОЙ БАРОН [ФАЗА 1: ДАВЛЕНИЕ] ★');
+      this.bossBarFill.setFillStyle(0xe63946);
+      this.bossBarContainer.setVisible(true);
+    } else if (this.state.waveNumber === 20) {
+      this.bossBarText.setText('★ ИМПЕРАТРИЦА КОРРОЗИИ [ФАЗА 1: КИСЛОТА] ★');
+      this.bossBarFill.setFillStyle(0x2ec4b6);
+      this.bossBarContainer.setVisible(true);
+    } else if (this.state.waveNumber === 30) {
+      this.bossBarText.setText('★ ЖЕЛЕЗНЫЙ КОЛОСС [ФАЗА 1: ТИТАН] ★');
+      this.bossBarFill.setFillStyle(0xffd166);
       this.bossBarContainer.setVisible(true);
     } else if (this.state.waveNumber === 5) {
+      this.inspectionText.setText('★ ПРОВЕРКА ОТК: Победить за 40 сек! Награда: +50 Шестерней ★');
+      this.inspectionBanner.setVisible(true);
+    } else if (this.state.waveNumber === 15) {
+      this.inspectionText.setText('★ ПРОВЕРКА ОТК: Кислотный шторм! Победить за 45 сек! ★');
+      this.inspectionBanner.setVisible(true);
+    } else if (this.state.waveNumber === 25) {
+      this.inspectionText.setText('★ ПРОВЕРКА ОТК: Тяжёлый конвой! Победить за 50 сек! ★');
       this.inspectionBanner.setVisible(true);
     }
 
@@ -514,14 +543,35 @@ export class RunScene extends Phaser.Scene {
 
     for (const ev of this.state.combatState.events) {
       if (ev.type === 'breach') {
+        SoundManager.getInstance().playValveHiss();
+        this.spawnParticleBurst(480, 300, 'fx_smoke_particle', 16);
         this.cameras.main.shake(300, 0.015);
         this.showFloatingText(480, 300, 'ПРОРЫВ К КОТЛУ! -1 HP', '#e63946');
       } else if (ev.type === 'boss_phase') {
-        this.bossBarText.setText('★ ПАРОВОЙ БАРОН [ФАЗА 2: ПЕРЕГРЕВ] ★');
-        this.bossBarFill.setFillStyle(0xff0054);
+        SoundManager.getInstance().playBossAlarm();
+        this.spawnParticleBurst(960, 300, 'fx_fire_particle', 20);
+        if (this.state.waveNumber === 10) {
+          this.bossBarText.setText('★ ПАРОВОЙ БАРОН [ФАЗА 2: ПЕРЕГРЕВ] ★');
+          this.bossBarFill.setFillStyle(0xff0054);
+        } else if (this.state.waveNumber === 20) {
+          this.bossBarText.setText('★ ИМПЕРАТРИЦА КОРРОЗИИ [ФАЗА 2: ВЫЛЕТ РОЯ] ★');
+          this.bossBarFill.setFillStyle(0xb7094c);
+        } else if (this.state.waveNumber === 30) {
+          this.bossBarText.setText('★ ЖЕЛЕЗНЫЙ КОЛОСС [РЕАКТОР: ПЕРЕГРУЗКА] ★');
+          this.bossBarFill.setFillStyle(0xffbe0b);
+        }
         this.cameras.main.flash(400, 255, 60, 0);
+      } else if (ev.type === 'death') {
+        SoundManager.getInstance().playEnemyDeath();
+        if (ev.x !== undefined && ev.y !== undefined) {
+          const pos = this.gridView.getSlotWorldPos(Math.floor(ev.x), ev.y);
+          this.spawnParticleBurst(pos.x, pos.y, 'fx_fire_particle', 10);
+        }
+      } else if (ev.type === 'attack') {
+        SoundManager.getInstance().playAttack('cog');
       } else if (ev.type === 'damage' && ev.x !== undefined && ev.y !== undefined) {
         const pos = this.gridView.getSlotWorldPos(Math.floor(ev.x), ev.y);
+        this.spawnParticleBurst(pos.x, pos.y, 'fx_spark_particle', 6);
         this.showFloatingText(pos.x, pos.y - 15, `-${ev.amount}`, '#e63946');
       }
     }
@@ -557,7 +607,9 @@ export class RunScene extends Phaser.Scene {
       if (!visual) {
         const container = this.add.container(0, 0);
         const sprite = this.add.sprite(0, 0, enemy.def.spriteKey);
-        sprite.setDisplaySize(enemy.isBoss ? 56 : 38, enemy.isBoss ? 56 : 38);
+        const isColossus = enemy.defId === 'boss_iron_colossus';
+        const bossSize = isColossus ? 80 : (enemy.isBoss ? 58 : 38);
+        sprite.setDisplaySize(bossSize, bossSize);
         container.add(sprite);
 
         const hpBarBg = this.add.rectangle(0, -26, 40, 5, 0x1f1610);
@@ -611,7 +663,17 @@ export class RunScene extends Phaser.Scene {
     this.engageButtonText.setText('В БОЙ ▶ (ОТРАЗИТЬ ВОЛНУ)');
 
     const currentWave = this.state.waveNumber;
-    this.waveInfoText.setText(`Волна ${currentWave} / 10\nПодготовьте позиции и крутите горн-слот!`);
+    const act = this.state.actNumber;
+    this.waveInfoText.setText(`Волна ${currentWave} / 30 [АКТ ${act}]\nПодготовьте позиции и крутите горн-слот!`);
+
+    // Act transition announcements
+    if (currentWave === 11) {
+      this.showFloatingText(960, 400, '★ АКТ 2: РЖАВЫЕ ТОПИ ★', '#2ec4b6');
+      SoundManager.getInstance().playBossAlarm();
+    } else if (currentWave === 21) {
+      this.showFloatingText(960, 400, '★ АКТ 3: ЦИТАДЕЛЬ БАРОНА ★', '#ffbe0b');
+      SoundManager.getInstance().playBossAlarm();
+    }
 
     this.refreshHUD();
     this.syncUnitCards();
@@ -786,5 +848,26 @@ export class RunScene extends Phaser.Scene {
       ease: 'Cubic.easeOut',
       onComplete: () => floater.destroy()
     });
+  }
+
+  public spawnParticleBurst(x: number, y: number, textureKey: string, count = 8): void {
+    for (let i = 0; i < count; i++) {
+      const p = this.add.sprite(x, y, textureKey);
+      p.setDepth(1200);
+      const angle = Math.random() * Math.PI * 2;
+      const speed = 40 + Math.random() * 90;
+      const destX = x + Math.cos(angle) * speed;
+      const destY = y + Math.sin(angle) * speed;
+      this.tweens.add({
+        targets: p,
+        x: destX,
+        y: destY,
+        alpha: 0,
+        scale: 0.2,
+        duration: 350 + Math.random() * 250,
+        ease: 'Cubic.easeOut',
+        onComplete: () => p.destroy()
+      });
+    }
   }
 }

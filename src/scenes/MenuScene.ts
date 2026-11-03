@@ -1,10 +1,13 @@
 import Phaser from 'phaser';
 import { setLocale, getLocale } from '@data/i18n';
+import { SoundManager } from '../audio/SoundManager';
+import { ArchiveModal } from '../ui/ArchiveModal';
 
 export class MenuScene extends Phaser.Scene {
   private startBtnText!: Phaser.GameObjects.Text;
   private langBtnText!: Phaser.GameObjects.Text;
   private gears: Phaser.GameObjects.Sprite[] = [];
+  private archiveModal!: ArchiveModal;
 
   constructor() {
     super('MenuScene');
@@ -27,6 +30,21 @@ export class MenuScene extends Phaser.Scene {
     // Marquee Frame
     const border = this.add.rectangle(width / 2, height / 2, width - 80, height - 80);
     border.setStrokeStyle(3, 0xd4a373, 0.5);
+
+    // Sound toggle at top right
+    const soundBtn = this.add.rectangle(width - 70, 50, 48, 40, 0x2b221a);
+    soundBtn.setStrokeStyle(1, 0x8c5836);
+    soundBtn.setInteractive({ useHandCursor: true });
+
+    const soundText = this.add.text(width - 70, 50, SoundManager.getInstance().getMuted() ? '🔇' : '🔊', {
+      fontSize: '20px'
+    }).setOrigin(0.5);
+
+    soundBtn.on('pointerdown', () => {
+      SoundManager.getInstance().init();
+      const muted = SoundManager.getInstance().toggleMute();
+      soundText.setText(muted ? '🔇' : '🔊');
+    });
 
     // Title & Subtitle
     this.add.text(width / 2, 220, 'BRASSREEL', {
@@ -87,25 +105,50 @@ export class MenuScene extends Phaser.Scene {
     });
 
     startBtn.on('pointerdown', () => {
+      SoundManager.getInstance().init();
+      SoundManager.getInstance().playButtonClick();
       this.cameras.main.fade(300, 20, 16, 12);
       this.time.delayedCall(300, () => {
         this.scene.start('RunScene');
       });
     });
 
-    // Language Toggle Button (RU / EN)
-    const langBtn = this.add.rectangle(width / 2, 650, 220, 48, 0x2b221a);
-    langBtn.setStrokeStyle(2, 0x8c5836);
-    langBtn.setInteractive({ useHandCursor: true });
+    // Mount Archive Modal
+    this.archiveModal = new ArchiveModal(this);
 
-    this.langBtnText = this.add.text(width / 2, 650, `ЯЗЫК / LANG: ${getLocale().toUpperCase()}`, {
+    // Archive Button
+    const archiveBtn = this.add.rectangle(width / 2 - 130, 630, 240, 48, 0x2b221a);
+    archiveBtn.setStrokeStyle(2, 0xffd166);
+    archiveBtn.setInteractive({ useHandCursor: true });
+
+    this.add.text(width / 2 - 130, 630, 'АРХИВ КУЗНИЦЫ ⚙️', {
       fontFamily: 'monospace',
-      fontSize: '16px',
+      fontSize: '15px',
       color: '#ffd166',
       fontStyle: 'bold'
     }).setOrigin(0.5);
 
+    archiveBtn.on('pointerdown', () => {
+      SoundManager.getInstance().init();
+      SoundManager.getInstance().playButtonClick();
+      this.archiveModal.open();
+    });
+
+    // Language Toggle Button (RU / EN)
+    const langBtn = this.add.rectangle(width / 2 + 130, 630, 220, 48, 0x2b221a);
+    langBtn.setStrokeStyle(2, 0x8c5836);
+    langBtn.setInteractive({ useHandCursor: true });
+
+    this.langBtnText = this.add.text(width / 2 + 130, 630, `ЯЗЫК / LANG: ${getLocale().toUpperCase()}`, {
+      fontFamily: 'monospace',
+      fontSize: '15px',
+      color: '#adb5bd',
+      fontStyle: 'bold'
+    }).setOrigin(0.5);
+
     langBtn.on('pointerdown', () => {
+      SoundManager.getInstance().init();
+      SoundManager.getInstance().playButtonClick();
       const nextLang = getLocale() === 'ru' ? 'en' : 'ru';
       setLocale(nextLang);
       this.langBtnText.setText(`ЯЗЫК / LANG: ${nextLang.toUpperCase()}`);

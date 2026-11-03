@@ -10,12 +10,13 @@ import { TelemetryAggregator, SimulationRunMetrics } from './telemetry';
 import * as fs from 'fs';
 import * as path from 'path';
 
-function parseArgs(): { runs: number; botName: 'random' | 'greedy' | 'smart'; seed: string; output?: string } {
+function parseArgs(): { runs: number; botName: 'random' | 'greedy' | 'smart'; seed: string; output?: string; waves: number } {
   const args = process.argv.slice(2);
   let runs = 1000;
   let botName: 'random' | 'greedy' | 'smart' = 'smart';
   let seed = 'BRASS_SIM_SEED';
   let output: string | undefined;
+  let waves = 10;
 
   for (let i = 0; i < args.length; i++) {
     if (args[i] === '--runs' && args[i + 1]) {
@@ -30,10 +31,13 @@ function parseArgs(): { runs: number; botName: 'random' | 'greedy' | 'smart'; se
     } else if (args[i] === '--output' && args[i + 1]) {
       output = args[i + 1];
       i++;
+    } else if (args[i] === '--waves' && args[i + 1]) {
+      waves = parseInt(args[i + 1], 10);
+      i++;
     }
   }
 
-  return { runs, botName, seed, output };
+  return { runs, botName, seed, output, waves };
 }
 
 function getBot(botName: string): BotPolicy {
@@ -48,7 +52,7 @@ function getBot(botName: string): BotPolicy {
   }
 }
 
-export function runSimulationRun(runId: number, masterSeed: string, bot: BotPolicy): SimulationRunMetrics {
+export function runSimulationRun(runId: number, masterSeed: string, bot: BotPolicy, maxWaves = 10): SimulationRunMetrics {
   const runSeed = `${masterSeed}_run_${runId}`;
   const rng = PrngManager.createStreams(runSeed);
   const state = RunStateManager.createInitialState(runSeed);
@@ -65,8 +69,8 @@ export function runSimulationRun(runId: number, masterSeed: string, bot: BotPoli
   bus.on('jackpot', () => totalJackpots++);
   bus.on('jam_triggered', () => totalJams++);
 
-  // Act 1: Waves 1 to 10
-  for (let wave = 1; wave <= 10; wave++) {
+  // Waves 1 to maxWaves
+  for (let wave = 1; wave <= maxWaves; wave++) {
     if (state.phase === 'GAME_OVER') break;
 
     // 1. PREP Phase
@@ -105,14 +109,17 @@ export function runSimulationRun(runId: number, masterSeed: string, bot: BotPoli
     }
   }
 
-  const clearedWave10 = state.phase === 'VICTORY' || (state.waveNumber === 10 && state.boilerHp > 0 && state.phase === 'RESULT');
-  const wavesCleared = clearedWave10 ? 10 : Math.max(0, state.waveNumber - 1);
+  const clearedFinalWave =
+    (state.phase as any) === 'VICTORY' ||
+    state.waveNumber > maxWaves ||
+    (state.waveNumber === maxWaves && state.boilerHp > 0 && (state.phase as any) !== 'GAME_OVER');
+  const wavesCleared = clearedFinalWave ? maxWaves : Math.max(0, state.waveNumber - 1);
 
   return {
     runId,
     seed: runSeed,
     botName: bot.name,
-    clearedWave10,
+    clearedWave10: clearedFinalWave,
     wavesCleared,
     finalCogs: state.economy.cogs,
     totalSpins,
@@ -123,15 +130,15 @@ export function runSimulationRun(runId: number, masterSeed: string, bot: BotPoli
   };
 }
 
-export function runHeadlessBatch(runs: number, botName: 'random' | 'greedy' | 'smart', masterSeed: string) {
+export function runHeadlessBatch(runs: number, botName: 'random' | 'greedy' | 'smart', masterSeed: string, maxWaves = 10) {
   const bot = getBot(botName);
   const aggregator = new TelemetryAggregator();
 
   const startTime = Date.now();
-  console.log(`Starting headless simulation: ${runs} runs | Bot: ${bot.name} | Seed: ${masterSeed}`);
+  console.log(`Starting headless simulation: ${runs} runs | Bot: ${bot.name} | Waves: ${maxWaves} | Seed: ${masterSeed}`);
 
   for (let i = 1; i <= runs; i++) {
-    const runMetric = runSimulationRun(i, masterSeed, bot);
+    const runMetric = runSimulationRun(i, masterSeed, bot, maxWaves);
     aggregator.recordRun(runMetric);
   }
 
@@ -142,18 +149,20 @@ export function runHeadlessBatch(runs: number, botName: 'random' | 'greedy' | 's
   console.log(`[SIMULATION COMPLETED in ${(durationMs / 1000).toFixed(2)}s]`);
   console.log(`Bot Policy:          ${summary.botName}`);
   console.log(`Total Runs:          ${summary.totalRuns}`);
-  console.log(`Victories (Act 1):   ${summary.victories} (${summary.winRatePct}%)`);
-  console.log(`Average Wave:        ${summary.averageWaveReached} / 10`);
+  console.log(`Victories:           ${summary.victories} (${summary.winRatePct}%)`);
+  console.log(`Average Wave:        ${summary.averageWaveReached} / ${maxWaves}`);
   console.log(`Total Spins:         ${summary.totalSpins}`);
   console.log(`Line Hits:           ${summary.totalLineHits} (Hit Rate: ${summary.hitRatePct}%)`);
   console.log(`Jackpots:            ${summary.jackpotCount}`);
   console.log(`Jams Triggered:      ${summary.totalJams}`);
   console.log(`Avg Wave Duration:   ${summary.avgDurationPerWaveS}s`);
   console.log('Death Distribution By Wave:');
-  for (let w = 1; w <= 10; w++) {
+  for (let w = 1; w <= maxWaves; w++) {
     const deaths = summary.deathsByWave[w] ?? 0;
-    const pct = ((deaths / summary.totalRuns) * 100).toFixed(1);
-    console.log(`  Wave ${w.toString().padStart(2)}: ${deaths.toString().padStart(4)} deaths (${pct}%)`);
+    if (deaths > 0 || w <= 10) {
+      const pct = ((deaths / summary.totalRuns) * 100).toFixed(1);
+      console.log(`  Wave ${w.toString().padStart(2)}: ${deaths.toString().padStart(4)} deaths (${pct}%)`);
+    }
   }
   console.log('----------------------------------------------------');
 
@@ -163,7 +172,7 @@ export function runHeadlessBatch(runs: number, botName: 'random' | 'greedy' | 's
 // If executed directly from Node CLI
 if (process.argv[1] && process.argv[1].includes('runner')) {
   const config = parseArgs();
-  const summary = runHeadlessBatch(config.runs, config.botName, config.seed);
+  const summary = runHeadlessBatch(config.runs, config.botName, config.seed, config.waves);
 
   if (config.output) {
     const outDir = path.dirname(config.output);

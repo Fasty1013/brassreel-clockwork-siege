@@ -38,9 +38,13 @@ Instead of traditional tower placement, your defenders are stamped and summoned 
 |:---:|:---:|
 | ![Battle Phase](docs/screenshots/screenshot_03_battle.png) | ![Foundry Shop](docs/screenshots/screenshot_04_shop.png) |
 
-| 5. Boss Fight: The Steam Baron (Phase 2 Overheat) | 6. Victory Screen |
+| 5. Boss Fight: The Steam Baron (Phase 2 Overheat) | 6. Victory / Defeat Screen |
 |:---:|:---:|
 | ![Boss Wave](docs/screenshots/screenshot_05_boss.png) | ![Game Over / Victory](docs/screenshots/screenshot_06_game_over.png) |
+
+| 7. Foundry Archives (Meta-Progression & Permanent Upgrades) |
+|:---:|
+| ![Foundry Archives](docs/screenshots/screenshot_07_archive.png) |
 
 ---
 
@@ -164,7 +168,7 @@ npm run preview
 - [x] **M0: Planning & Architectural Foundations** — GDD, Balance model, governance rules.
 - [x] **M1: Pure Engine & Headless Simulator** — 90.99% coverage, 58/58 tests, 1,000 runs in 1.82s.
 - [x] **M2: Playable Vertical Slice (Phaser 3)** — Full 10-wave playable loop, procedural Canvas art, 3×3 slot forge, E2E browser verification.
-- [ ] **M3: Meta-Progression, Audio & Polish** — WebAudio procedural SFX, Foundry Archives (`localStorage`), Acts 2 & 3.
+- [x] **M3: Meta-Progression, Audio & Polish** — Procedural WebAudio SFX engine, Foundry Archives (`localStorage` meta-progression), full 3-Act content expansion (30 waves, 3 bosses, 23 enemies), 65/65 tests.
 - [ ] **M4: QA Hardening & Balance Tuning** — 10,000 headless runs, difficulty curves.
 - [ ] **M5: Steam / Tauri Release Packaging** — Desktop wrapper readiness.
 
@@ -173,3 +177,4 @@ npm run preview
 ## 📄 License
 
 Original project and procedural assets. MIT License.
+

@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { SoundManager } from '../audio/SoundManager';
 
 export class HUD extends Phaser.GameObjects.Container {
   private boilerText: Phaser.GameObjects.Text;
@@ -9,6 +10,8 @@ export class HUD extends Phaser.GameObjects.Container {
   private heatBarFill: Phaser.GameObjects.Rectangle;
   private valveButton: Phaser.GameObjects.Rectangle;
   private valveText: Phaser.GameObjects.Text;
+  private soundButton: Phaser.GameObjects.Rectangle;
+  private soundText: Phaser.GameObjects.Text;
 
   constructor(scene: Phaser.Scene) {
     super(scene, 0, 0);
@@ -59,7 +62,7 @@ export class HUD extends Phaser.GameObjects.Container {
     this.add(this.heatBarFill);
 
     // Wave indicator in center
-    this.waveText = scene.add.text(1260, 20, 'Волна 1 / 10', {
+    this.waveText = scene.add.text(1220, 20, 'Волна 1 / 10', {
       fontSize: '20px',
       color: '#f4f1de',
       fontStyle: 'bold'
@@ -67,12 +70,12 @@ export class HUD extends Phaser.GameObjects.Container {
     this.add(this.waveText);
 
     // Emergency Valve Button
-    this.valveButton = scene.add.rectangle(1680, 30, 240, 40, 0x3d2b1f);
+    this.valveButton = scene.add.rectangle(1580, 30, 230, 40, 0x3d2b1f);
     this.valveButton.setStrokeStyle(2, 0xd4a373);
     this.valveButton.setInteractive({ useHandCursor: true });
     this.add(this.valveButton);
 
-    this.valveText = scene.add.text(1680, 30, 'Сброс пара (Замедление 60%)', {
+    this.valveText = scene.add.text(1580, 30, 'Сброс пара (Замедл. 60%)', {
       fontSize: '13px',
       color: '#ffd166',
       fontStyle: 'bold'
@@ -81,6 +84,23 @@ export class HUD extends Phaser.GameObjects.Container {
 
     this.valveButton.on('pointerdown', () => {
       this.emit('use_valve', 'slow');
+    });
+
+    // Sound Mute Toggle Button
+    this.soundButton = scene.add.rectangle(1760, 30, 48, 38, 0x2b221a);
+    this.soundButton.setStrokeStyle(1, 0x8c5836);
+    this.soundButton.setInteractive({ useHandCursor: true });
+    this.add(this.soundButton);
+
+    const initialMuted = SoundManager.getInstance().getMuted();
+    this.soundText = scene.add.text(1760, 30, initialMuted ? '🔇' : '🔊', {
+      fontSize: '18px'
+    }).setOrigin(0.5);
+    this.add(this.soundText);
+
+    this.soundButton.on('pointerdown', () => {
+      const isMuted = SoundManager.getInstance().toggleMute();
+      this.soundText.setText(isMuted ? '🔇' : '🔊');
     });
 
     scene.add.existing(this);
@@ -120,7 +140,8 @@ export class HUD extends Phaser.GameObjects.Container {
       this.heatText.setColor('#ffd166');
     }
 
-    this.waveText.setText(`Волна ${data.wave} / 10`);
+    const act = data.wave > 20 ? 3 : (data.wave > 10 ? 2 : 1);
+    this.waveText.setText(`Волна ${data.wave}/30 [Акт ${act}]`);
 
     if (data.valveUsed) {
       this.valveButton.setFillStyle(0x2b2d42);

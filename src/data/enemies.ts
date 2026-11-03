@@ -184,6 +184,171 @@ export const ENEMIES_DATA: Record<string, EnemyDefinition> = {
       }
     ],
     spriteKey: 'tex_boss_steam_baron'
+  },
+
+  // --- ACT 2: RUST SWAMPS ENEMIES & BOSS ---
+  en_acid_drone: {
+    id: 'en_acid_drone',
+    nameKey: 'enemy.acid_drone.name',
+    descKey: 'enemy.acid_drone.desc',
+    hp: 180,
+    damage: 28,
+    attackSpeed: 1.1,
+    moveSpeed: 1.1,
+    attackRange: 3,
+    armor: 2,
+    bountyCogs: 4,
+    spriteKey: 'tex_en_acid_drone'
+  },
+  en_rust_creeper: {
+    id: 'en_rust_creeper',
+    nameKey: 'enemy.rust_creeper.name',
+    descKey: 'enemy.rust_creeper.desc',
+    hp: 140,
+    damage: 55,
+    attackSpeed: 1.0,
+    moveSpeed: 1.3,
+    attackRange: 1,
+    armor: 1,
+    bountyCogs: 3,
+    spriteKey: 'tex_en_rust_creeper'
+  },
+  en_bog_stalker: {
+    id: 'en_bog_stalker',
+    nameKey: 'enemy.bog_stalker.name',
+    descKey: 'enemy.bog_stalker.desc',
+    hp: 550,
+    damage: 32,
+    attackSpeed: 0.6,
+    moveSpeed: 0.6,
+    attackRange: 1,
+    armor: 12,
+    bountyCogs: 6,
+    spriteKey: 'tex_en_bog_stalker'
+  },
+  en_toxic_leech: {
+    id: 'en_toxic_leech',
+    nameKey: 'enemy.toxic_leech.name',
+    descKey: 'enemy.toxic_leech.desc',
+    hp: 220,
+    damage: 20,
+    attackSpeed: 0.9,
+    moveSpeed: 0.9,
+    attackRange: 2,
+    armor: 3,
+    bountyCogs: 4,
+    spriteKey: 'tex_en_toxic_leech'
+  },
+  boss_corrosion_empress: {
+    id: 'boss_corrosion_empress',
+    nameKey: 'boss.corrosion_empress.name',
+    descKey: 'boss.corrosion_empress.desc',
+    hp: 6500,
+    damage: 85,
+    attackSpeed: 0.8,
+    moveSpeed: 0.35,
+    attackRange: 3,
+    armor: 20,
+    bountyCogs: 50,
+    isBoss: true,
+    bossPhases: [
+      {
+        thresholdHpPct: 1.0,
+        nameKey: 'boss.corrosion_empress.phase1',
+        abilities: ['acid_salvo', 'corrosive_mist']
+      },
+      {
+        thresholdHpPct: 0.45,
+        nameKey: 'boss.corrosion_empress.phase2',
+        abilities: ['swarm_hatch', 'acid_surge']
+      }
+    ],
+    spriteKey: 'tex_boss_corrosion_empress'
+  },
+
+  // --- ACT 3: BARON'S CITADEL ENEMIES & FINAL BOSS ---
+  en_clockwork_executioner: {
+    id: 'en_clockwork_executioner',
+    nameKey: 'enemy.clockwork_executioner.name',
+    descKey: 'enemy.clockwork_executioner.desc',
+    hp: 700,
+    damage: 90,
+    attackSpeed: 0.7,
+    moveSpeed: 0.7,
+    attackRange: 1,
+    armor: 14,
+    bountyCogs: 8,
+    spriteKey: 'tex_en_clockwork_executioner'
+  },
+  en_siege_engine: {
+    id: 'en_siege_engine',
+    nameKey: 'enemy.siege_engine.name',
+    descKey: 'enemy.siege_engine.desc',
+    hp: 600,
+    damage: 110,
+    attackSpeed: 0.35,
+    moveSpeed: 0.35,
+    attackRange: 5,
+    armor: 18,
+    bountyCogs: 10,
+    spriteKey: 'tex_en_siege_engine'
+  },
+  en_dreadnought: {
+    id: 'en_dreadnought',
+    nameKey: 'enemy.dreadnought.name',
+    descKey: 'enemy.dreadnought.desc',
+    hp: 1200,
+    damage: 45,
+    attackSpeed: 0.4,
+    moveSpeed: 0.4,
+    attackRange: 1,
+    armor: 25,
+    bountyCogs: 12,
+    spriteKey: 'tex_en_dreadnought'
+  },
+  en_lightning_spire: {
+    id: 'en_lightning_spire',
+    nameKey: 'enemy.lightning_spire.name',
+    descKey: 'enemy.lightning_spire.desc',
+    hp: 450,
+    damage: 40,
+    attackSpeed: 0.8,
+    moveSpeed: 0.8,
+    attackRange: 3,
+    armor: 8,
+    bountyCogs: 7,
+    spriteKey: 'tex_en_lightning_spire'
+  },
+  boss_iron_colossus: {
+    id: 'boss_iron_colossus',
+    nameKey: 'boss.iron_colossus.name',
+    descKey: 'boss.iron_colossus.desc',
+    hp: 12000,
+    damage: 150,
+    attackSpeed: 0.6,
+    moveSpeed: 0.25,
+    attackRange: 3,
+    armor: 30,
+    bountyCogs: 100,
+    isBoss: true,
+    bossPhases: [
+      {
+        thresholdHpPct: 1.0,
+        nameKey: 'boss.iron_colossus.phase1',
+        abilities: ['titan_hammer', 'quake_stomp']
+      },
+      {
+        thresholdHpPct: 0.65,
+        nameKey: 'boss.iron_colossus.phase2',
+        abilities: ['gatling_barrage', 'rocket_salvo']
+      },
+      {
+        thresholdHpPct: 0.3,
+        nameKey: 'boss.iron_colossus.phase3',
+        abilities: ['core_overdrive', 'meltdown_nova']
+      }
+    ],
+    spriteKey: 'tex_boss_iron_colossus'
   }
 };
 

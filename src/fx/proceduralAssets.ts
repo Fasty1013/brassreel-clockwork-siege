@@ -73,6 +73,20 @@ export class ProceduralAssets {
     this.createTexture(textures, 'tex_en_raider', 32, 32, (ctx) => this.drawEnemyRaider(ctx));
     this.createTexture(textures, 'tex_boss_steam_baron', 64, 64, (ctx) => this.drawBossSteamBaron(ctx));
 
+    // Act 2 Enemies & Boss (Rust Swamps)
+    this.createTexture(textures, 'tex_en_acid_drone', 32, 32, (ctx) => this.drawEnemyAcidDrone(ctx));
+    this.createTexture(textures, 'tex_en_rust_creeper', 32, 32, (ctx) => this.drawEnemyRustCreeper(ctx));
+    this.createTexture(textures, 'tex_en_bog_stalker', 32, 32, (ctx) => this.drawEnemyBogStalker(ctx));
+    this.createTexture(textures, 'tex_en_toxic_leech', 32, 32, (ctx) => this.drawEnemyToxicLeech(ctx));
+    this.createTexture(textures, 'tex_boss_corrosion_empress', 64, 64, (ctx) => this.drawBossCorrosionEmpress(ctx));
+
+    // Act 3 Enemies & Final Boss (Baron's Citadel)
+    this.createTexture(textures, 'tex_en_clockwork_executioner', 32, 32, (ctx) => this.drawEnemyExecutioner(ctx));
+    this.createTexture(textures, 'tex_en_siege_engine', 32, 32, (ctx) => this.drawEnemySiegeEngine(ctx));
+    this.createTexture(textures, 'tex_en_dreadnought', 32, 32, (ctx) => this.drawEnemyDreadnought(ctx));
+    this.createTexture(textures, 'tex_en_lightning_spire', 32, 32, (ctx) => this.drawEnemyLightningSpire(ctx));
+    this.createTexture(textures, 'tex_boss_iron_colossus', 96, 96, (ctx) => this.drawBossIronColossus(ctx));
+
     // 4. Grid Tiles, UI Elements, Projectiles, Particles
     this.createTexture(textures, 'tile_player', 64, 64, (ctx) => this.drawPlayerTile(ctx));
     this.createTexture(textures, 'tile_enemy', 64, 64, (ctx) => this.drawEnemyTile(ctx));
@@ -82,6 +96,8 @@ export class ProceduralAssets {
     this.createTexture(textures, 'fx_spark_particle', 8, 8, (ctx) => this.drawParticle(ctx, '#ffb703'));
     this.createTexture(textures, 'fx_smoke_particle', 16, 16, (ctx) => this.drawParticle(ctx, '#8d99ae'));
     this.createTexture(textures, 'fx_fire_particle', 12, 12, (ctx) => this.drawParticle(ctx, '#e63946'));
+    this.createTexture(textures, 'fx_acid_particle', 10, 10, (ctx) => this.drawParticle(ctx, '#2ec4b6'));
+    this.createTexture(textures, 'fx_electric_particle', 8, 8, (ctx) => this.drawParticle(ctx, '#00f5d4'));
   }
 
   private static createTexture(
@@ -627,6 +643,187 @@ export class ProceduralAssets {
     for (let x = 14; x <= 50; x += 8) {
       ctx.beginPath();
       ctx.arc(x, 55, 3, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+
+  // --- ACT 2 & 3 PROCEDURAL ENEMIES & BOSSES ---
+  private static drawEnemyAcidDrone(ctx: CanvasRenderingContext2D): void {
+    ctx.fillStyle = '#2b9348';
+    ctx.fillRect(10, 10, 12, 12);
+    // Acid wings
+    ctx.fillStyle = '#55a630';
+    ctx.fillRect(4, 6, 8, 4);
+    ctx.fillRect(20, 6, 8, 4);
+    // Needle siphon
+    ctx.fillStyle = '#d8f3dc';
+    ctx.fillRect(15, 22, 2, 8);
+  }
+
+  private static drawEnemyRustCreeper(ctx: CanvasRenderingContext2D): void {
+    ctx.fillStyle = '#b7094c';
+    ctx.beginPath();
+    ctx.arc(16, 16, 8, 0, Math.PI * 2);
+    ctx.fill();
+    // Glowing volatile core
+    ctx.fillStyle = '#ffb703';
+    ctx.fillRect(14, 14, 4, 4);
+    // Spider legs
+    ctx.strokeStyle = '#5c1349';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(6, 6, 20, 20);
+  }
+
+  private static drawEnemyBogStalker(ctx: CanvasRenderingContext2D): void {
+    ctx.fillStyle = '#386641';
+    ctx.fillRect(6, 10, 20, 14);
+    ctx.fillStyle = '#6a994e';
+    ctx.fillRect(10, 6, 12, 6);
+    // Heavy mud tread
+    ctx.fillStyle = '#283618';
+    ctx.fillRect(4, 24, 24, 6);
+  }
+
+  private static drawEnemyToxicLeech(ctx: CanvasRenderingContext2D): void {
+    ctx.fillStyle = '#007f5f';
+    ctx.fillRect(8, 8, 16, 16);
+    ctx.fillStyle = '#2b9348';
+    ctx.fillRect(12, 4, 8, 8);
+    // Siphon mouth
+    ctx.fillStyle = '#e76f51';
+    ctx.fillRect(14, 2, 4, 4);
+  }
+
+  private static drawBossCorrosionEmpress(ctx: CanvasRenderingContext2D): void {
+    // Queen carapace
+    ctx.fillStyle = '#1b4332';
+    ctx.beginPath();
+    ctx.arc(32, 34, 22, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = '#52b788';
+    ctx.lineWidth = 3;
+    ctx.stroke();
+
+    // Toxic acid glow sacks
+    ctx.fillStyle = '#74c69d';
+    ctx.fillRect(20, 26, 8, 12);
+    ctx.fillRect(36, 26, 8, 12);
+
+    // Crown antennas
+    ctx.fillStyle = '#ffd166';
+    ctx.fillRect(24, 6, 3, 12);
+    ctx.fillRect(37, 6, 3, 12);
+    ctx.fillRect(22, 4, 7, 3);
+    ctx.fillRect(35, 4, 7, 3);
+
+    // Mandibles
+    ctx.fillStyle = '#b7094c';
+    ctx.beginPath();
+    ctx.moveTo(22, 52);
+    ctx.lineTo(28, 62);
+    ctx.lineTo(36, 62);
+    ctx.lineTo(42, 52);
+    ctx.fill();
+  }
+
+  private static drawEnemyExecutioner(ctx: CanvasRenderingContext2D): void {
+    ctx.fillStyle = '#212529';
+    ctx.fillRect(10, 8, 12, 16);
+    // Iron mask
+    ctx.fillStyle = '#adb5bd';
+    ctx.fillRect(12, 4, 8, 6);
+    // Cleaver
+    ctx.fillStyle = '#e63946';
+    ctx.fillRect(22, 2, 6, 22);
+    ctx.fillStyle = '#ced4da';
+    ctx.fillRect(24, 24, 2, 6);
+  }
+
+  private static drawEnemySiegeEngine(ctx: CanvasRenderingContext2D): void {
+    ctx.fillStyle = '#495057';
+    ctx.fillRect(6, 14, 20, 10);
+    // Catapult arm / mortar
+    ctx.fillStyle = '#8c5836';
+    ctx.fillRect(8, 6, 4, 12);
+    ctx.fillRect(8, 4, 10, 4);
+    // Wheels
+    ctx.fillStyle = '#212529';
+    ctx.beginPath();
+    ctx.arc(10, 26, 4, 0, Math.PI * 2);
+    ctx.arc(22, 26, 4, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  private static drawEnemyDreadnought(ctx: CanvasRenderingContext2D): void {
+    ctx.fillStyle = '#343a40';
+    ctx.fillRect(4, 8, 24, 16);
+    // Frontal shield plate
+    ctx.fillStyle = '#6c757d';
+    ctx.fillRect(2, 6, 4, 20);
+    // Red sensor slit
+    ctx.fillStyle = '#e63946';
+    ctx.fillRect(14, 14, 10, 3);
+    // Treads
+    ctx.fillStyle = '#1f1610';
+    ctx.fillRect(4, 24, 24, 5);
+  }
+
+  private static drawEnemyLightningSpire(ctx: CanvasRenderingContext2D): void {
+    ctx.fillStyle = '#0077b6';
+    ctx.fillRect(12, 8, 8, 20);
+    // Copper rings
+    ctx.fillStyle = '#d4a373';
+    ctx.fillRect(10, 12, 12, 2);
+    ctx.fillRect(10, 18, 12, 2);
+    // Electric orb top
+    ctx.fillStyle = '#00f5d4';
+    ctx.beginPath();
+    ctx.arc(16, 6, 5, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  private static drawBossIronColossus(ctx: CanvasRenderingContext2D): void {
+    // 96x96 Colossal Mech Hull
+    ctx.fillStyle = '#1b1d1e';
+    ctx.fillRect(16, 20, 64, 48);
+    ctx.strokeStyle = '#d4a373';
+    ctx.lineWidth = 4;
+    ctx.strokeRect(16, 20, 64, 48);
+
+    // Glowing Overdrive Core
+    ctx.fillStyle = '#e63946';
+    ctx.beginPath();
+    ctx.arc(48, 44, 14, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#ffd166';
+    ctx.beginPath();
+    ctx.arc(48, 44, 8, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Twin smokestacks
+    ctx.fillStyle = '#343a40';
+    ctx.fillRect(24, 4, 8, 16);
+    ctx.fillRect(64, 4, 8, 16);
+
+    // Titan Hammer Left Arm
+    ctx.fillStyle = '#adb5bd';
+    ctx.fillRect(4, 32, 12, 36);
+    ctx.fillStyle = '#ffbe0b';
+    ctx.fillRect(2, 64, 16, 14);
+
+    // Gatling Right Arm
+    ctx.fillStyle = '#6c757d';
+    ctx.fillRect(80, 32, 12, 30);
+    ctx.fillStyle = '#212529';
+    ctx.fillRect(82, 62, 8, 18);
+
+    // Heavy Quad Treads
+    ctx.fillStyle = '#141419';
+    ctx.fillRect(12, 70, 72, 18);
+    ctx.fillStyle = '#d4a373';
+    for (let x = 18; x <= 78; x += 12) {
+      ctx.beginPath();
+      ctx.arc(x, 79, 5, 0, Math.PI * 2);
       ctx.fill();
     }
   }

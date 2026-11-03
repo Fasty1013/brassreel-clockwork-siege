@@ -1,5 +1,5 @@
 import puppeteer from 'puppeteer-core';
-import { createServer } from 'vite';
+import { preview } from 'vite';
 import * as fs from 'fs';
 import * as path from 'path';
 
@@ -7,18 +7,17 @@ const ARTIFACT_DIR = 'C:\\Users\\wawil\\.gemini\\antigravity\\brain\\f50e1065-e7
 const DOCS_SCREENSHOTS_DIR = path.resolve(process.cwd(), 'docs', 'screenshots');
 
 async function main() {
-  console.log('--- Starting BRASSREEL E2E Browser Playtest ---');
+  console.log('--- Starting BRASSREEL Milestone M3 E2E Browser Playtest ---');
 
   if (!fs.existsSync(DOCS_SCREENSHOTS_DIR)) {
     fs.mkdirSync(DOCS_SCREENSHOTS_DIR, { recursive: true });
   }
 
-  // 1. Start Vite internal dev server
-  const server = await createServer({
-    server: { port: 3333 }
+  // 1. Start Vite preview server
+  const server = await preview({
+    preview: { port: 3333 }
   });
-  await server.listen();
-  console.log('✓ Vite server listening on http://localhost:3333');
+  console.log('✓ Vite preview server listening on http://localhost:3333');
 
   // 2. Launch Chrome via puppeteer-core
   const browser = await puppeteer.launch({
@@ -31,7 +30,8 @@ async function main() {
       '--use-gl=angle',
       '--use-angle=swiftshader',
       '--enable-webgl',
-      '--ignore-gpu-blocklist'
+      '--ignore-gpu-blocklist',
+      '--autoplay-policy=no-user-gesture-required'
     ]
   });
   console.log('✓ Headless Chrome launched');
@@ -40,7 +40,6 @@ async function main() {
   await page.goto('http://localhost:3333/', { waitUntil: 'networkidle0' });
   console.log('✓ Navigated to game root');
 
-  // Helper to save screenshot both in docs and artifact dir
   async function capture(filename: string) {
     const localPath = path.join(DOCS_SCREENSHOTS_DIR, filename);
     const artifactPath = path.join(ARTIFACT_DIR, filename);
@@ -52,8 +51,20 @@ async function main() {
   // Allow BootScene to transition to MenuScene
   await new Promise((r) => setTimeout(r, 1200));
 
-  // --- SCREENSHOT 1: Menu Scene ---
+  // --- SCREENSHOT 1: Menu Scene with Sound toggle & Archive button ---
   await capture('screenshot_01_menu.png');
+
+  // Open Foundry Archive from Menu
+  await page.mouse.click(830, 630);
+  console.log('✓ Clicked Foundry Archive Button');
+  await new Promise((r) => setTimeout(r, 600));
+
+  // --- SCREENSHOT 7: Foundry Archive (Meta Upgrades) ---
+  await capture('screenshot_07_archive.png');
+
+  // Close Archive Modal
+  await page.mouse.click(960, 850);
+  await new Promise((r) => setTimeout(r, 500));
 
   // Click "НАЧАТЬ ОБОРОНУ ▶" button (located at 960, 540)
   await page.mouse.click(960, 540);
@@ -61,7 +72,6 @@ async function main() {
   await new Promise((r) => setTimeout(r, 800));
 
   // --- PREP PHASE & SPINS ---
-  // Click Spin button at (240, 555) 3 times with delays for animation
   for (let s = 1; s <= 3; s++) {
     await page.mouse.click(240, 555);
     console.log(`✓ Spin ${s} triggered`);
@@ -72,7 +82,7 @@ async function main() {
   await page.evaluate(() => {
     const game = (window as any).game;
     const runScene = game?.scene?.getScene('RunScene');
-    if (runScene) {
+    if (runScene && runScene.state) {
       if (runScene.state.reserveBench.length >= 2) {
         const u1 = runScene.state.reserveBench[0];
         const u2 = runScene.state.reserveBench[1];
@@ -81,13 +91,7 @@ async function main() {
       }
     }
   });
-
-  // Re-sync scene if exposed or perform card drag simulation
-  await page.mouse.move(535, 650);
-  await page.mouse.down();
-  await page.mouse.move(520, 260, { steps: 10 });
-  await page.mouse.up();
-  await new Promise((r) => setTimeout(r, 400));
+  await new Promise((r) => setTimeout(r, 500));
 
   // --- SCREENSHOT 2: Prep Phase with Slot Machine & Bench ---
   await capture('screenshot_02_prep_slot.png');
@@ -97,14 +101,14 @@ async function main() {
   console.log('✓ Clicked Engage (В БОЙ)');
   await new Promise((r) => setTimeout(r, 2000));
 
-  // --- SCREENSHOT 3: Battle Phase ---
+  // --- SCREENSHOT 3: Battle Phase with Particles & Sound ---
   await capture('screenshot_03_battle.png');
 
   // Open Shop View for inspection
   await page.evaluate(() => {
     const game = (window as any).game;
     const runScene = game?.scene?.getScene('RunScene');
-    if (runScene) {
+    if (runScene && runScene.openShop) {
       runScene.openShop();
     }
   });
@@ -113,13 +117,14 @@ async function main() {
   // --- SCREENSHOT 4: Foundry Workshop (Shop View) ---
   await capture('screenshot_04_shop.png');
 
-  // Close shop and test Wave 10 Boss
+  // Close shop and test Act 3 Final Boss (The Iron Colossus)
   await page.evaluate(() => {
     const game = (window as any).game;
     const runScene = game?.scene?.getScene('RunScene');
-    if (runScene) {
-      runScene.shopView.hideShop();
-      runScene.state.waveNumber = 10;
+    if (runScene && runScene.state) {
+      if (runScene.shopView) runScene.shopView.hideShop();
+      runScene.state.waveNumber = 30;
+      runScene.state.actNumber = 3;
       runScene.state.phase = 'PREP';
       // Ensure unit is deployed
       if (runScene.state.deployedUnits.length === 0 && runScene.state.reserveBench.length > 0) {
@@ -133,32 +138,32 @@ async function main() {
   });
   await new Promise((r) => setTimeout(r, 1500));
 
-  // --- SCREENSHOT 5: Wave 10 Boss (The Steam Baron) ---
+  // --- SCREENSHOT 5: Final Boss (The Iron Colossus) ---
   await capture('screenshot_05_boss.png');
 
-  // Trigger GameOverScene
+  // Trigger GameOverScene with Meta Rewards
   await page.evaluate(() => {
     const game = (window as any).game;
     const runScene = game?.scene?.getScene('RunScene');
     if (runScene) {
       runScene.scene.start('GameOverScene', {
         victory: true,
-        wave: 10,
-        boilerHp: 7,
-        cogs: 285,
+        wave: 30,
+        boilerHp: 8,
+        cogs: 620,
         seed: 20261102
       });
     }
   });
   await new Promise((r) => setTimeout(r, 800));
 
-  // --- SCREENSHOT 6: Game Over / Victory Screen ---
+  // --- SCREENSHOT 6: Game Over / Victory Screen with Meta Rewards ---
   await capture('screenshot_06_game_over.png');
 
   // Cleanup
   await browser.close();
   await server.close();
-  console.log('=== Playtest completed successfully! All 6 screenshots captured ===');
+  console.log('=== Milestone M3 Playtest completed successfully! All 7 screenshots captured ===');
 }
 
 main().catch((err) => {

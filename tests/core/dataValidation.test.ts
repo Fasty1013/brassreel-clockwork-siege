@@ -66,9 +66,9 @@ describe('Data Catalog Validation Suite', () => {
     }
   });
 
-  it('validates all 13 enemy definitions against EnemySchema', () => {
+  it('validates all 23 enemy definitions against EnemySchema', () => {
     const enemies = Object.values(ENEMIES_DATA);
-    expect(enemies.length).toBe(13); // 12 standard + 1 boss
+    expect(enemies.length).toBe(23); // Act 1 (12 + 1 boss) + Act 2 (4 + 1 boss) + Act 3 (4 + 1 boss)
 
     for (const enemy of enemies) {
       const res = EnemySchema.safeParse(enemy);
@@ -79,8 +79,8 @@ describe('Data Catalog Validation Suite', () => {
     }
   });
 
-  it('validates all 10 wave definitions against WaveDefinitionSchema', () => {
-    expect(WAVES_DATA.length).toBe(10);
+  it('validates all 30 wave definitions against WaveDefinitionSchema', () => {
+    expect(WAVES_DATA.length).toBe(30); // 3 Acts x 10 waves
 
     for (const wave of WAVES_DATA) {
       const res = WaveDefinitionSchema.safeParse(wave);

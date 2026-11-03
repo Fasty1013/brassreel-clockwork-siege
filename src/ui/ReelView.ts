@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import { ReelSymbol, Grid3x3, SpinResult } from '@core/reels/reels';
+import { SoundManager } from '../audio/SoundManager';
 
 export class ReelView extends Phaser.GameObjects.Container {
   private reelColumns: Phaser.GameObjects.Container[] = [];
@@ -144,6 +145,7 @@ export class ReelView extends Phaser.GameObjects.Container {
           for (let r = 0; r < 3; r++) {
             sprites[r].setTexture(Phaser.Utils.Array.GetRandom(symbols));
           }
+          SoundManager.getInstance().playReelTick(1.0 + c * 0.15);
         },
         callbackScope: this
       });
@@ -151,6 +153,7 @@ export class ReelView extends Phaser.GameObjects.Container {
       // Stop bounce tween
       this.scene.time.delayedCall(600 + c * 300, () => {
         spinTimer.remove();
+        SoundManager.getInstance().playReelStop(c);
         // Set final symbols
         for (let r = 0; r < 3; r++) {
           const item = finalGrid[c][r];
@@ -184,6 +187,12 @@ export class ReelView extends Phaser.GameObjects.Container {
   public highlightWinningLines(spinResult: SpinResult): void {
     this.paylineGraphics.clear();
     this.paylineGraphics.lineStyle(4, 0xffd166, 0.9);
+
+    if (spinResult.isJackpot) {
+      SoundManager.getInstance().playJackpot();
+    } else if (spinResult.lineHits.length > 0) {
+      SoundManager.getInstance().playPaylineWin(spinResult.lineHits.length);
+    }
 
     for (const hit of spinResult.lineHits) {
       const coords = hit.coords;

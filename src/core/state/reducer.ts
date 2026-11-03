@@ -314,9 +314,9 @@ export class RunReducer {
             });
           }
 
-          if (state.waveNumber >= 10 && waveDef.isBoss) {
+          if (state.waveNumber >= 30 && waveDef.isBoss) {
             state.phase = 'VICTORY';
-            eventBus?.emit('run_victory', { totalWavesCleared: 10, finalCogs: state.economy.cogs });
+            eventBus?.emit('run_victory', { totalWavesCleared: 30, finalCogs: state.economy.cogs });
           }
         }
         return state;
@@ -384,6 +384,13 @@ export class RunReducer {
       case 'START_NEXT_WAVE': {
         if (state.phase === 'SHOP' || state.phase === 'RESULT') {
           state.waveNumber++;
+          if (state.waveNumber > 20) {
+            state.actNumber = 3;
+          } else if (state.waveNumber > 10) {
+            state.actNumber = 2;
+          } else {
+            state.actNumber = 1;
+          }
           state.phase = 'PREP';
           state.freeSpinsLeft = BALANCE.FREE_SPINS_PER_WAVE;
           state.holdsLeft = BALANCE.BASE_HOLD_CHARGES;
