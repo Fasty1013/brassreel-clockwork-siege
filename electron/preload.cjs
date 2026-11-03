@@ -4,3 +4,4 @@ contextBridge.exposeInMainWorld('electronAPI', {
   platform: process.platform,
   isDesktop: true
 });
+

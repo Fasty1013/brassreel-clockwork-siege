@@ -10,6 +10,7 @@ import { CoreEngine } from '../cores/coreEngine';
 import { EconomyManager } from '../economy/economy';
 import { BALANCE } from '@data/balance';
 import { GADGETS_DATA } from '@data/gadgets';
+import { CORES_DATA } from '@data/cores';
 import { EventBus } from '../events/events';
 
 export type RunCommand =
@@ -34,6 +35,7 @@ export type RunCommand =
   | { type: 'REMOVE_SYMBOL'; reelIndex: number; symbolIndex: number }
   | { type: 'GILD_SYMBOL'; reelIndex: number; symbolIndex: number }
   | { type: 'BUY_GADGET'; gadgetId: string }
+  | { type: 'EQUIP_CORE'; coreId: string }
   | { type: 'REROLL_SHOP' }
   | { type: 'START_NEXT_WAVE' };
 
@@ -314,6 +316,15 @@ export class RunReducer {
             });
           }
 
+          // Engine Core draft offering every 5 waves
+          if (state.waveNumber % 5 === 0 && state.activeCores.length < 3) {
+            const available = Object.keys(CORES_DATA).filter((id) => !state.activeCores.includes(id));
+            const choices = available.slice(0, 3);
+            if (choices.length > 0) {
+              eventBus?.emit('core_draft_ready', { choices });
+            }
+          }
+
           if (state.waveNumber >= 30 && waveDef.isBoss) {
             state.phase = 'VICTORY';
             eventBus?.emit('run_victory', { totalWavesCleared: 30, finalCogs: state.economy.cogs });
@@ -369,6 +380,14 @@ export class RunReducer {
         if (gadget && EconomyManager.spendCogs(state.economy, gadget.cost)) {
           state.activeGadgets.push(command.gadgetId);
           eventBus?.emit('gadget_bought', { gadgetId: command.gadgetId });
+        }
+        return state;
+      }
+
+      case 'EQUIP_CORE': {
+        if (state.activeCores.length < 3 && !state.activeCores.includes(command.coreId)) {
+          state.activeCores.push(command.coreId);
+          eventBus?.emit('core_equipped', { coreId: command.coreId });
         }
         return state;
       }

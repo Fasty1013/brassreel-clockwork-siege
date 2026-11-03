@@ -46,3 +46,4 @@ The game is fully playable with either pure Mouse / Touch control or Hybrid Keyb
 - **Native Game Resolution:** 1920 × 1080 (16:9).
 - **Scale Mode:** `Phaser.Scale.FIT` with `autoCenter: CENTER_BOTH`.
 - **Supported Aspect Ratios:** 16:9, 16:10 (Steam Deck 1280×800), 21:9 (Ultrawide), 4:3. Crisp pixel-art scaling with letterboxing ensures zero sprite distortion.
+

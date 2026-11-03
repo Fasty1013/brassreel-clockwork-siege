@@ -1,5 +1,9 @@
 import { describe, it, expect } from 'vitest';
 import { CoreEngine } from '@core/cores/coreEngine';
+import { RunStateManager } from '@core/state/RunState';
+import { RunReducer } from '@core/state/reducer';
+import { PrngManager } from '@core/prng/prngManager';
+import { EventBus } from '@core/events/events';
 
 describe('Engine Cores & Synergy Tags Suite', () => {
   it('equips up to 3 cores and rejects duplicates or exceeding capacity', () => {
@@ -30,6 +34,21 @@ describe('Engine Cores & Synergy Tags Suite', () => {
     expect(engine.hasModifier('mirror_horizontal_lines')).toBe(true);
     expect(engine.getModifierParam('mirror_horizontal_lines', 'multiplier')).toBe(2);
     expect(engine.hasModifier('boost_center_crown')).toBe(false);
+  });
+
+  it('handles EQUIP_CORE command via RunReducer and emits core_equipped', () => {
+    const rng = PrngManager.createStreams('EQUIP_CORE_TEST');
+    const state = RunStateManager.createInitialState('EQUIP_CORE_TEST');
+    const bus = new EventBus();
+
+    let equippedEventFired = false;
+    bus.on('core_equipped', (data) => {
+      if (data.coreId === 'core_lucky_cam') equippedEventFired = true;
+    });
+
+    RunReducer.dispatch(state, { type: 'EQUIP_CORE', coreId: 'core_lucky_cam' }, rng, bus);
+    expect(state.activeCores).toContain('core_lucky_cam');
+    expect(equippedEventFired).toBe(true);
   });
 });
 

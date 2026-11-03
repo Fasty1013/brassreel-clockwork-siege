@@ -10,6 +10,7 @@ import { UnitCard } from '@ui/UnitCard';
 import { Tooltip } from '@ui/Tooltip';
 import { ShopView } from '@ui/ShopView';
 import { EvolutionModal } from '@ui/EvolutionModal';
+import { CoreDraftModal } from '@ui/CoreDraftModal';
 import { GADGETS_DATA } from '@data/gadgets';
 import { BALANCE } from '@data/balance';
 import { ReelManager } from '@core/reels/reels';
@@ -34,6 +35,7 @@ export class RunScene extends Phaser.Scene {
   public tooltip!: Tooltip;
   public shopView!: ShopView;
   public evolutionModal!: EvolutionModal;
+  public coreDraftModal!: CoreDraftModal;
 
   // Cards & Visuals
   private unitCards: Map<string, UnitCard> = new Map();
@@ -104,6 +106,7 @@ export class RunScene extends Phaser.Scene {
     this.tooltip = new Tooltip(this);
     this.shopView = new ShopView(this);
     this.evolutionModal = new EvolutionModal(this);
+    this.coreDraftModal = new CoreDraftModal(this);
 
     // Set initial reel view grid
     const initialGrid = ReelManager.extractGrid(this.state.reelStrips, this.state.reelIndices);
@@ -530,6 +533,16 @@ export class RunScene extends Phaser.Scene {
       this.evolutionModal.showEvolution(data.unitInstanceId, data.branchA, data.branchB);
     });
 
+    // Engine Core draft ready event
+    this.eventBus.on('core_draft_ready', (data) => {
+      this.coreDraftModal.showDraft(data.choices);
+    });
+
+    this.coreDraftModal.on('core_selected', (coreId: string) => {
+      RunReducer.dispatch(this.state, { type: 'EQUIP_CORE', coreId }, this.rng, this.eventBus);
+      this.refreshHUD();
+    });
+
     // Smelt text floater
     this.eventBus.on('unit_smelted', (data) => {
       SoundManager.getInstance().playSmelt();
@@ -929,7 +942,8 @@ export class RunScene extends Phaser.Scene {
       maxSteam: this.state.economy.maxSteam,
       heat: this.state.heat.currentHeat,
       wave: this.state.waveNumber,
-      valveUsed: this.state.combatState?.valveUsed ?? false
+      valveUsed: this.state.combatState?.valveUsed ?? false,
+      activeCores: this.state.activeCores
     });
 
     // Spin button text

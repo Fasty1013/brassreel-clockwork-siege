@@ -65,3 +65,4 @@ Visit `http://localhost:4173/` to verify zero console warnings, perfect WebAudio
 - [x] **Input Parity:** Full mouse/touch support + full keyboard shortcut suite (Space, Enter, 1/2/3, Q/W/E, V, P, F11, M).
 - [x] **Deterministic Seed Engine:** Single seed reproduces the exact same run bit-by-bit for Steam daily runs / speedrun challenges.
 - [x] **Dual Localization:** Full English (`en`) and Russian (`ru`) with runtime language toggle and zero missing string keys.
+

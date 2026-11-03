@@ -17,6 +17,8 @@ export type CoreEventType =
   | 'wave_completed'
   | 'inspection_completed'
   | 'gadget_bought'
+  | 'core_draft_ready'
+  | 'core_equipped'
   | 'run_victory'
   | 'run_defeat';
 
@@ -45,6 +47,8 @@ export interface CoreEventPayloads {
   wave_completed: { waveNumber: number; rewardCogs: number };
   inspection_completed: { success: boolean; bonusCogs: number; penaltyDmg: number };
   gadget_bought: { gadgetId: string };
+  core_draft_ready: { choices: string[] };
+  core_equipped: { coreId: string };
   run_victory: { totalWavesCleared: number; finalCogs: number };
   run_defeat: { waveFailed: number };
 }
