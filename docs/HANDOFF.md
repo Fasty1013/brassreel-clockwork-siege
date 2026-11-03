@@ -12,9 +12,9 @@ Purpose: Coordinates cross-discipline requests, dependencies, and PR acceptance 
 | **M0** | Planning, Rules, Architecture, GDD, Balance, Governance | **COMPLETED & APPROVED** | `/docs/ARCHITECTURE.md`, `/docs/GDD.md`, `/docs/BALANCE.md`, `m0_master_plan.md` |
 | **M1** | Pure Deterministic Engine, Schemas, i18n, Headless Simulator | **COMPLETED & APPROVED** | 58/58 Vitest tests (90.99% coverage), 1,000 runs in 1.82s, `m1_core_simulator_report.md` |
 | **M2** | Playable Vertical Slice in Phaser 3 (1920x1080) | **COMPLETED & APPROVED** | E2E Browser Playtest via Puppeteer (6 screenshots in `docs/screenshots/`), `m2_vertical_slice_report.md` |
-| **M3** | Full Content, Audio (WebAudio SFX), Meta-Progression, Polish | **COMPLETED** | 65/65 tests, 7 screenshots, 30 waves, 3 bosses, `m3_full_content_audio_report.md` |
-| **M4** | QA Hardening, 10,000 Headless Runs, Balance Tuning, Localization | **IN PROGRESS** | Follows M3 |
-| **M5** | Final Polish, Production Build, Release Documentation | **QUEUED** | Follows M4 |
+| **M3** | Full Content, Audio (WebAudio SFX), Meta-Progression, Polish | **COMPLETED & APPROVED** | 65/65 tests, 7 screenshots, 30 waves, 3 bosses, `m3_full_content_audio_report.md` |
+| **M4** | QA Hardening, 10,000 Headless Runs, Balance Tuning, Localization | **COMPLETED & APPROVED** | 10,000 headless runs (16.95% winrate), 100% i18n parity, 74/74 tests (90.66% coverage), `m4_qa_balance_report.md` |
+| **M5** | Final Polish, Production Build, Release Documentation, Desktop Wrapper | **READY TO START** | Next milestone to execute on user command |
 
 ---
 
@@ -69,4 +69,5 @@ Purpose: Coordinates cross-discipline requests, dependencies, and PR acceptance 
 | **HO-009** | Lead Architect | Audio Dev | Build procedural WebAudio SFX synthesis engine | **COMPLETED** | `/src/audio/SoundManager.ts`, `tests/audio/` |
 | **HO-010** | Lead Architect | Systems Dev | Implement persistent localStorage meta-progression (Foundry Archives) | **COMPLETED** | `/src/core/meta/**`, `/src/ui/ArchiveModal.ts` |
 | **HO-011** | Content Dev | Core Engine Dev | Expand to 3 Acts (30 waves, 3 bosses, 23 enemies), procedural sprites, and VFX | **COMPLETED** | `/src/data/enemies.ts`, `/src/data/waves.ts`, `m3_full_content_audio_report.md` |
-| **HO-012** | QA Agent | Balance Analyst | 10,000 Headless runs, bot evaluation, and winrate curve calibration | **IN PROGRESS** | `/tools/sim/runner.ts`, `m4_qa_balance_report.md` |
+| **HO-012** | QA Agent | Balance Analyst | 10,000 Headless runs, bot evaluation, and winrate curve calibration | **COMPLETED** | `/tools/sim/runner.ts`, `docs/simulation_10k_report.json`, `m4_qa_balance_report.md` |
+| **HO-013** | Release Engineer | Lead Architect | Milestone M5 Desktop packaging, final production build, and distribution readiness | **QUEUED for M5** | `package.json`, `dist/` |

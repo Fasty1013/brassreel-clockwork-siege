@@ -34,149 +34,731 @@
     "evolution_choice": "Choose Evolution Branch"
   },
   "unit": {
-    "scrap_bot": { "name": "Scrap Bot", "desc": "Fragile clockwork worker. Ideal fodder for the Smelt crucible." },
-    "cog_knight": { "name": "Cog Knight", "desc": "Armored melee defender with reinforced iron chassis." },
-    "cog_bulwark": { "name": "Bulwark", "desc": "Heavily plated tank absorbing massive front-line punishment." },
-    "cog_ramhead": { "name": "Ramhead", "desc": "Aggressive bruiser charging into enemy vanguards." },
-    "cog_fortress_golem": { "name": "Fortress Golem", "desc": "Colossal defense engine generating impenetrable barriers." },
-    "cog_aegis_bastion": { "name": "Aegis Bastion", "desc": "Reflects incoming physical damage back to attackers." },
-    "cog_steam_juggernaut": { "name": "Steam Juggernaut", "desc": "Heavy steam-powered brawler stunning enemy formations." },
-    "cog_siegebreaker": { "name": "Siegebreaker", "desc": "Cleaves through entire columns with massive hydraulic hammer." },
-    "spring_archer": { "name": "Spring Archer", "desc": "Rapid marksman firing high-tension copper arrows." },
-    "spring_sharpshooter": { "name": "Sharpshooter", "desc": "Long-range sniper delivering deadly targeted shots." },
-    "spring_repeater": { "name": "Repeater", "desc": "Fires high-velocity bursts at rapid rates." },
-    "spring_clockwork_ballista": { "name": "Clockwork Ballista", "desc": "Siege ballista piercing multiple enemies in a row." },
-    "spring_eagle_sentinel": { "name": "Eagle Sentinel", "desc": "Executes targets with devastating critical strikes." },
-    "spring_volley_array": { "name": "Volley Array", "desc": "Unleashes torrential 3-arrow volleys." },
-    "spring_chrono_marksman": { "name": "Chrono Marksman", "desc": "Attacks accelerate with each consecutive hit." },
-    "fuse_sapper": { "name": "Fuse Sapper", "desc": "Lobs volatile explosive canisters into enemy clusters." },
-    "fuse_pyromancer": { "name": "Pyromancer", "desc": "Coats enemies in persistent burning molten slag." },
-    "fuse_demolitionist": { "name": "Demolitionist", "desc": "Concussive explosives knocking enemies backward." },
-    "fuse_magma_mortar": { "name": "Magma Mortar", "desc": "Leaves persistent burning pools across target zones." },
-    "fuse_hellfire_foundry": { "name": "Hellfire Foundry", "desc": "Amplifies damage against burning targets." },
-    "fuse_blast_dynamo": { "name": "Blast Dynamo", "desc": "Tremendous shockwaves scattering approaching hordes." },
-    "fuse_doom_barricade": { "name": "Doom Barricade", "desc": "Deploys explosive proximity landmines." },
-    "coil_sparker": { "name": "Coil Sparker", "desc": "Channels galvanic energy that arcs between enemies." },
-    "coil_conduit": { "name": "Conduit", "desc": "Master of chain reactions and electrical conduction." },
-    "coil_dynamo": { "name": "Dynamo", "desc": "Support caster granting shields and overcharge energy." },
-    "coil_tesla_titan": { "name": "Tesla Titan", "desc": "Arcs continuous high-voltage lightning through 5 targets." },
-    "coil_storm_conductor": { "name": "Storm Conductor", "desc": "Calls down devastating thunderbolts from the ceiling." },
-    "coil_shield_galvanizer": { "name": "Shield Galvanizer", "desc": "Generates pulsating kinetic shields for nearby allies." },
-    "coil_overload_core": { "name": "Overload Core", "desc": "Supercharges attack speeds of all adjacent defenders." },
-    "steam_leviathan": { "name": "Steam Leviathan", "desc": "Legendary colossal dreadnought cleaving wide swathes." },
-    "solarion_sun_forge": { "name": "Solarion Sun-Forge", "desc": "Focuses a concentrated continuous beam melting enemy armor." },
-    "chrono_warden": { "name": "Chrono Warden", "desc": "Warps battlefield temporal flow, drastically slowing all foes." }
+    "scrap_bot": {
+      "name": "Scrap Bot",
+      "desc": "Fragile clockwork worker. Ideal fodder for the Smelt crucible."
+    },
+    "cog_knight": {
+      "name": "Cog Knight",
+      "desc": "Armored melee defender with reinforced iron chassis."
+    },
+    "cog_bulwark": {
+      "name": "Bulwark",
+      "desc": "Heavily plated tank absorbing massive front-line punishment."
+    },
+    "cog_ramhead": {
+      "name": "Ramhead",
+      "desc": "Aggressive bruiser charging into enemy vanguards."
+    },
+    "cog_fortress_golem": {
+      "name": "Fortress Golem",
+      "desc": "Colossal defense engine generating impenetrable barriers."
+    },
+    "cog_aegis_bastion": {
+      "name": "Aegis Bastion",
+      "desc": "Reflects incoming physical damage back to attackers."
+    },
+    "cog_steam_juggernaut": {
+      "name": "Steam Juggernaut",
+      "desc": "Heavy steam-powered brawler stunning enemy formations."
+    },
+    "cog_siegebreaker": {
+      "name": "Siegebreaker",
+      "desc": "Cleaves through entire columns with massive hydraulic hammer."
+    },
+    "spring_archer": {
+      "name": "Spring Archer",
+      "desc": "Rapid marksman firing high-tension copper arrows."
+    },
+    "spring_sharpshooter": {
+      "name": "Sharpshooter",
+      "desc": "Long-range sniper delivering deadly targeted shots."
+    },
+    "spring_repeater": {
+      "name": "Repeater",
+      "desc": "Fires high-velocity bursts at rapid rates."
+    },
+    "spring_clockwork_ballista": {
+      "name": "Clockwork Ballista",
+      "desc": "Siege ballista piercing multiple enemies in a row."
+    },
+    "spring_eagle_sentinel": {
+      "name": "Eagle Sentinel",
+      "desc": "Executes targets with devastating critical strikes."
+    },
+    "spring_volley_array": {
+      "name": "Volley Array",
+      "desc": "Unleashes torrential 3-arrow volleys."
+    },
+    "spring_chrono_marksman": {
+      "name": "Chrono Marksman",
+      "desc": "Attacks accelerate with each consecutive hit."
+    },
+    "fuse_sapper": {
+      "name": "Fuse Sapper",
+      "desc": "Lobs volatile explosive canisters into enemy clusters."
+    },
+    "fuse_pyromancer": {
+      "name": "Pyromancer",
+      "desc": "Coats enemies in persistent burning molten slag."
+    },
+    "fuse_demolitionist": {
+      "name": "Demolitionist",
+      "desc": "Concussive explosives knocking enemies backward."
+    },
+    "fuse_magma_mortar": {
+      "name": "Magma Mortar",
+      "desc": "Leaves persistent burning pools across target zones."
+    },
+    "fuse_hellfire_foundry": {
+      "name": "Hellfire Foundry",
+      "desc": "Amplifies damage against burning targets."
+    },
+    "fuse_blast_dynamo": {
+      "name": "Blast Dynamo",
+      "desc": "Tremendous shockwaves scattering approaching hordes."
+    },
+    "fuse_doom_barricade": {
+      "name": "Doom Barricade",
+      "desc": "Deploys explosive proximity landmines."
+    },
+    "coil_sparker": {
+      "name": "Coil Sparker",
+      "desc": "Channels galvanic energy that arcs between enemies."
+    },
+    "coil_conduit": {
+      "name": "Conduit",
+      "desc": "Master of chain reactions and electrical conduction."
+    },
+    "coil_dynamo": {
+      "name": "Dynamo",
+      "desc": "Support caster granting shields and overcharge energy."
+    },
+    "coil_tesla_titan": {
+      "name": "Tesla Titan",
+      "desc": "Arcs continuous high-voltage lightning through 5 targets."
+    },
+    "coil_storm_conductor": {
+      "name": "Storm Conductor",
+      "desc": "Calls down devastating thunderbolts from the ceiling."
+    },
+    "coil_shield_galvanizer": {
+      "name": "Shield Galvanizer",
+      "desc": "Generates pulsating kinetic shields for nearby allies."
+    },
+    "coil_overload_core": {
+      "name": "Overload Core",
+      "desc": "Supercharges attack speeds of all adjacent defenders."
+    },
+    "steam_leviathan": {
+      "name": "Steam Leviathan",
+      "desc": "Legendary colossal dreadnought cleaving wide swathes."
+    },
+    "solarion_sun_forge": {
+      "name": "Solarion Sun-Forge",
+      "desc": "Focuses a concentrated continuous beam melting enemy armor."
+    },
+    "chrono_warden": {
+      "name": "Chrono Warden",
+      "desc": "Warps battlefield temporal flow, drastically slowing all foes."
+    }
   },
   "enemy": {
-    "scrapper": { "name": "Scrap Marauder", "desc": "Nimble scavenger armed with rusted blades." },
-    "steam_rover": { "name": "Steam Rover", "desc": "Armored clockwork vehicle pushing forward." },
-    "clockwork_beetle": { "name": "Brass Beetle", "desc": "Heavily armored mechanical beetle." },
-    "scrap_sniper": { "name": "Rust Sharpshooter", "desc": "Long-range rifleman targeting backline units." },
-    "shield_drone": { "name": "Shield Drone", "desc": "Flying automaton projecting barriers over allies." },
-    "piston_hound": { "name": "Piston Hound", "desc": "High-speed quadruped leaping past frontline defenders." },
-    "mortar_crawler": { "name": "Mortar Crawler", "desc": "Arced ballistic siege crawler." },
-    "steam_bomber": { "name": "Volatile Sapper", "desc": "Explosive automaton rushing to self-detonate." },
-    "heavy_borer": { "name": "Heavy Borer", "desc": "Massive drilling engine crushing barricades." },
-    "shock_prowler": { "name": "Arc Prowler", "desc": "Electrified stalker disabling hit defenders." },
-    "spire_golem": { "name": "Spire Golem", "desc": "Towering iron construct shaking the battlefield." },
-    "boiler_raider": { "name": "Boiler Raider", "desc": "Elite saboteur accelerating toward the Boiler." },
-    "steam_baron": { "name": "The Steam Baron", "desc": "Colossal walking locomotive war engine." }
+    "scrapper": {
+      "name": "Scrap Marauder",
+      "desc": "Nimble scavenger armed with rusted blades."
+    },
+    "steam_rover": {
+      "name": "Steam Rover",
+      "desc": "Armored clockwork vehicle pushing forward."
+    },
+    "clockwork_beetle": {
+      "name": "Brass Beetle",
+      "desc": "Heavily armored mechanical beetle."
+    },
+    "scrap_sniper": {
+      "name": "Rust Sharpshooter",
+      "desc": "Long-range rifleman targeting backline units."
+    },
+    "shield_drone": {
+      "name": "Shield Drone",
+      "desc": "Flying automaton projecting barriers over allies."
+    },
+    "piston_hound": {
+      "name": "Piston Hound",
+      "desc": "High-speed quadruped leaping past frontline defenders."
+    },
+    "mortar_crawler": {
+      "name": "Mortar Crawler",
+      "desc": "Arced ballistic siege crawler."
+    },
+    "steam_bomber": {
+      "name": "Volatile Sapper",
+      "desc": "Explosive automaton rushing to self-detonate."
+    },
+    "heavy_borer": {
+      "name": "Heavy Borer",
+      "desc": "Massive drilling engine crushing barricades."
+    },
+    "shock_prowler": {
+      "name": "Arc Prowler",
+      "desc": "Electrified stalker disabling hit defenders."
+    },
+    "spire_golem": {
+      "name": "Spire Golem",
+      "desc": "Towering iron construct shaking the battlefield."
+    },
+    "boiler_raider": {
+      "name": "Boiler Raider",
+      "desc": "Elite saboteur accelerating toward the Boiler."
+    },
+    "steam_baron": {
+      "name": "The Steam Baron",
+      "desc": "Colossal walking locomotive war engine."
+    },
+    "acid_drone": {
+      "name": "Acid Drone",
+      "desc": "Hovering swamp drone spitting corrosive acid."
+    },
+    "rust_creeper": {
+      "name": "Rust Creeper",
+      "desc": "Swift skittering scout corroding metal plating."
+    },
+    "bog_stalker": {
+      "name": "Bog Stalker",
+      "desc": "Heavy submerged construct surging with swamp muck."
+    },
+    "toxic_leech": {
+      "name": "Toxic Leech",
+      "desc": "Parasitic siphon draining defender combat pressure."
+    },
+    "clockwork_executioner": {
+      "name": "Clockwork Executioner",
+      "desc": "Twin-bladed elite automaton slicing through frontlines."
+    },
+    "siege_engine": {
+      "name": "Citadel Siege Engine",
+      "desc": "Heavy armored rail cannon targeting the Boiler."
+    },
+    "dreadnought": {
+      "name": "Citadel Dreadnought",
+      "desc": "Immense steel behemoth crushing all barricades."
+    },
+    "lightning_spire": {
+      "name": "Lightning Spire",
+      "desc": "Mobile Tesla spire shocking entire defense lanes."
+    }
   },
   "mod": {
-    "iron_gears": { "name": "Iron Gears", "desc": "+15% Base Damage" },
-    "tempered_chassis": { "name": "Tempered Chassis", "desc": "+20% Maximum HP" },
-    "lubricated_joints": { "name": "Lubricated Joints", "desc": "+15% Attack Speed" },
-    "sharpened_teeth": { "name": "Sharpened Teeth", "desc": "+10% Critical Strike Chance" },
-    "reinforced_rivets": { "name": "Reinforced Rivets", "desc": "+5 Flat Armor" },
-    "calibrated_lens": { "name": "Calibrated Lens", "desc": "+1 Attack Range (Ranged only)" },
-    "copper_wire": { "name": "Copper Wire", "desc": "+8% Damage and +8% Attack Speed" },
-    "steam_injector": { "name": "Steam Injector", "desc": "+12% Base Damage" },
-    "heavy_flywheel": { "name": "Heavy Flywheel", "desc": "+1 Tile Knockback" },
-    "scrap_collector": { "name": "Scrap Collector", "desc": "Drops +1 Cog on scoring a kill" },
-    "spark_plug": { "name": "Spark Plug", "desc": "15% chance on hit to Shock target" },
-    "damped_spring": { "name": "Damped Spring", "desc": "+3 Armor and +10% Max HP" },
-    "brass_casing": { "name": "Brass Casing", "desc": "+8% Dodge Chance" },
-    "oil_flask": { "name": "Oil Flask", "desc": "Attacks apply Burn" },
-    "spiked_plating": { "name": "Spiked Plating", "desc": "Reflects 12 damage when struck in melee" },
-    "pressure_gauge": { "name": "Pressure Gauge", "desc": "+25% Base Damage" },
-    "pyrite_core": { "name": "Pyrite Core", "desc": "+15% Crit Chance, +50% Crit Damage" },
-    "hydraulic_ram": { "name": "Hydraulic Ram", "desc": "Attacks stun target for 1.0 second" },
-    "boiler_siphon": { "name": "Boiler Siphon", "desc": "15% Lifesteal on hit" },
-    "kinetic_capacitor": { "name": "Kinetic Capacitor", "desc": "+25% Max HP and +6 Flat Armor" },
-    "thermite_coat": { "name": "Thermite Coat", "desc": "Attacks apply severe Thermite Burn" },
-    "arc_repeater": { "name": "Arc Repeater", "desc": "Electric attacks arc to +1 additional target" },
-    "plated_shield": { "name": "Plated Shield", "desc": "+30% Max HP" },
-    "clockwork_haste": { "name": "Clockwork Haste", "desc": "+30% Attack Speed" },
-    "armor_piercer": { "name": "Armor Piercer", "desc": "+20% Damage and ignores armor" },
-    "cleaving_blade": { "name": "Cleaving Blade", "desc": "Melee attacks splash 35% damage to adjacent targets" },
-    "shrapnel_shell": { "name": "Shrapnel Shell", "desc": "Attacks ricochet to nearby targets" },
-    "galvanic_surge": { "name": "Galvanic Surge", "desc": "+15% Damage and +15% Attack Speed" },
-    "supercharged_coil": { "name": "Supercharged Coil", "desc": "Attacks shock and deal high electrical damage" },
-    "lead_ballast": { "name": "Lead Ballast", "desc": "+10 Armor and +15% Max HP" },
-    "chronometer": { "name": "Chronometer", "desc": "+45% Attack Speed, +15% Damage" },
-    "overclock_reg": { "name": "Overclock Core", "desc": "+45% Damage, +25% Attack Speed" },
-    "aegis_plating": { "name": "Aegis Plating", "desc": "+18 Flat Armor and +35% Max HP" },
-    "doomsday_fuse": { "name": "Doomsday Fuse", "desc": "Applies catastrophic burning explosion" },
-    "chain_lightning": { "name": "Voltaic Cascade", "desc": "Chain lightning arcs through massive enemy clusters" },
-    "vampiric_valves": { "name": "Steam Vampire", "desc": "30% Lifesteal and +20% Max HP" },
-    "titan_piston": { "name": "Titan Piston", "desc": "Melee attacks cleave for 60% damage" },
-    "miracle_spring": { "name": "Miracle Spring", "desc": "+50% Max HP and +8 Flat Armor" },
-    "omni_catalyst": { "name": "Omni Catalyst", "desc": "+25% Damage, HP, and Attack Speed" },
-    "jackpot_resonance": { "name": "Jackpot Touch", "desc": "Kills award +3 bonus Cogs" }
+    "iron_gears": {
+      "name": "Iron Gears",
+      "desc": "+15% Base Damage"
+    },
+    "tempered_chassis": {
+      "name": "Tempered Chassis",
+      "desc": "+20% Maximum HP"
+    },
+    "lubricated_joints": {
+      "name": "Lubricated Joints",
+      "desc": "+15% Attack Speed"
+    },
+    "sharpened_teeth": {
+      "name": "Sharpened Teeth",
+      "desc": "+10% Critical Strike Chance"
+    },
+    "reinforced_rivets": {
+      "name": "Reinforced Rivets",
+      "desc": "+5 Flat Armor"
+    },
+    "calibrated_lens": {
+      "name": "Calibrated Lens",
+      "desc": "+1 Attack Range (Ranged only)"
+    },
+    "copper_wire": {
+      "name": "Copper Wire",
+      "desc": "+8% Damage and +8% Attack Speed"
+    },
+    "steam_injector": {
+      "name": "Steam Injector",
+      "desc": "+12% Base Damage"
+    },
+    "heavy_flywheel": {
+      "name": "Heavy Flywheel",
+      "desc": "+1 Tile Knockback"
+    },
+    "scrap_collector": {
+      "name": "Scrap Collector",
+      "desc": "Drops +1 Cog on scoring a kill"
+    },
+    "spark_plug": {
+      "name": "Spark Plug",
+      "desc": "15% chance on hit to Shock target"
+    },
+    "damped_spring": {
+      "name": "Damped Spring",
+      "desc": "+3 Armor and +10% Max HP"
+    },
+    "brass_casing": {
+      "name": "Brass Casing",
+      "desc": "+8% Dodge Chance"
+    },
+    "oil_flask": {
+      "name": "Oil Flask",
+      "desc": "Attacks apply Burn"
+    },
+    "spiked_plating": {
+      "name": "Spiked Plating",
+      "desc": "Reflects 12 damage when struck in melee"
+    },
+    "pressure_gauge": {
+      "name": "Pressure Gauge",
+      "desc": "+25% Base Damage"
+    },
+    "pyrite_core": {
+      "name": "Pyrite Core",
+      "desc": "+15% Crit Chance, +50% Crit Damage"
+    },
+    "hydraulic_ram": {
+      "name": "Hydraulic Ram",
+      "desc": "Attacks stun target for 1.0 second"
+    },
+    "boiler_siphon": {
+      "name": "Boiler Siphon",
+      "desc": "15% Lifesteal on hit"
+    },
+    "kinetic_capacitor": {
+      "name": "Kinetic Capacitor",
+      "desc": "+25% Max HP and +6 Flat Armor"
+    },
+    "thermite_coat": {
+      "name": "Thermite Coat",
+      "desc": "Attacks apply severe Thermite Burn"
+    },
+    "arc_repeater": {
+      "name": "Arc Repeater",
+      "desc": "Electric attacks arc to +1 additional target"
+    },
+    "plated_shield": {
+      "name": "Plated Shield",
+      "desc": "+30% Max HP"
+    },
+    "clockwork_haste": {
+      "name": "Clockwork Haste",
+      "desc": "+30% Attack Speed"
+    },
+    "armor_piercer": {
+      "name": "Armor Piercer",
+      "desc": "+20% Damage and ignores armor"
+    },
+    "cleaving_blade": {
+      "name": "Cleaving Blade",
+      "desc": "Melee attacks splash 35% damage to adjacent targets"
+    },
+    "shrapnel_shell": {
+      "name": "Shrapnel Shell",
+      "desc": "Attacks ricochet to nearby targets"
+    },
+    "galvanic_surge": {
+      "name": "Galvanic Surge",
+      "desc": "+15% Damage and +15% Attack Speed"
+    },
+    "supercharged_coil": {
+      "name": "Supercharged Coil",
+      "desc": "Attacks shock and deal high electrical damage"
+    },
+    "lead_ballast": {
+      "name": "Lead Ballast",
+      "desc": "+10 Armor and +15% Max HP"
+    },
+    "chronometer": {
+      "name": "Chronometer",
+      "desc": "+45% Attack Speed, +15% Damage"
+    },
+    "overclock_reg": {
+      "name": "Overclock Core",
+      "desc": "+45% Damage, +25% Attack Speed"
+    },
+    "aegis_plating": {
+      "name": "Aegis Plating",
+      "desc": "+18 Flat Armor and +35% Max HP"
+    },
+    "doomsday_fuse": {
+      "name": "Doomsday Fuse",
+      "desc": "Applies catastrophic burning explosion"
+    },
+    "chain_lightning": {
+      "name": "Voltaic Cascade",
+      "desc": "Chain lightning arcs through massive enemy clusters"
+    },
+    "vampiric_valves": {
+      "name": "Steam Vampire",
+      "desc": "30% Lifesteal and +20% Max HP"
+    },
+    "titan_piston": {
+      "name": "Titan Piston",
+      "desc": "Melee attacks cleave for 60% damage"
+    },
+    "miracle_spring": {
+      "name": "Miracle Spring",
+      "desc": "+50% Max HP and +8 Flat Armor"
+    },
+    "omni_catalyst": {
+      "name": "Omni Catalyst",
+      "desc": "+25% Damage, HP, and Attack Speed"
+    },
+    "jackpot_resonance": {
+      "name": "Jackpot Touch",
+      "desc": "Kills award +3 bonus Cogs"
+    }
   },
   "core": {
-    "mirror_piston": { "name": "Mirror Piston", "desc": "Horizontal paylines are counted twice." },
-    "lucky_cam": { "name": "Lucky Cam", "desc": "Crown symbol weight is multiplied by 2x on the central reel." },
-    "recycler": { "name": "Recycler", "desc": "Each Smelt action restores +1 Steam." },
-    "pressure_valve": { "name": "Pressure Valve", "desc": "Max Heat increased to 120; Jam chance reduced by 10%." },
-    "diagonal_dynamo": { "name": "Diagonal Dynamo", "desc": "Diagonal paylines summon units 1 Tier higher." },
-    "hollow_spring": { "name": "Hollow Spring", "desc": "Pairs have a 25% chance to summon a Tier 1 unit instead of Scrap." },
-    "steam_forge": { "name": "Steam Forge", "desc": "+1 Steam per wave; all units deal +15% damage in Overdrive." },
-    "brass_ratchet": { "name": "Brass Ratchet", "desc": "Gain +1 extra Nudge charge per wave." },
-    "gilded_flywheel": { "name": "Gilded Flywheel", "desc": "Gilded symbols appear in shop at 50% discount." },
-    "furnace_bellows": { "name": "Furnace Bellows", "desc": "Smelt grants +1 extra XP when Heat is above 50%." },
-    "chain_cam": { "name": "Chain Cam", "desc": "Golden Gear (Wild) on the center slot counts for all 8 paylines." },
-    "scrap_boiler": { "name": "Scrap Boiler", "desc": "Sacrificing a Scrap Bot heals the Boiler for +1 HP." },
-    "clockwork_relay": { "name": "Clockwork Relay", "desc": "Each extra line hit reduces unit attack cooldowns by 10%." },
-    "overdrive_clutch": { "name": "Overdrive Clutch", "desc": "Jams no longer damage units; jammed reels unlock faster." },
-    "cog_catalyst": { "name": "Cog Catalyst", "desc": "Cog units gain +25% HP and taunt nearby enemies." },
-    "spring_barrel": { "name": "Spring Barrel", "desc": "3 Spring symbols on a line summon 2 Spring units." },
-    "fuse_initiator": { "name": "Fuse Initiator", "desc": "Fuse explosions have +50% blast radius." },
-    "coil_resonator": { "name": "Coil Resonator", "desc": "Coil lightning arcs bounce to +2 additional targets." },
-    "grand_regulator": { "name": "Grand Regulator", "desc": "Scoring a Jackpot awards +50 Cogs and +2 Steam." },
-    "perpetual_cam": { "name": "Perpetual Cam", "desc": "Unused Hold charges carry over between waves (max 4)." }
+    "mirror_piston": {
+      "name": "Mirror Piston",
+      "desc": "Horizontal paylines are counted twice."
+    },
+    "lucky_cam": {
+      "name": "Lucky Cam",
+      "desc": "Crown symbol weight is multiplied by 2x on the central reel."
+    },
+    "recycler": {
+      "name": "Recycler",
+      "desc": "Each Smelt action restores +1 Steam."
+    },
+    "pressure_valve": {
+      "name": "Pressure Valve",
+      "desc": "Max Heat increased to 120; Jam chance reduced by 10%."
+    },
+    "diagonal_dynamo": {
+      "name": "Diagonal Dynamo",
+      "desc": "Diagonal paylines summon units 1 Tier higher."
+    },
+    "hollow_spring": {
+      "name": "Hollow Spring",
+      "desc": "Pairs have a 25% chance to summon a Tier 1 unit instead of Scrap."
+    },
+    "steam_forge": {
+      "name": "Steam Forge",
+      "desc": "+1 Steam per wave; all units deal +15% damage in Overdrive."
+    },
+    "brass_ratchet": {
+      "name": "Brass Ratchet",
+      "desc": "Gain +1 extra Nudge charge per wave."
+    },
+    "gilded_flywheel": {
+      "name": "Gilded Flywheel",
+      "desc": "Gilded symbols appear in shop at 50% discount."
+    },
+    "furnace_bellows": {
+      "name": "Furnace Bellows",
+      "desc": "Smelt grants +1 extra XP when Heat is above 50%."
+    },
+    "chain_cam": {
+      "name": "Chain Cam",
+      "desc": "Golden Gear (Wild) on the center slot counts for all 8 paylines."
+    },
+    "scrap_boiler": {
+      "name": "Scrap Boiler",
+      "desc": "Sacrificing a Scrap Bot heals the Boiler for +1 HP."
+    },
+    "clockwork_relay": {
+      "name": "Clockwork Relay",
+      "desc": "Each extra line hit reduces unit attack cooldowns by 10%."
+    },
+    "overdrive_clutch": {
+      "name": "Overdrive Clutch",
+      "desc": "Jams no longer damage units; jammed reels unlock faster."
+    },
+    "cog_catalyst": {
+      "name": "Cog Catalyst",
+      "desc": "Cog units gain +25% HP and taunt nearby enemies."
+    },
+    "spring_barrel": {
+      "name": "Spring Barrel",
+      "desc": "3 Spring symbols on a line summon 2 Spring units."
+    },
+    "fuse_initiator": {
+      "name": "Fuse Initiator",
+      "desc": "Fuse explosions have +50% blast radius."
+    },
+    "coil_resonator": {
+      "name": "Coil Resonator",
+      "desc": "Coil lightning arcs bounce to +2 additional targets."
+    },
+    "grand_regulator": {
+      "name": "Grand Regulator",
+      "desc": "Scoring a Jackpot awards +50 Cogs and +2 Steam."
+    },
+    "perpetual_cam": {
+      "name": "Perpetual Cam",
+      "desc": "Unused Hold charges carry over between waves (max 4)."
+    }
   },
   "gadget": {
-    "brass_knuckles": { "name": "Brass Knuckles", "desc": "Cog faction units deal +15% damage." },
-    "sharpening_stone": { "name": "Precision Scope", "desc": "Spring faction units gain +1 Attack Range." },
-    "gunpowder_flask": { "name": "Black Powder", "desc": "Fuse explosions deal +25% damage." },
-    "copper_coil": { "name": "Superconductor", "desc": "Shock effects last 3 seconds longer." },
-    "toolkit": { "name": "Master Toolkit", "desc": "Increases battlefield unit capacity by +2." },
-    "oil_can": { "name": "Polished Gears", "desc": "All units gain +10% attack speed." },
-    "iron_plates": { "name": "Barricade Plates", "desc": "Boiler HP maximum increased by +2." },
-    "steam_gauge": { "name": "Heavy Regulator", "desc": "Wave end heat cooldown increased by +20." },
-    "magnet_arm": { "name": "Scrapper's Magnet", "desc": "Defeated enemies drop +1 bonus Cog." },
-    "lucky_coin": { "name": "Tarnished Coin", "desc": "Wild symbol weight increased by +20%." },
-    "pressure_spring": { "name": "Recoil Buffer", "desc": "Knockback distance increased by +1 tile." },
-    "insulated_gloves": { "name": "Safety Grip", "desc": "Heat jams do not lock reels." },
-    "cog_wrench": { "name": "Forge Wrench", "desc": "Smelt XP from different factions increased to 2." },
-    "lens_array": { "name": "Prismatic Lens", "desc": "All units have +15% Critical Hit Chance." },
-    "reinforced_boiler": { "name": "Steel Rivets", "desc": "Enemy breaches deal -1 less Boiler HP damage." },
-    "steam_battery": { "name": "High-Cap Boiler", "desc": "Steam capacity increased by +3." },
-    "discount_coupon": { "name": "Merchant's Mark", "desc": "All shop prices reduced by 20%." },
-    "golden_key": { "name": "Master Key", "desc": "Core draft offers 4 choices instead of 3." },
-    "chrono_gear": { "name": "Chrono Gear", "desc": "Emergency Valve resets immediately on boss waves." },
-    "scrap_magnet": { "name": "Scrap Compactor", "desc": "Every 3rd Scrap Bot summoned spawns at Star 2 rank." },
-    "spare_gasket": { "name": "Spare Gasket", "desc": "Negates the next Mechanical Jam." },
-    "steam_flask": { "name": "Steam Flask", "desc": "Restores +3 Steam immediately." },
-    "emergency_coolant": { "name": "Dry Ice Canister", "desc": "Reduces Heat to 0 immediately." },
-    "reel_reroll": { "name": "Reel Reroll", "desc": "Respins 1 chosen reel for free." },
-    "overcharge_vial": { "name": "Nitro Injector", "desc": "Units deal double damage for 8 seconds in next battle." },
-    "repair_kit": { "name": "Boiler Patch", "desc": "Restores +2 Boiler HP immediately." },
-    "bribe_token": { "name": "Smuggler's Mark", "desc": "Rerolls shop stock with guaranteed Rare gadget." },
-    "sentry_kit": { "name": "Portable Turret", "desc": "Spawns a temporary turret on field for 1 wave." },
-    "shock_grenade": { "name": "Stun Mine", "desc": "Stuns first 3 approaching enemies for 4 seconds." },
-    "golden_ticket": { "name": "Gilded Stamp", "desc": "Turns 1 random symbol on Reel 2 into Gilded." }
+    "brass_knuckles": {
+      "name": "Brass Knuckles",
+      "desc": "Cog faction units deal +15% damage."
+    },
+    "sharpening_stone": {
+      "name": "Precision Scope",
+      "desc": "Spring faction units gain +1 Attack Range."
+    },
+    "gunpowder_flask": {
+      "name": "Black Powder",
+      "desc": "Fuse explosions deal +25% damage."
+    },
+    "copper_coil": {
+      "name": "Superconductor",
+      "desc": "Shock effects last 3 seconds longer."
+    },
+    "toolkit": {
+      "name": "Master Toolkit",
+      "desc": "Increases battlefield unit capacity by +2."
+    },
+    "oil_can": {
+      "name": "Polished Gears",
+      "desc": "All units gain +10% attack speed."
+    },
+    "iron_plates": {
+      "name": "Barricade Plates",
+      "desc": "Boiler HP maximum increased by +2."
+    },
+    "steam_gauge": {
+      "name": "Heavy Regulator",
+      "desc": "Wave end heat cooldown increased by +20."
+    },
+    "magnet_arm": {
+      "name": "Scrapper's Magnet",
+      "desc": "Defeated enemies drop +1 bonus Cog."
+    },
+    "lucky_coin": {
+      "name": "Tarnished Coin",
+      "desc": "Wild symbol weight increased by +20%."
+    },
+    "pressure_spring": {
+      "name": "Recoil Buffer",
+      "desc": "Knockback distance increased by +1 tile."
+    },
+    "insulated_gloves": {
+      "name": "Safety Grip",
+      "desc": "Heat jams do not lock reels."
+    },
+    "cog_wrench": {
+      "name": "Forge Wrench",
+      "desc": "Smelt XP from different factions increased to 2."
+    },
+    "lens_array": {
+      "name": "Prismatic Lens",
+      "desc": "All units have +15% Critical Hit Chance."
+    },
+    "reinforced_boiler": {
+      "name": "Steel Rivets",
+      "desc": "Enemy breaches deal -1 less Boiler HP damage."
+    },
+    "steam_battery": {
+      "name": "High-Cap Boiler",
+      "desc": "Steam capacity increased by +3."
+    },
+    "discount_coupon": {
+      "name": "Merchant's Mark",
+      "desc": "All shop prices reduced by 20%."
+    },
+    "golden_key": {
+      "name": "Master Key",
+      "desc": "Core draft offers 4 choices instead of 3."
+    },
+    "chrono_gear": {
+      "name": "Chrono Gear",
+      "desc": "Emergency Valve resets immediately on boss waves."
+    },
+    "scrap_magnet": {
+      "name": "Scrap Compactor",
+      "desc": "Every 3rd Scrap Bot summoned spawns at Star 2 rank."
+    },
+    "spare_gasket": {
+      "name": "Spare Gasket",
+      "desc": "Negates the next Mechanical Jam."
+    },
+    "steam_flask": {
+      "name": "Steam Flask",
+      "desc": "Restores +3 Steam immediately."
+    },
+    "emergency_coolant": {
+      "name": "Dry Ice Canister",
+      "desc": "Reduces Heat to 0 immediately."
+    },
+    "reel_reroll": {
+      "name": "Reel Reroll",
+      "desc": "Respins 1 chosen reel for free."
+    },
+    "overcharge_vial": {
+      "name": "Nitro Injector",
+      "desc": "Units deal double damage for 8 seconds in next battle."
+    },
+    "repair_kit": {
+      "name": "Boiler Patch",
+      "desc": "Restores +2 Boiler HP immediately."
+    },
+    "bribe_token": {
+      "name": "Smuggler's Mark",
+      "desc": "Rerolls shop stock with guaranteed Rare gadget."
+    },
+    "sentry_kit": {
+      "name": "Portable Turret",
+      "desc": "Spawns a temporary turret on field for 1 wave."
+    },
+    "shock_grenade": {
+      "name": "Stun Mine",
+      "desc": "Stuns first 3 approaching enemies for 4 seconds."
+    },
+    "golden_ticket": {
+      "name": "Gilded Stamp",
+      "desc": "Turns 1 random symbol on Reel 2 into Gilded."
+    }
+  },
+  "boss": {
+    "corrosion_empress": {
+      "name": "Corrosion Empress",
+      "desc": "Sovereign of the Rust Swamps dissolving metal with toxic bile."
+    },
+    "iron_colossus": {
+      "name": "The Iron Colossus",
+      "desc": "Ultimate fortress-breaker automaton powered by triple boilers."
+    }
+  },
+  "quirk": {
+    "scrap_plating": {
+      "name": "Scrap Plating",
+      "desc": "20% chance to scavenge 1 bonus Cog on hit."
+    },
+    "iron_plating": {
+      "name": "Iron Plating",
+      "desc": "Reduces all incoming physical damage by 15%."
+    },
+    "fortress_barricade": {
+      "name": "Fortress Barricade",
+      "desc": "Generates a 250 HP barrier over nearby allies every 8 seconds."
+    },
+    "damage_reflection": {
+      "name": "Damage Reflection",
+      "desc": "Reflects 30% of incoming damage back to the attacker."
+    },
+    "impact_charge": {
+      "name": "Impact Charge",
+      "desc": "Stuns targeted enemy for 2.0 seconds on impact."
+    },
+    "siege_cleave": {
+      "name": "Siege Cleave",
+      "desc": "Attacks cleave for 40% damage in adjacent lanes."
+    },
+    "recoil_spring": {
+      "name": "Recoil Spring",
+      "desc": "20% chance for projectile to ricochet for 60% damage."
+    },
+    "infinite_pierce": {
+      "name": "Infinite Pierce",
+      "desc": "Bolts pierce through up to 3 enemies in a lane."
+    },
+    "high_ground_crit": {
+      "name": "High Ground Crit",
+      "desc": "Deals 250% critical damage when enemy is above 70% HP."
+    },
+    "triple_burst": {
+      "name": "Triple Burst",
+      "desc": "Fires a rapid 3-shot burst every attack cycle."
+    },
+    "focus_acceleration": {
+      "name": "Focus Acceleration",
+      "desc": "Gains +10% attack speed per hit (stacks up to 10x)."
+    },
+    "death_explosion": {
+      "name": "Death Explosion",
+      "desc": "Detonates on death dealing 120 AoE damage in a 1.5 tile radius."
+    },
+    "molten_pool": {
+      "name": "Molten Pool",
+      "desc": "Leaves a burning pool dealing 35 DPS for 4 seconds."
+    },
+    "thermal_vulnerability": {
+      "name": "Thermal Vulnerability",
+      "desc": "Debuffs target taking +25% bonus explosive damage."
+    },
+    "concussive_knockback": {
+      "name": "Concussive Knockback",
+      "desc": "Blasts target backward by 1 tile."
+    },
+    "proximity_mines": {
+      "name": "Proximity Mines",
+      "desc": "Deploys 2 explosive mines dealing 150 damage on contact."
+    },
+    "electric_conduction": {
+      "name": "Electric Conduction",
+      "desc": "Shock arcs to 1 additional target for 50% damage."
+    },
+    "five_fold_chain": {
+      "name": "Five-Fold Chain",
+      "desc": "Chain lightning arcs up to 4 times for 75% damage."
+    },
+    "thunderbolt_strike": {
+      "name": "Thunderbolt Strike",
+      "desc": "Every 4th hit calls a 300 damage thunderbolt stunning for 1.5s."
+    },
+    "kinetic_shield_aura": {
+      "name": "Kinetic Shield Aura",
+      "desc": "Shields adjacent defenders for 120 HP every 6 seconds."
+    },
+    "overclock_field": {
+      "name": "Overclock Field",
+      "desc": "Boosts attack speed of adjacent allies by +25%."
+    },
+    "steam_shroud": {
+      "name": "Steam Shroud",
+      "desc": "Reduces incoming damage by 20% and cleaves for 30% damage."
+    },
+    "solar_beam": {
+      "name": "Solar Beam",
+      "desc": "Shreds 50% enemy armor and deals +25% bonus damage."
+    },
+    "time_dilation": {
+      "name": "Time Dilation",
+      "desc": "Drastically slows enemy advance by 40%."
+    },
+    "steam_aegis": {
+      "name": "Steam Aegis",
+      "desc": "Reduces incoming damage by 20% and cleaves for 30% damage."
+    }
+  },
+  "wave": {
+    "title": {
+      "1": "Outskirts Reconnaissance",
+      "2": "Scrap Vanguard",
+      "3": "Armored Patrol",
+      "4": "Hound Pack Assault",
+      "5": "Inspection: Rapid Defense",
+      "6": "Volatile Sapper Incursion",
+      "7": "Heavy Borer Siege",
+      "8": "Prowler Ambush",
+      "9": "Citadel Forward Bastion",
+      "10": "BOSS: The Steam Baron",
+      "11": "Rust Swamp Edge",
+      "12": "Corrosive Drone Swarm",
+      "13": "Muck Stalker Infiltration",
+      "14": "Leech Infestation",
+      "15": "Inspection: Toxic Gauntlet",
+      "16": "Acid Rain Brigade",
+      "17": "Heavy Sludge Vanguard",
+      "18": "Swamp Ambuscade",
+      "19": "Hivemind Siphon",
+      "20": "BOSS: Corrosion Empress",
+      "21": "Citadel Gates",
+      "22": "Executioner Vanguard",
+      "23": "Tesla Coil Line",
+      "24": "Rail Siege Battery",
+      "25": "Inspection: Overclock Trial",
+      "26": "Citadel Elite Guard",
+      "27": "Twin Dreadnought Column",
+      "28": "Lightning Spire Barrage",
+      "29": "Iron Colossus Vanguard",
+      "30": "FINAL BOSS: The Iron Colossus"
+    }
   }
 }
-

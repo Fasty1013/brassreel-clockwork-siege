@@ -10,13 +10,17 @@ import { TelemetryAggregator, SimulationRunMetrics } from './telemetry';
 import * as fs from 'fs';
 import * as path from 'path';
 
-function parseArgs(): { runs: number; botName: 'random' | 'greedy' | 'smart'; seed: string; output?: string; waves: number } {
+import { MetaManager } from '../../src/core/meta/metaManager';
+import { MetaState } from '../../src/core/meta/metaSchema';
+
+function parseArgs(): { runs: number; botName: 'random' | 'greedy' | 'smart'; seed: string; output?: string; waves: number; metaLevel: 'none' | 'mid' | 'max' } {
   const args = process.argv.slice(2);
   let runs = 1000;
   let botName: 'random' | 'greedy' | 'smart' = 'smart';
   let seed = 'BRASS_SIM_SEED';
   let output: string | undefined;
   let waves = 10;
+  let metaLevel: 'none' | 'mid' | 'max' = 'none';
 
   for (let i = 0; i < args.length; i++) {
     if (args[i] === '--runs' && args[i + 1]) {
@@ -34,10 +38,13 @@ function parseArgs(): { runs: number; botName: 'random' | 'greedy' | 'smart'; se
     } else if (args[i] === '--waves' && args[i + 1]) {
       waves = parseInt(args[i + 1], 10);
       i++;
+    } else if (args[i] === '--meta' && args[i + 1]) {
+      metaLevel = args[i + 1].toLowerCase() as any;
+      i++;
     }
   }
 
-  return { runs, botName, seed, output, waves };
+  return { runs, botName, seed, output, waves, metaLevel };
 }
 
 function getBot(botName: string): BotPolicy {
@@ -52,10 +59,39 @@ function getBot(botName: string): BotPolicy {
   }
 }
 
-export function runSimulationRun(runId: number, masterSeed: string, bot: BotPolicy, maxWaves = 10): SimulationRunMetrics {
+export function runSimulationRun(
+  runId: number,
+  masterSeed: string,
+  bot: BotPolicy,
+  maxWaves = 10,
+  metaLevel: 'none' | 'mid' | 'max' = 'none'
+): SimulationRunMetrics {
   const runSeed = `${masterSeed}_run_${runId}`;
   const rng = PrngManager.createStreams(runSeed);
   const state = RunStateManager.createInitialState(runSeed);
+
+  if (metaLevel !== 'none') {
+    const meta: MetaState = MetaManager.createDefaultState();
+    if (metaLevel === 'mid') {
+      meta.unlockedUpgrades = {
+        boiler_reinforcement: 2,
+        steam_manifold: 1,
+        gear_calibration: 1,
+        precision_escapement: 1,
+        gilded_starter: 1
+      };
+    } else if (metaLevel === 'max') {
+      meta.unlockedUpgrades = {
+        boiler_reinforcement: 3,
+        steam_manifold: 3,
+        gear_calibration: 2,
+        precision_escapement: 2,
+        gilded_starter: 1
+      };
+    }
+    MetaManager.applyMetaToRun(state, meta);
+  }
+
   const bus = new EventBus();
 
   let totalSpins = 0;
@@ -130,20 +166,26 @@ export function runSimulationRun(runId: number, masterSeed: string, bot: BotPoli
   };
 }
 
-export function runHeadlessBatch(runs: number, botName: 'random' | 'greedy' | 'smart', masterSeed: string, maxWaves = 10) {
+export function runHeadlessBatch(
+  runs: number,
+  botName: 'random' | 'greedy' | 'smart',
+  masterSeed: string,
+  maxWaves = 10,
+  metaLevel: 'none' | 'mid' | 'max' = 'none'
+) {
   const bot = getBot(botName);
   const aggregator = new TelemetryAggregator();
 
   const startTime = Date.now();
-  console.log(`Starting headless simulation: ${runs} runs | Bot: ${bot.name} | Waves: ${maxWaves} | Seed: ${masterSeed}`);
+  console.log(`Starting headless simulation: ${runs} runs | Bot: ${bot.name} | Waves: ${maxWaves} | Meta: ${metaLevel} | Seed: ${masterSeed}`);
 
   for (let i = 1; i <= runs; i++) {
-    const runMetric = runSimulationRun(i, masterSeed, bot, maxWaves);
+    const runMetric = runSimulationRun(i, masterSeed, bot, maxWaves, metaLevel);
     aggregator.recordRun(runMetric);
   }
 
   const durationMs = Date.now() - startTime;
-  const summary = aggregator.getSummary(bot.name);
+  const summary = aggregator.getSummary(bot.name, maxWaves);
 
   console.log('----------------------------------------------------');
   console.log(`[SIMULATION COMPLETED in ${(durationMs / 1000).toFixed(2)}s]`);
@@ -172,7 +214,7 @@ export function runHeadlessBatch(runs: number, botName: 'random' | 'greedy' | 's
 // If executed directly from Node CLI
 if (process.argv[1] && process.argv[1].includes('runner')) {
   const config = parseArgs();
-  const summary = runHeadlessBatch(config.runs, config.botName, config.seed, config.waves);
+  const summary = runHeadlessBatch(config.runs, config.botName, config.seed, config.waves, config.metaLevel);
 
   if (config.output) {
     const outDir = path.dirname(config.output);

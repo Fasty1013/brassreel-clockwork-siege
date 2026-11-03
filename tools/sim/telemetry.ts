@@ -35,7 +35,7 @@ export class TelemetryAggregator {
     this.runs.push(metrics);
   }
 
-  public getSummary(botName: string): SimulationBatchSummary {
+  public getSummary(botName: string, maxWaves = 10): SimulationBatchSummary {
     const totalRuns = this.runs.length;
     if (totalRuns === 0) {
       return {
@@ -67,7 +67,7 @@ export class TelemetryAggregator {
     let sumBattleSeconds = 0;
     const deathsByWave: Record<number, number> = {};
 
-    for (let w = 1; w <= 10; w++) {
+    for (let w = 1; w <= maxWaves; w++) {
       deathsByWave[w] = 0;
     }
 
@@ -80,7 +80,7 @@ export class TelemetryAggregator {
       sumBattleSeconds += r.averageBattleSeconds;
 
       if (!r.clearedWave10) {
-        const deathWave = Math.min(10, r.wavesCleared + 1);
+        const deathWave = Math.min(maxWaves, r.wavesCleared + 1);
         deathsByWave[deathWave] = (deathsByWave[deathWave] ?? 0) + 1;
       }
     }
