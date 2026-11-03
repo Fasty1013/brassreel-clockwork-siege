@@ -13,8 +13,8 @@ const isRefBenchmark = typeof window !== 'undefined' && window.location.search.i
 const config: Phaser.Types.Core.GameConfig = {
   type: Phaser.AUTO,
   parent: 'game-container',
-  width: 640,
-  height: 360,
+  width: 1920,
+  height: 1080,
   pixelArt: true,
   roundPixels: true,
   antialias: false,
@@ -24,10 +24,10 @@ const config: Phaser.Types.Core.GameConfig = {
   },
   backgroundColor: '#0b090f',
   scene: isAnimDebug
-    ? [AnimationViewerScene, ReferenceScene, BootScene, MenuScene, RunScene, GameOverScene]
+    ? [AnimationViewerScene, BootScene, MenuScene, RunScene, GameOverScene, ReferenceScene]
     : isRefBenchmark
     ? [ReferenceScene, AnimationViewerScene, BootScene, MenuScene, RunScene, GameOverScene]
-    : [ReferenceScene, BootScene, MenuScene, RunScene, GameOverScene, AnimationViewerScene]
+    : [BootScene, MenuScene, RunScene, GameOverScene, ReferenceScene, AnimationViewerScene]
 };
 
 export const game = new Phaser.Game(config);

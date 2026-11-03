@@ -104,14 +104,18 @@ export class MenuScene extends Phaser.Scene {
       });
     });
 
-    startBtn.on('pointerdown', () => {
+    const startGame = () => {
       SoundManager.getInstance().init();
       SoundManager.getInstance().playButtonClick();
       this.cameras.main.fade(300, 20, 16, 12);
       this.time.delayedCall(300, () => {
         this.scene.start('RunScene');
       });
-    });
+    };
+
+    startBtn.on('pointerdown', startGame);
+    this.input.keyboard?.on('keydown-SPACE', startGame);
+    this.input.keyboard?.on('keydown-ENTER', startGame);
 
     // Mount Archive Modal
     this.archiveModal = new ArchiveModal(this);

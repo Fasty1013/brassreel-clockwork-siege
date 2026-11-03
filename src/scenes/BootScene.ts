@@ -1,5 +1,9 @@
 import Phaser from 'phaser';
 import { AssetLoader } from '../fx/AssetLoader';
+import { CogKnightArt } from '../art/characters/cogKnight';
+import { SymbolArt } from '../art/symbols';
+import { BackdropArt } from '../art/environment/backdrop';
+import { UIFrameArt } from '../art/ui/frames';
 
 export class BootScene extends Phaser.Scene {
   constructor() {
@@ -7,8 +11,14 @@ export class BootScene extends Phaser.Scene {
   }
 
   public preload(): void {
-    // Initialize Hybrid Progressive Asset Loader (procedural baseline + overrides)
+    // 1. Initialize Hybrid Progressive Asset Loader (procedural baseline + overrides)
     AssetLoader.init(this);
+
+    // 2. Register bespoke retro pixel-art suites (P1 Benchmark)
+    CogKnightArt.registerAnimations(this);
+    SymbolArt.registerAllSymbols(this);
+    BackdropArt.registerBackdrop(this);
+    UIFrameArt.registerAllUI(this);
 
     const width = this.cameras.main.width;
     const height = this.cameras.main.height;

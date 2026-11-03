@@ -598,8 +598,24 @@ export class RunScene extends Phaser.Scene {
     if (this.state.phase !== 'PREP') return;
 
     if (this.state.deployedUnits.length === 0) {
-      this.showFloatingText(960, 300, 'Разместите хотя бы одного автоматона на поле!', '#ffd166');
-      return;
+      // Quality-of-life: if player clicks Engage with units on bench, auto-deploy them to frontline
+      if (this.state.reserveBench.length > 0) {
+        const availableSlots: [number, number][] = [
+          [0, 0], [0, 1], [0, 2], [0, 3], [0, 4],
+          [1, 0], [1, 1], [1, 2], [1, 3], [1, 4]
+        ];
+        let slotIdx = 0;
+        const toDeploy = [...this.state.reserveBench];
+        for (const u of toDeploy) {
+          if (slotIdx < availableSlots.length) {
+            const [c, r] = availableSlots[slotIdx++];
+            this.deployUnit(u.instanceId, c, r);
+          }
+        }
+      } else {
+        this.showFloatingText(960, 300, 'Сначала покрутите барабаны (Пробел) и призовите автоматонов!', '#ffd166');
+        return;
+      }
     }
 
     // Switch to Battle Phase

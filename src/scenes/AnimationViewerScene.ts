@@ -37,6 +37,12 @@ export class AnimationViewerScene extends Phaser.Scene {
     const W = 640;
     const H = 360;
 
+    // Scale 3x integer nearest-neighbor to fill 1920x1080 viewport if running on 1080p
+    if (this.cameras.main.width >= 1920) {
+      this.cameras.main.setZoom(3);
+      this.cameras.main.centerOn(W / 2, H / 2);
+    }
+
     // 1. Background Layer (toggleable)
     this.add.rectangle(W / 2, H / 2, W, H, 0x15121b);
     this.bgImage = this.add.image(W / 2, H / 2, 'bg_meadow_day');
