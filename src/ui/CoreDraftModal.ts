@@ -122,3 +122,4 @@ export class CoreDraftModal extends Phaser.GameObjects.Container {
     this.setVisible(true);
   }
 }
+
