@@ -127,9 +127,126 @@ export class RunScene extends Phaser.Scene {
     // 9. Wire Event Listeners
     this.wireEvents();
 
+    // 10. Desktop Keyboard Controls & Hotkeys
+    this.setupKeyboardShortcuts();
+
     // Initial HUD & View update
     this.refreshHUD();
     this.syncUnitCards();
+  }
+
+  private setupKeyboardShortcuts(): void {
+    if (!this.input || !this.input.keyboard) return;
+
+    // Fullscreen: F or F11
+    this.input.keyboard.on('keydown-F', () => {
+      this.scale.toggleFullscreen();
+    });
+    this.input.keyboard.on('keydown-F11', (event: KeyboardEvent) => {
+      if (event && event.preventDefault) event.preventDefault();
+      this.scale.toggleFullscreen();
+    });
+
+    // Mute: M
+    this.input.keyboard.on('keydown-M', () => {
+      SoundManager.getInstance().toggleMute();
+      this.refreshHUD();
+    });
+
+    // Space: Spin in PREP, advance in RESULT / SHOP
+    this.input.keyboard.on('keydown-SPACE', () => {
+      if (this.state.phase === 'PREP') {
+        this.handleSpinClick();
+      } else if (this.state.phase === 'RESULT' && this.waveResultContainer.visible) {
+        this.waveResultContainer.setVisible(false);
+        this.openShop();
+      } else if (this.state.phase === 'SHOP') {
+        this.shopView.emit('close_shop');
+      }
+    });
+
+    // Enter: Engage battle in PREP, next wave in SHOP
+    this.input.keyboard.on('keydown-ENTER', () => {
+      if (this.state.phase === 'PREP') {
+        this.handleEngageClick();
+      } else if (this.state.phase === 'SHOP') {
+        this.shopView.emit('close_shop');
+      }
+    });
+
+    // Keys 1, 2, 3: Hold reels in PREP; Speed 1x, 2x, 4x in BATTLE
+    this.input.keyboard.on('keydown-ONE', () => {
+      if (this.state.phase === 'PREP') {
+        this.toggleHoldReel(0);
+      } else if (this.state.phase === 'BATTLE') {
+        this.speedMultiplier = 1;
+        this.speedButtonText.setText('СКОРОСТЬ: 1×');
+      }
+    });
+    this.input.keyboard.on('keydown-TWO', () => {
+      if (this.state.phase === 'PREP') {
+        this.toggleHoldReel(1);
+      } else if (this.state.phase === 'BATTLE') {
+        this.speedMultiplier = 2;
+        this.speedButtonText.setText('СКОРОСТЬ: 2×');
+      }
+    });
+    this.input.keyboard.on('keydown-THREE', () => {
+      if (this.state.phase === 'PREP') {
+        this.toggleHoldReel(2);
+      }
+    });
+    this.input.keyboard.on('keydown-FOUR', () => {
+      if (this.state.phase === 'BATTLE') {
+        this.speedMultiplier = 4;
+        this.speedButtonText.setText('СКОРОСТЬ: 4×');
+      }
+    });
+
+    // Keys Q, W, E: Nudge reels in PREP
+    this.input.keyboard.on('keydown-Q', () => {
+      if (this.state.phase === 'PREP' && this.state.nudgesLeft > 0) {
+        this.nudgeReel(0, 1);
+      }
+    });
+    this.input.keyboard.on('keydown-W', () => {
+      if (this.state.phase === 'PREP' && this.state.nudgesLeft > 0) {
+        this.nudgeReel(1, 1);
+      }
+    });
+    this.input.keyboard.on('keydown-E', () => {
+      if (this.state.phase === 'PREP' && this.state.nudgesLeft > 0) {
+        this.nudgeReel(2, 1);
+      }
+    });
+
+    // Key V: Emergency Valve in BATTLE
+    this.input.keyboard.on('keydown-V', () => {
+      if (this.state.phase === 'BATTLE' && this.state.combatState && !this.state.combatState.valveUsed) {
+        RunReducer.dispatch(this.state, { type: 'USE_VALVE', choice: 'slow' }, this.rng, this.eventBus);
+      }
+    });
+
+    // Key P: Pause toggle in BATTLE
+    this.input.keyboard.on('keydown-P', () => {
+      if (this.state.phase === 'BATTLE') {
+        this.speedMultiplier = this.speedMultiplier === 0 ? 1 : 0;
+        this.speedButtonText.setText(this.speedMultiplier === 0 ? 'ПАУЗА ❚❚' : `СКОРОСТЬ: ${this.speedMultiplier}×`);
+      }
+    });
+  }
+
+  private toggleHoldReel(reelIndex: number): void {
+    RunReducer.dispatch(this.state, { type: 'HOLD_REEL', reelIndex }, this.rng, this.eventBus);
+    this.reelView.updateHolds(this.state.heldReels);
+    this.refreshHUD();
+  }
+
+  private nudgeReel(reelIndex: number, direction: 1 | -1): void {
+    RunReducer.dispatch(this.state, { type: 'NUDGE_REEL', reelIndex, direction }, this.rng, this.eventBus);
+    const grid = ReelManager.extractGrid(this.state.reelStrips, this.state.reelIndices);
+    this.reelView.setGrid(grid);
+    this.refreshHUD();
   }
 
   private createBenchArea(): void {

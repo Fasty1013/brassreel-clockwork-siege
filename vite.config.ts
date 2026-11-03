@@ -2,6 +2,7 @@ import { defineConfig } from 'vite';
 import path from 'path';
 
 export default defineConfig({
+  base: './',
   resolve: {
     alias: {
       '@core': path.resolve(__dirname, './src/core'),
@@ -18,7 +19,15 @@ export default defineConfig({
   },
   build: {
     target: 'es2022',
-    assetsInlineLimit: 0
+    assetsInlineLimit: 0,
+    chunkSizeWarningLimit: 1500,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          phaser: ['phaser']
+        }
+      }
+    }
   }
 });
 

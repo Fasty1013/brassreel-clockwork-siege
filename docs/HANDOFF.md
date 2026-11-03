@@ -14,7 +14,7 @@ Purpose: Coordinates cross-discipline requests, dependencies, and PR acceptance 
 | **M2** | Playable Vertical Slice in Phaser 3 (1920x1080) | **COMPLETED & APPROVED** | E2E Browser Playtest via Puppeteer (6 screenshots in `docs/screenshots/`), `m2_vertical_slice_report.md` |
 | **M3** | Full Content, Audio (WebAudio SFX), Meta-Progression, Polish | **COMPLETED & APPROVED** | 65/65 tests, 7 screenshots, 30 waves, 3 bosses, `m3_full_content_audio_report.md` |
 | **M4** | QA Hardening, 10,000 Headless Runs, Balance Tuning, Localization | **COMPLETED & APPROVED** | 10,000 headless runs (16.95% winrate), 100% i18n parity, 74/74 tests (90.66% coverage), `m4_qa_balance_report.md` |
-| **M5** | Final Polish, Production Build, Release Documentation, Desktop Wrapper | **READY TO START** | Next milestone to execute on user command |
+| **M5** | Final Polish, Production Build, Release Documentation, Desktop Wrapper | **COMPLETED & APPROVED** | Modular vendor chunks, Tauri 2 & Electron wrappers, `m5_release_readiness_report.md` |
 
 ---
 
@@ -70,4 +70,4 @@ Purpose: Coordinates cross-discipline requests, dependencies, and PR acceptance 
 | **HO-010** | Lead Architect | Systems Dev | Implement persistent localStorage meta-progression (Foundry Archives) | **COMPLETED** | `/src/core/meta/**`, `/src/ui/ArchiveModal.ts` |
 | **HO-011** | Content Dev | Core Engine Dev | Expand to 3 Acts (30 waves, 3 bosses, 23 enemies), procedural sprites, and VFX | **COMPLETED** | `/src/data/enemies.ts`, `/src/data/waves.ts`, `m3_full_content_audio_report.md` |
 | **HO-012** | QA Agent | Balance Analyst | 10,000 Headless runs, bot evaluation, and winrate curve calibration | **COMPLETED** | `/tools/sim/runner.ts`, `docs/simulation_10k_report.json`, `m4_qa_balance_report.md` |
-| **HO-013** | Release Engineer | Lead Architect | Milestone M5 Desktop packaging, final production build, and distribution readiness | **QUEUED for M5** | `package.json`, `dist/` |
+| **HO-013** | Release Engineer | Lead Architect | Milestone M5 Desktop packaging, final production build, and distribution readiness | **COMPLETED** | `src-tauri/`, `electron/`, `dist/`, `docs/RELEASE.md`, `docs/CONTROLS.md`, `m5_release_readiness_report.md` |

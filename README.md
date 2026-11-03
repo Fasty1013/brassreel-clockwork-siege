@@ -108,33 +108,24 @@ npm run dev
 # Run TypeScript strict typecheck
 npm run typecheck
 
-# Run Vitest test suite (58/58 unit & integration tests)
+# Run Vitest test suite (74/74 unit & integration tests)
 npm test
 
-# Run test coverage report
+# Run test coverage report (90.66% line coverage)
 npm run test:coverage
 ```
 
-### Headless Simulation (Node.js CLI)
-Simulate thousands of complete 10-wave runs in seconds with autonomous AI bot policies:
+### Production Build & Desktop Wrappers
 ```bash
-# Run 1,000 headless runs with SmartBot
-npm run sim
-
-# Custom simulation flags
-npx tsx tools/sim/runner.ts --runs 5000 --bot SmartBot --seed CUSTOM_SEED
-```
-
-### Automated E2E Browser Playtest (Puppeteer)
-Runs headless Chrome through the complete gameplay loop (Menu → Spins → Deployment → Battle → Shop → Wave 10 Boss → Victory) and captures fresh screenshots:
-```bash
-npm run playtest
-```
-
-### Production Build
-```bash
+# Build production bundle with modular vendor chunks in /dist
 npm run build
+
+# Preview production build locally
 npm run preview
+
+# Desktop Steam Wrappers (see docs/RELEASE.md)
+# Tauri 2: npx tauri build
+# Electron: npx electron electron/main.cjs
 ```
 
 ---
@@ -170,7 +161,7 @@ npm run preview
 - [x] **M2: Playable Vertical Slice (Phaser 3)** — Full 10-wave playable loop, procedural Canvas art, 3×3 slot forge, E2E browser verification.
 - [x] **M3: Meta-Progression, Audio & Polish** — Procedural WebAudio SFX engine, Foundry Archives (`localStorage` meta-progression), full 3-Act content expansion (30 waves, 3 bosses, 23 enemies), 65/65 tests.
 - [x] **M4: QA Hardening & Balance Tuning** — 10,000 headless runs (16.95% winrate), failure heatmap, 100% i18n audit (368 keys), 74/74 tests (90.66% coverage).
-- [ ] **M5: Steam / Tauri Release Packaging** — Desktop wrapper readiness.
+- [x] **M5: Steam / Tauri Release Packaging** — Tauri 2 & Electron desktop wrappers, offline packaging, modular vendor chunking, full keyboard shortcuts suite, production release manual.
 
 ---
 

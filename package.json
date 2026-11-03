@@ -12,7 +12,8 @@
     "test:coverage": "vitest run --coverage",
     "typecheck": "tsc --noEmit",
     "sim": "tsx tools/sim/runner.ts",
-    "playtest": "tsx tests/e2e/playtestBrowser.ts"
+    "playtest": "tsx tests/e2e/playtestBrowser.ts",
+    "desktop:preview": "vite preview"
   },
   "dependencies": {
     "phaser": "^3.88.2",
