@@ -82,3 +82,4 @@ Inspected in the **Animation Viewer** (`/?debug=anim`):
 
 > **Recommendation:** **APPROVE Phase P1 Quality Gate.**  
 > The static reference match achieves **28/30 points**, fully capturing the charm, color contrast, pixel discipline, and character vitality of the reference video. The benchmark character Cog Knight proves the modular animation engine. Ready to proceed to **Phase P2** (Presentation Architecture & Complete Slot Spin/Summon Choreography).
+

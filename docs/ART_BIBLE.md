@@ -170,3 +170,4 @@ All UI windows, dialog boxes, and buttons use authentic **9-slice pixel textures
   - **Body & Dialogue:** 8 px native (24 px on 1080p). Minimum readable size.
   - **Numbers & Counters:** 8 px bold native with 1px drop shadow.
   - **Floating Damage / Heals:** 8 px native (Crits: 10 px native in gold `#ffd166`).
+

@@ -127,3 +127,4 @@ pixel art UI asset sheet, 16-bit steampunk interface:
 3. Dialogue bubble: rounded dark mulberry speech box with 1px brass border and pointing tail.
 4. Skull valve button: 36x36 circular cast-iron valve button with embossed brass skull cogwheel.
 ```
+

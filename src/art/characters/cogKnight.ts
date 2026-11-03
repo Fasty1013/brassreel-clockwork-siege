@@ -867,3 +867,4 @@ export class CogKnightArt {
     PixelMatrix.registerTexture(scene.textures, 'tex_cog_knight', this.IDLE_FRAMES[0], MAP, 1);
   }
 }
+

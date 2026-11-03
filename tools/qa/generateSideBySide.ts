@@ -116,7 +116,7 @@ async function main() {
   });
 
   const page = await browser.newPage();
-  await page.setContent(htmlContent, { waitUntil: 'networkidle0' });
+  await page.setContent(htmlContent, { waitUntil: 'load' });
   await page.screenshot({ path: OUTPUT_PATH, type: 'png' });
   fs.copyFileSync(OUTPUT_PATH, path.join(ARTIFACT_DIR, 'benchmark_side_by_side.png'));
   await browser.close();
@@ -125,3 +125,4 @@ async function main() {
 }
 
 main();
+

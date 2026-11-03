@@ -232,3 +232,4 @@ export class SymbolArt {
     PixelMatrix.registerTexture(mgr, 'sym_crown', this.CROWN_MATRIX, MAP, 1);
   }
 }
+

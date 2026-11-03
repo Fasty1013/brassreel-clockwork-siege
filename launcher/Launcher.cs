@@ -16,16 +16,49 @@ namespace Brassreel {
         static NotifyIcon trayIcon;
         static string browserExePath = "";
         static string profileDir = "";
+        static string portFilePath = "";
+
+        static string logFilePath = "";
+
+        static void Log(string msg) {
+            try {
+                File.AppendAllText(logFilePath, "[" + DateTime.Now.ToString("HH:mm:ss.fff") + "] " + msg + "\r\n");
+            } catch {}
+        }
 
         [STAThread]
         static void Main(string[] args) {
+            logFilePath = Path.Combine(Path.GetTempPath(), "BRASSREEL_log.txt");
+            Log("=== Main started ===");
+            AppDomain.CurrentDomain.UnhandledException += (s, e) => {
+                Log("UnhandledException: " + e.ExceptionObject.ToString());
+            };
+            Application.ThreadException += (s, e) => {
+                Log("ThreadException: " + e.Exception.ToString());
+            };
+            portFilePath = Path.Combine(Path.GetTempPath(), "BRASSREEL_port.txt");
+
             // Ensure single-instance per user session
             bool createdNew;
+            Log("Creating mutex...");
             using (Mutex singleMutex = new Mutex(true, "BRASSREEL_ClockworkSiege_Singleton_Mutex", out createdNew)) {
+                Log("Mutex created: createdNew=" + createdNew);
                 if (!createdNew) {
+                    Log("Secondary instance detected. Opening browser URL and exiting.");
                     // Already running - re-open game URL in default browser and exit
+                    int targetPort = 38888;
                     try {
-                        Process.Start("http://127.0.0.1:38888/");
+                        if (File.Exists(portFilePath)) {
+                            string pStr = File.ReadAllText(portFilePath).Trim();
+                            int parsed;
+                            if (int.TryParse(pStr, out parsed) && parsed > 0) {
+                                targetPort = parsed;
+                            }
+                        }
+                    } catch {}
+
+                    try {
+                        Process.Start("http://127.0.0.1:" + targetPort + "/");
                     } catch {}
                     return;
                 }
@@ -36,13 +69,13 @@ namespace Brassreel {
                 string baseDir = AppDomain.CurrentDomain.BaseDirectory;
                 distPath = Path.Combine(baseDir, "dist");
                 
-                if (!Directory.Exists(distPath)) {
+                if (!Directory.Exists(distPath) || !File.Exists(Path.Combine(distPath, "index.html"))) {
                     string parentDist = Path.Combine(Directory.GetParent(baseDir).FullName, "dist");
-                    if (Directory.Exists(parentDist)) {
+                    if (Directory.Exists(parentDist) && File.Exists(Path.Combine(parentDist, "index.html"))) {
                         distPath = parentDist;
                     } else {
                         MessageBox.Show(
-                            "Папка 'dist' не найдена!\nПожалуйста, убедитесь, что игра собрана.", 
+                            "Папка 'dist' или файл 'dist\\index.html' не найдены!\n\nПожалуйста, запустите сборку игры перед стартом:\nnpm run build", 
                             "BRASSREEL: Ошибка запуска", 
                             MessageBoxButtons.OK, 
                             MessageBoxIcon.Error
@@ -51,16 +84,19 @@ namespace Brassreel {
                     }
                 }
 
-                // 1. Bind to localhost on free port (38888-38920)
+                // 1. Bind exclusively to 127.0.0.1 (Loopback).
+                // Binding ONLY to 127.0.0.1 requires NO Windows admin privileges and avoids all HTTP.sys prefix reservation conflicts!
                 bool serverStarted = false;
                 for (int p = 38888; p <= 38920; p++) {
                     try {
                         listener = new HttpListener();
                         listener.Prefixes.Add("http://127.0.0.1:" + p + "/");
-                        listener.Prefixes.Add("http://localhost:" + p + "/");
                         listener.Start();
                         activePort = p;
                         serverStarted = true;
+                        try {
+                            File.WriteAllText(portFilePath, p.ToString());
+                        } catch {}
                         break;
                     } catch {
                         if (listener != null) {
@@ -85,7 +121,7 @@ namespace Brassreel {
                 serverThread.IsBackground = true;
                 serverThread.Start();
 
-                // 2. Locate Chrome or Edge
+                // 2. Locate Chrome, Edge or Brave
                 browserExePath = FindBrowser();
 
                 // 3. Prepare dedicated profile directory so Chrome runs an isolated, non-delegated process
@@ -102,11 +138,16 @@ namespace Brassreel {
                 // 5. Launch Game Window in standalone App Mode
                 LaunchBrowserApp();
 
-                // 6. Enter Windows Forms message loop
+                // 6. Enter Windows Forms message loop (keeps running in tray until user exits)
+                Log("Entering Application.Run()");
                 Application.Run();
+                Log("Exited Application.Run()");
 
                 // Cleanup on exit
                 running = false;
+                try {
+                    if (File.Exists(portFilePath)) File.Delete(portFilePath);
+                } catch {}
                 if (trayIcon != null) {
                     trayIcon.Visible = false;
                     trayIcon.Dispose();
@@ -123,41 +164,25 @@ namespace Brassreel {
 
         static void LaunchBrowserApp() {
             string url = GetGameUrl();
-            Process gameProc = null;
 
             if (!string.IsNullOrEmpty(browserExePath) && File.Exists(browserExePath)) {
                 try {
                     ProcessStartInfo psi = new ProcessStartInfo();
                     psi.FileName = browserExePath;
-                    // Passing --user-data-dir guarantees Chrome/Edge runs an independent process that won't terminate immediately!
                     psi.Arguments = string.Format(
-                        "--user-data-dir=\"{0}\" --app=\"{1}\" --window-size=1920,1080 --window-position=0,0 --no-first-run --no-default-browser-check --autoplay-policy=no-user-gesture-required",
+                        "--user-data-dir=\"{0}\" --app=\"{1}\" --window-size=1280,750 --window-position=center --no-first-run --no-default-browser-check --autoplay-policy=no-user-gesture-required",
                         profileDir, url
                     );
                     psi.UseShellExecute = false;
-                    gameProc = Process.Start(psi);
-                } catch {
-                    try { Process.Start(url); } catch {}
-                }
-            } else {
-                try { Process.Start(url); } catch {}
+                    Process.Start(psi);
+                    return;
+                } catch {}
             }
 
-            if (gameProc != null) {
-                Thread monitorThread = new Thread(() => {
-                    // Check if process delegates within 3 seconds
-                    bool exitedQuickly = gameProc.WaitForExit(3000);
-                    if (!exitedQuickly) {
-                        // Independent process is running! When user closes game window, exit launcher.
-                        gameProc.WaitForExit();
-                        Application.Exit();
-                    } else {
-                        // Delegated into existing browser instance. Keep server and tray icon running!
-                    }
-                });
-                monitorThread.IsBackground = true;
-                monitorThread.Start();
-            }
+            // Fallback to default browser
+            try {
+                Process.Start(url);
+            } catch {}
         }
 
         static string FindBrowser() {
@@ -167,7 +192,9 @@ namespace Brassreel {
                 Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData) + @"\Google\Chrome\Application\chrome.exe",
                 @"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe",
                 @"C:\Program Files\Microsoft\Edge\Application\msedge.exe",
-                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData) + @"\Microsoft\Edge\Application\msedge.exe"
+                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData) + @"\Microsoft\Edge\Application\msedge.exe",
+                @"C:\Program Files\BraveSoftware\Brave-Browser\Application\brave.exe",
+                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData) + @"\BraveSoftware\Brave-Browser\Application\brave.exe"
             };
 
             foreach (string c in candidates) {
@@ -209,7 +236,7 @@ namespace Brassreel {
 
                 ContextMenu menu = new ContextMenu();
                 
-                MenuItem titleItem = new MenuItem("BRASSREEL: Clockwork Siege");
+                MenuItem titleItem = new MenuItem("BRASSREEL: Clockwork Siege (Порт: " + activePort + ")");
                 titleItem.Enabled = false;
                 menu.MenuItems.Add(titleItem);
                 menu.MenuItems.Add("-");
@@ -252,8 +279,7 @@ namespace Brassreel {
 
                             string filePath = Path.Combine(distPath, rawPath.Replace('/', Path.DirectorySeparatorChar));
                             if (File.Exists(filePath)) {
-                                byte[] bytes = File.ReadAllBytes(filePath);
-                                string ext = Path.GetExtension(filePath).ToLower();
+                                string ext = Path.GetExtension(filePath).ToLowerInvariant();
                                 string mime = "application/octet-stream";
                                 switch (ext) {
                                     case ".html": mime = "text/html; charset=utf-8"; break;
@@ -275,9 +301,24 @@ namespace Brassreel {
                                 }
 
                                 ctx.Response.ContentType = mime;
-                                ctx.Response.ContentLength64 = bytes.Length;
                                 ctx.Response.Headers.Add("Access-Control-Allow-Origin", "*");
-                                ctx.Response.OutputStream.Write(bytes, 0, bytes.Length);
+                                ctx.Response.Headers.Add("Cache-Control", "no-cache");
+
+                                if (ctx.Request.HttpMethod == "HEAD") {
+                                    ctx.Response.ContentLength64 = new FileInfo(filePath).Length;
+                                    ctx.Response.StatusCode = 200;
+                                    ctx.Response.Close();
+                                    return;
+                                }
+
+                                using (FileStream fs = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.Read)) {
+                                    ctx.Response.ContentLength64 = fs.Length;
+                                    byte[] buffer = new byte[65536];
+                                    int read;
+                                    while ((read = fs.Read(buffer, 0, buffer.Length)) > 0) {
+                                        ctx.Response.OutputStream.Write(buffer, 0, read);
+                                    }
+                                }
                             } else {
                                 ctx.Response.StatusCode = 404;
                             }

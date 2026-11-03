@@ -123,3 +123,4 @@ Refer to [`/data/animation/combat.json`](../data/animation/combat.json) for runt
    - Blinding white screen flash.
    - Shower of 160+ golden coin particles pouring from top of the screen and bouncing off the slot shelf.
    - Grand Automaton cards flip with 3D-card illusion and live idle animation loop.
+

@@ -174,3 +174,4 @@ export class BackdropArt {
     mgr.addCanvas('bg_meadow_day', canvas);
   }
 }
+
