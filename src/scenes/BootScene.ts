@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { ProceduralAssets } from '../fx/proceduralAssets';
+import { AssetLoader } from '../fx/AssetLoader';
 
 export class BootScene extends Phaser.Scene {
   constructor() {
@@ -7,8 +7,8 @@ export class BootScene extends Phaser.Scene {
   }
 
   public preload(): void {
-    // Generate all procedural sprites and textures
-    ProceduralAssets.generateAllTextures(this);
+    // Initialize Hybrid Progressive Asset Loader (procedural baseline + overrides)
+    AssetLoader.init(this);
 
     const width = this.cameras.main.width;
     const height = this.cameras.main.height;

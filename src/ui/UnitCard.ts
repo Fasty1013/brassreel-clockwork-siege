@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import { UnitInstance } from '@core/units/unitFactory';
 import { Tooltip } from './Tooltip';
 import { UNITS_DATA } from '@data/units';
+import { AnimationFX } from '../fx/AnimationFX';
 
 export class UnitCard extends Phaser.GameObjects.Container {
   public unit: UnitInstance;
@@ -13,6 +14,7 @@ export class UnitCard extends Phaser.GameObjects.Container {
   private isDragging = false;
   private originalX = 0;
   private originalY = 0;
+  private idleTween: Phaser.Tweens.Tween | null = null;
 
   constructor(scene: Phaser.Scene, x: number, y: number, unit: UnitInstance, tooltip: Tooltip) {
     super(scene, x, y);
@@ -76,6 +78,7 @@ export class UnitCard extends Phaser.GameObjects.Container {
 
     this.on('dragstart', (_pointer: Phaser.Input.Pointer, _dragX: number, _dragY: number) => {
       this.isDragging = true;
+      this.stopIdleBobbing();
       this.originalX = this.x;
       this.originalY = this.y;
       this.setDepth(500);
@@ -91,10 +94,34 @@ export class UnitCard extends Phaser.GameObjects.Container {
       this.isDragging = false;
       this.setScale(1.0);
       this.setDepth(10);
+      this.startIdleBobbing();
       this.emit('card_dropped', this);
     });
 
     scene.add.existing(this);
+    this.startIdleBobbing();
+  }
+
+  public startIdleBobbing(): void {
+    if (this.idleTween || this.isDragging) return;
+    this.idleTween = AnimationFX.applyIdleBobbing(this.scene, this.sprite);
+  }
+
+  public stopIdleBobbing(): void {
+    if (this.idleTween) {
+      this.idleTween.stop();
+      this.idleTween = null;
+      this.sprite.y = -8;
+      this.sprite.setScale(1);
+    }
+  }
+
+  public playAttack(isRanged = false, onImpact?: () => void): void {
+    AnimationFX.playAttackAnimation(this.scene, this.sprite, isRanged, onImpact);
+  }
+
+  public playHitFlash(): void {
+    AnimationFX.playHitFlash(this.scene, this.sprite);
   }
 
   public updateHealth(current: number, max: number): void {

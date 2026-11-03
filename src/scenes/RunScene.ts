@@ -16,6 +16,8 @@ import { BALANCE } from '@data/balance';
 import { ReelManager } from '@core/reels/reels';
 import { SoundManager } from '../audio/SoundManager';
 import { MetaManager } from '@core/meta/metaManager';
+import { AnimationFX } from '../fx/AnimationFX';
+import { SteampunkAtmosphere } from '../fx/SteampunkAtmosphere';
 
 interface EnemyVisual {
   container: Phaser.GameObjects.Container;
@@ -28,7 +30,7 @@ export class RunScene extends Phaser.Scene {
   public rng!: RngStreams;
   public eventBus!: EventBus;
 
-  // UI Components
+  // UI & FX Components
   public hud!: HUD;
   public reelView!: ReelView;
   public gridView!: GridView;
@@ -36,6 +38,7 @@ export class RunScene extends Phaser.Scene {
   public shopView!: ShopView;
   public evolutionModal!: EvolutionModal;
   public coreDraftModal!: CoreDraftModal;
+  public atmosphere!: SteampunkAtmosphere;
 
   // Cards & Visuals
   private unitCards: Map<string, UnitCard> = new Map();
@@ -99,7 +102,8 @@ export class RunScene extends Phaser.Scene {
     const border = this.add.rectangle(960, 540, 1880, 1040);
     border.setStrokeStyle(2, 0x3d2b1f);
 
-    // 3. Mount Sub-Views
+    // 3. Mount Sub-Views & Steampunk Atmosphere
+    this.atmosphere = new SteampunkAtmosphere(this);
     this.hud = new HUD(this);
     this.reelView = new ReelView(this, 240, 310);
     this.gridView = new GridView(this, 480, 100);
@@ -543,12 +547,13 @@ export class RunScene extends Phaser.Scene {
       this.refreshHUD();
     });
 
-    // Smelt text floater
+    // Smelt text floater & fusion vortex
     this.eventBus.on('unit_smelted', (data) => {
       SoundManager.getInstance().playSmelt();
       const card = this.unitCards.get(data.targetId);
       if (card) {
-        this.spawnParticleBurst(card.x, card.y, 'fx_spark_particle', 12);
+        AnimationFX.playSmeltVortex(this, card.x, card.y);
+        this.spawnParticleBurst(card.x, card.y, 'fx_spark_particle', 16);
         this.showFloatingText(card.x, card.y - 30, `+${data.xpAdded} XP (Сплав!)`, '#ffd166');
       }
     });
@@ -675,11 +680,12 @@ export class RunScene extends Phaser.Scene {
       if (ev.type === 'breach') {
         SoundManager.getInstance().playValveHiss();
         this.spawnParticleBurst(480, 300, 'fx_smoke_particle', 16);
-        this.cameras.main.shake(300, 0.015);
+        AnimationFX.playValveEruption(this);
         this.showFloatingText(480, 300, 'ПРОРЫВ К КОТЛУ! -1 HP', '#e63946');
       } else if (ev.type === 'boss_phase') {
         SoundManager.getInstance().playBossAlarm();
         this.spawnParticleBurst(960, 300, 'fx_fire_particle', 20);
+        AnimationFX.spawnShockwaveRing(this, 960, 300, 0xff0054, 160);
         if (this.state.waveNumber === 10) {
           this.bossBarText.setText('★ ПАРОВОЙ БАРОН [ФАЗА 2: ПЕРЕГРЕВ] ★');
           this.bossBarFill.setFillStyle(0xff0054);
@@ -696,13 +702,36 @@ export class RunScene extends Phaser.Scene {
         if (ev.x !== undefined && ev.y !== undefined) {
           const pos = this.gridView.getSlotWorldPos(Math.floor(ev.x), ev.y);
           this.spawnParticleBurst(pos.x, pos.y, 'fx_fire_particle', 10);
+          AnimationFX.spawnShockwaveRing(this, pos.x, pos.y, 0xffa500, 50);
         }
       } else if (ev.type === 'attack') {
         SoundManager.getInstance().playAttack('cog');
+        if (ev.sourceId) {
+          const card = this.unitCards.get(ev.sourceId);
+          if (card) {
+            card.playAttack(false);
+          } else {
+            const enemyVis = this.enemyVisuals.get(ev.sourceId);
+            if (enemyVis) {
+              AnimationFX.playAttackAnimation(this, enemyVis.container, false);
+            }
+          }
+        }
       } else if (ev.type === 'damage' && ev.x !== undefined && ev.y !== undefined) {
         const pos = this.gridView.getSlotWorldPos(Math.floor(ev.x), ev.y);
         this.spawnParticleBurst(pos.x, pos.y, 'fx_spark_particle', 6);
         this.showFloatingText(pos.x, pos.y - 15, `-${ev.amount}`, '#e63946');
+        if (ev.targetId) {
+          const card = this.unitCards.get(ev.targetId);
+          if (card) {
+            card.playHitFlash();
+          } else {
+            const enemyVis = this.enemyVisuals.get(ev.targetId);
+            if (enemyVis) {
+              AnimationFX.playHitFlash(this, enemyVis.sprite);
+            }
+          }
+        }
       }
     }
   }
@@ -945,6 +974,14 @@ export class RunScene extends Phaser.Scene {
       valveUsed: this.state.combatState?.valveUsed ?? false,
       activeCores: this.state.activeCores
     });
+
+    // Update Steampunk atmosphere & slot heat aura
+    if (this.atmosphere) {
+      this.atmosphere.updateHeatHaze(this.state.heat.currentHeat, 240, 310);
+    }
+    if (this.reelView) {
+      this.reelView.updateHeatAura(this.state.heat.currentHeat);
+    }
 
     // Spin button text
     if (this.state.phase === 'PREP') {

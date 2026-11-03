@@ -4,4 +4,6 @@ coverage
 .DS_Store
 Thumbs.db
 *.log
+*.mp4
+docs/reference/
 

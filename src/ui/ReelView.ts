@@ -9,14 +9,15 @@ export class ReelView extends Phaser.GameObjects.Container {
   private holdTexts: Phaser.GameObjects.Text[] = [];
   private paylineGraphics: Phaser.GameObjects.Graphics;
   private isSpinning = false;
+  private frame: Phaser.GameObjects.Rectangle;
 
   constructor(scene: Phaser.Scene, x: number, y: number) {
     super(scene, x, y);
 
     // Slot housing frame (brass / mahogany casino chassis)
-    const frame = scene.add.rectangle(0, 0, 360, 420, 0x1f1610);
-    frame.setStrokeStyle(4, 0xd4a373);
-    this.add(frame);
+    this.frame = scene.add.rectangle(0, 0, 360, 420, 0x1f1610);
+    this.frame.setStrokeStyle(4, 0xd4a373);
+    this.add(this.frame);
 
     // Casino marquee header
     const marquee = scene.add.rectangle(0, -180, 340, 44, 0x3d2b1f);
@@ -213,6 +214,28 @@ export class ReelView extends Phaser.GameObjects.Container {
 
   public clearPaylines(): void {
     this.paylineGraphics.clear();
+  }
+
+  /**
+   * Updates the slot frame glow color according to furnace Heat level (0-100%).
+   */
+  public updateHeatAura(heatPct: number): void {
+    if (heatPct <= 0) {
+      this.frame.setStrokeStyle(4, 0xd4a373);
+      return;
+    }
+
+    const t = Math.min(1.0, heatPct / 100);
+    // Interpolate from Brass (0xd4a373) through Orange (0xf77f00) to Burning Red (0xe63946)
+    const color = Phaser.Display.Color.Interpolate.ColorWithColor(
+      Phaser.Display.Color.ValueToColor(0xd4a373),
+      Phaser.Display.Color.ValueToColor(0xe63946),
+      100,
+      Math.floor(t * 100)
+    ).color;
+
+    const strokeWidth = heatPct > 70 ? 6 : (heatPct > 35 ? 5 : 4);
+    this.frame.setStrokeStyle(strokeWidth, color, 0.85 + Math.sin(Date.now() / 200) * 0.15);
   }
 }
 
