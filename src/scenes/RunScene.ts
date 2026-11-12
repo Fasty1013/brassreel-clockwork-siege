@@ -42,6 +42,14 @@ interface EnemyVisual {
 const FOOT_DY = 26;
 
 export class RunScene extends Phaser.Scene {
+  /** 9-digit numeric seed from the browser's crypto RNG. */
+  private static randomSeed(): string {
+    const buf = new Uint32Array(1);
+    if (typeof crypto !== 'undefined' && crypto.getRandomValues) crypto.getRandomValues(buf);
+    else buf[0] = Math.floor(Math.random() * 0xffffffff);
+    return String(100000000 + (buf[0] % 900000000));
+  }
+
   public state!: RunState;
   public rng!: RngStreams;
   public eventBus!: EventBus;
@@ -99,7 +107,10 @@ export class RunScene extends Phaser.Scene {
 
   public create(): void {
     // 1. Initialize deterministic run state & PRNG
-    const seed = '20261102';
+    // Fresh random seed every run (the core stays deterministic for a given seed).
+    // `?seed=12345` in the URL replays a specific run.
+    const urlSeed = new URLSearchParams(window.location.search).get('seed');
+    const seed = urlSeed && /^\d+$/.test(urlSeed) ? urlSeed : RunScene.randomSeed();
     this.state = RunStateManager.createInitialState(seed);
     const meta = MetaManager.load();
     MetaManager.applyMetaToRun(this.state, meta);
