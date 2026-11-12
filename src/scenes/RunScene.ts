@@ -967,6 +967,9 @@ export class RunScene extends Phaser.Scene {
     }
     this.enemyVisuals.clear();
 
+    // robots can be rearranged right after the wave
+    this.syncUnitCards();
+
     const earned = 25; // Base reward
     this.waveResultText.setText(`Награда за волну: +${earned} Шестерней\nОборона позиции успешна!`);
     this.waveResultContainer.setVisible(true);
@@ -1062,7 +1065,7 @@ export class RunScene extends Phaser.Scene {
     }
 
     // robots that fought in the last wave were locked for the battle — unlock them for prep
-    const canDrag = this.state.phase === 'PREP';
+    const canDrag = RunReducer.canArrange(this.state);
     for (const card of this.unitCards.values()) {
       card.setDraggableEnabled(canDrag);
     }
@@ -1095,7 +1098,7 @@ export class RunScene extends Phaser.Scene {
 
   private attachCardDragHandling(card: UnitCard): void {
     card.on('card_dropped', (droppedCard: UnitCard) => {
-      if (this.state.phase !== 'PREP') {
+      if (!RunReducer.canArrange(this.state)) {
         this.syncUnitCards();
         return;
       }
@@ -1105,17 +1108,21 @@ export class RunScene extends Phaser.Scene {
 
       // Check if dropped onto GridView
       const slot = this.gridView.getSlotAtWorldPos(dropX, dropY);
-      if (slot && slot.col < BALANCE.PLAYER_DEPLOY_COLS) {
+      if (slot) {
         // Check if there is already a unit in this slot
         const existingUnit = this.state.deployedUnits.find(
           (u) => u.deployedSlot?.col === slot.col && u.deployedSlot?.row === slot.row
         );
 
-        if (existingUnit && existingUnit.instanceId !== droppedCard.unit.instanceId) {
-          // SMELT: Drop card onto existing unit!
+        if (
+          existingUnit &&
+          existingUnit.instanceId !== droppedCard.unit.instanceId &&
+          SmeltManager.canMerge(existingUnit, droppedCard.unit) === null
+        ) {
+          // same line + same level: merge into the robot standing there
           this.tryMerge(existingUnit.instanceId, droppedCard.unit.instanceId);
         } else {
-          // DEPLOY
+          // place / move (an occupied cell swaps the two robots)
           RunReducer.dispatch(
             this.state,
             { type: 'DEPLOY_UNIT', unitId: droppedCard.unit.instanceId, col: slot.col, row: slot.row },
@@ -1165,7 +1172,7 @@ export class RunScene extends Phaser.Scene {
       activeCores: this.state.activeCores
     });
 
-    this.hud.updateUnitsCount(this.state.deployedUnits.length, BALANCE.PLAYER_DEPLOY_COLS * BALANCE.GRID_ROWS);
+    this.hud.updateUnitsCount(this.state.deployedUnits.length, BALANCE.GRID_COLS * BALANCE.GRID_ROWS);
 
     if (this.reelView) {
       this.reelView.updateBadges(

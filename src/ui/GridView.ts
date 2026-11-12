@@ -27,7 +27,8 @@ export class GridView extends Phaser.GameObjects.Container {
     // Build discrete grid matching lawn coordinates
     for (let c = 0; c < BALANCE.GRID_COLS; c++) {
       this.slots[c] = [];
-      const isPlayerZone = c < BALANCE.PLAYER_DEPLOY_COLS;
+      // every cell is a valid placement now
+      const isPlayerZone = true;
 
       for (let r = 0; r < BALANCE.GRID_ROWS; r++) {
         const tileX = c * this.tileWidth + this.tileWidth / 2;
@@ -57,6 +58,7 @@ export class GridView extends Phaser.GameObjects.Container {
     // Border dividing Player defense zone and No Man's Land
     const divideX = BALANCE.PLAYER_DEPLOY_COLS * this.tileWidth;
     this.divider = scene.add.rectangle(divideX, (BALANCE.GRID_ROWS * this.tileHeight) / 2, 2, BALANCE.GRID_ROWS * this.tileHeight, 0xffd166, 0.7);
+    this.divider.setVisible(false);
     this.add(this.divider);
 
     // Boiler defense line on Column 0 (left edge of meadow)

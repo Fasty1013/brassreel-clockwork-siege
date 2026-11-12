@@ -42,6 +42,11 @@ export type RunCommand =
 export class RunReducer {
   private static waveController = new WaveController(1);
 
+  /** Robots may be placed, moved and merged in every phase except battle and the end screens. */
+  public static canArrange(state: RunState): boolean {
+    return state.phase === 'PREP' || state.phase === 'RESULT' || state.phase === 'SHOP';
+  }
+
   public static dispatch(
     state: RunState,
     command: RunCommand,
@@ -191,27 +196,41 @@ export class RunReducer {
       }
 
       case 'DEPLOY_UNIT': {
-        if (state.phase !== 'PREP') return state;
-        // Check grid boundary: cols 0-3, rows 0-4
-        if (command.col < 0 || command.col >= BALANCE.PLAYER_DEPLOY_COLS || command.row < 0 || command.row >= BALANCE.GRID_ROWS) {
+        // Robots can be placed on ANY grid cell, at any time except during battle.
+        // Placing onto an occupied cell swaps: a field robot trades cells, a bench
+        // robot sends the occupant back to the bench.
+        if (!RunReducer.canArrange(state)) return state;
+        if (command.col < 0 || command.col >= BALANCE.GRID_COLS || command.row < 0 || command.row >= BALANCE.GRID_ROWS) {
           return state;
         }
 
-        // Check if slot occupied
-        const slotOccupied = state.deployedUnits.some((u) => u.deployedSlot?.col === command.col && u.deployedSlot?.row === command.row);
-        if (slotOccupied) return state;
+        const target = { col: command.col, row: command.row };
+        const occupant = state.deployedUnits.find((u) => u.deployedSlot?.col === target.col && u.deployedSlot?.row === target.row);
+        if (occupant?.instanceId === command.unitId) return state;
+
+        const deployed = state.deployedUnits.find((u) => u.instanceId === command.unitId);
+        if (deployed) {
+          // move within the field (swap with the occupant if any)
+          if (occupant) occupant.deployedSlot = deployed.deployedSlot ? { ...deployed.deployedSlot } : undefined;
+          deployed.deployedSlot = target;
+          return state;
+        }
 
         const benchIdx = state.reserveBench.findIndex((u) => u.instanceId === command.unitId);
-        if (benchIdx !== -1) {
-          const [unit] = state.reserveBench.splice(benchIdx, 1);
-          unit.deployedSlot = { col: command.col, row: command.row };
-          state.deployedUnits.push(unit);
+        if (benchIdx === -1) return state;
+        const [unit] = state.reserveBench.splice(benchIdx, 1);
+        if (occupant) {
+          state.deployedUnits = state.deployedUnits.filter((u) => u.instanceId !== occupant.instanceId);
+          occupant.deployedSlot = undefined;
+          state.reserveBench.splice(benchIdx, 0, occupant);
         }
+        unit.deployedSlot = target;
+        state.deployedUnits.push(unit);
         return state;
       }
 
       case 'UNDEPLOY_UNIT': {
-        if (state.phase !== 'PREP') return state;
+        if (!RunReducer.canArrange(state)) return state;
         const depIdx = state.deployedUnits.findIndex((u) => u.instanceId === command.unitId);
         if (depIdx !== -1) {
           const [unit] = state.deployedUnits.splice(depIdx, 1);
@@ -222,7 +241,7 @@ export class RunReducer {
       }
 
       case 'SMELT_UNITS': {
-        if (state.phase !== 'PREP') return state;
+        if (!RunReducer.canArrange(state)) return state;
         const allUnits = [...state.reserveBench, ...state.deployedUnits];
         const target = allUnits.find((u) => u.instanceId === command.targetId);
         const sacrifice = allUnits.find((u) => u.instanceId === command.sacrificeId);
