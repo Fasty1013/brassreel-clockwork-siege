@@ -673,7 +673,7 @@ export class RunScene extends Phaser.Scene {
     }
 
     for (const card of this.unitCards.values()) {
-      card.disableInteractive();
+      card.setDraggableEnabled(false);
     }
 
     // Check boss or inspection
@@ -1048,6 +1048,12 @@ export class RunScene extends Phaser.Scene {
         card.refreshLevel();
       }
       card.setDeployedMode(false);
+    }
+
+    // robots that fought in the last wave were locked for the battle — unlock them for prep
+    const canDrag = this.state.phase === 'PREP';
+    for (const card of this.unitCards.values()) {
+      card.setDraggableEnabled(canDrag);
     }
   }
 

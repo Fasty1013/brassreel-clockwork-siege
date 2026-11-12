@@ -150,13 +150,37 @@ export class UnitCard extends Phaser.GameObjects.Container {
       this.starText.setFontSize(11).setOrigin(1, 0.5).setPosition(-this.hpW / 2 - 3, headY - 10);
       this.starText.setVisible(this.unit.starRank > 1);
       this.shadow.setSize(Math.max(44, bodyW * 0.7), 16).setPosition(0, footY - 2);
+      // clickable/draggable area = the whole visible robot (it is 3× bigger than the bench card)
+      const hitW = Math.max(68, bodyW + 8);
+      this.setHitArea(-hitW / 2, headY - 16, hitW, footY + 8 - (headY - 16));
     } else {
       this.hpW = 52;
       this.hpBarBg.setSize(56, 8).setPosition(0, 34);
       this.hpBarFill.setPosition(-26, 34);
       this.starText.setFontSize(13).setOrigin(0.5).setPosition(0, -30).setVisible(true);
+      this.setHitArea(-34, -40, 68, 80);
     }
     this.updateHealthBarWidth();
+  }
+
+  /**
+   * Set the pointer hit box in the card's local space (origin = card position).
+   * Phaser tests container hits against `hitArea` shifted by the display origin.
+   */
+  private setHitArea(x: number, y: number, w: number, h: number): void {
+    const area = this.input?.hitArea as Phaser.Geom.Rectangle | undefined;
+    if (!area) return;
+    area.setTo(x + this.displayOriginX, y + this.displayOriginY, w, h);
+  }
+
+  /** Enable/disable picking up the robot (off during battle, back on in prep). */
+  public setDraggableEnabled(on: boolean): void {
+    if (on) {
+      this.setInteractive();
+      this.scene.input.setDraggable(this, true);
+    } else {
+      this.disableInteractive();
+    }
   }
 
   private hpRatio = 1;
