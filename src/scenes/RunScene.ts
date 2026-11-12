@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { UISkin } from '../art/ui/UISkin';
 import { RunState, RunStateManager } from '@core/state/RunState';
 import { RunReducer } from '@core/state/reducer';
 import { RngStreams, PrngManager } from '@core/prng/prngManager';
@@ -16,17 +17,29 @@ import { BALANCE } from '@data/balance';
 import { ReelManager } from '@core/reels/reels';
 import { SoundManager } from '../audio/SoundManager';
 import { MetaManager } from '@core/meta/metaManager';
+import { SmeltManager } from '@core/smelt/smelt';
 import { AnimationFX } from '../fx/AnimationFX';
 import { SteampunkAtmosphere } from '../fx/SteampunkAtmosphere';
 import { ParticleKit } from '../presentation/ParticleKit';
+import { SpriteForge } from '../art/forge/SpriteForge';
+import { actBackdropKey, BG_SCALE } from '../art/environment/actBackdrops';
+import { fieldScale, playAttack as playForgeAttack, playLoop } from '../art/forge/play';
 
 interface EnemyVisual {
   container: Phaser.GameObjects.Container;
   sprite: Phaser.GameObjects.Sprite;
   hpBarFill: Phaser.GameObjects.Rectangle;
-  isScrapper?: boolean;
-  isDrone?: boolean;
+  hpW: number;
+  key: string;
+  flying: boolean;
+  lastX: number;
+  attackingUntil: number;
+  /** height of the visible body in screen px (for hit/float text placement) */
+  bodyH: number;
 }
+
+/** Feet of a combatant sit this far below the tile centre. */
+const FOOT_DY = 26;
 
 export class RunScene extends Phaser.Scene {
   public state!: RunState;
@@ -47,6 +60,7 @@ export class RunScene extends Phaser.Scene {
   private unitCards: Map<string, UnitCard> = new Map();
   private enemyVisuals: Map<string, EnemyVisual> = new Map();
   private benchSlots: { x: number; y: number }[] = [];
+  private battleBg!: Phaser.GameObjects.Image;
 
   // Controls
   private spinButton?: Phaser.GameObjects.Rectangle;
@@ -114,8 +128,11 @@ export class RunScene extends Phaser.Scene {
     const winH = 924;
 
     // Meadow Backdrop
-    const meadowBg = this.add.image(winX, winY, 'bg_meadow_day');
-    meadowBg.setDisplaySize(winW - 50, winH - 50);
+    // Act backdrop, painted at native res and shown at an exact ×4
+    const bgKey = actBackdropKey(this.state.actNumber);
+    this.battleBg = this.add.image(winX, winY, this.textures.exists(bgKey) ? bgKey : 'bg_meadow_day');
+    if (this.textures.exists(bgKey)) this.battleBg.setScale(BG_SCALE);
+    else this.battleBg.setDisplaySize(winW - 50, winH - 50);
 
     // Parchment/Brass Window Frame
     const windowFrame = this.add.image(winX, winY, 'ui_window_frame');
@@ -164,6 +181,9 @@ export class RunScene extends Phaser.Scene {
     // Initial HUD & View update
     this.refreshHUD();
     this.syncUnitCards();
+
+    // pixel-art 9-slice skin for every framed panel/button in the scene
+    UISkin.install(this);
   }
 
   private setupKeyboardShortcuts(): void {
@@ -551,7 +571,8 @@ export class RunScene extends Phaser.Scene {
 
     // Evolution ready event from core
     this.eventBus.on('evolution_ready', (data) => {
-      this.evolutionModal.showEvolution(data.unitInstanceId, data.branchA, data.branchB);
+      const evoUnit = [...this.state.reserveBench, ...this.state.deployedUnits].find((u) => u.instanceId === data.unitInstanceId);
+      this.evolutionModal.showEvolution(data.unitInstanceId, data.branchA, data.branchB, evoUnit?.starRank);
     });
 
     // Engine Core draft ready event
@@ -571,7 +592,7 @@ export class RunScene extends Phaser.Scene {
       if (card) {
         AnimationFX.playSmeltVortex(this, card.x, card.y);
         this.spawnParticleBurst(card.x, card.y, 'fx_spark_particle', 16);
-        this.showFloatingText(card.x, card.y - 30, `+${data.xpAdded} XP (Сплав!)`, '#ffd166');
+        card.refreshLevel();
       }
     });
   }
@@ -738,80 +759,88 @@ export class RunScene extends Phaser.Scene {
         this.cameras.main.flash(400, 255, 60, 0);
       } else if (ev.type === 'death') {
         SoundManager.getInstance().playEnemyDeath();
-        if (ev.x !== undefined && ev.y !== undefined) {
-          const pos = this.gridView.getSlotWorldPos(Math.floor(ev.x), ev.y);
-          if (this.textures.exists('tex_scrap_debris')) {
-            this.spawnParticleBurst(pos.x, pos.y, 'tex_scrap_debris', 8);
-          }
-          this.spawnParticleBurst(pos.x, pos.y, 'fx_fire_particle', 10);
-          AnimationFX.spawnShockwaveRing(this, pos.x, pos.y, 0xffa500, 50);
+        const vis = this.enemyVisuals.get(ev.sourceId);
+        if (vis) {
+          this.killEnemyVisual(ev.sourceId, vis);
         }
       } else if (ev.type === 'attack') {
-        SoundManager.getInstance().playAttack('cog');
-        if (ev.sourceId) {
-          const card = this.unitCards.get(ev.sourceId);
-          if (card) {
-            card.playAttack(false);
-          } else {
-            const enemyVis = this.enemyVisuals.get(ev.sourceId);
-            if (enemyVis) {
-              if (enemyVis.isScrapper && this.anims.exists('scrapper_attack')) {
-                enemyVis.sprite.play('scrapper_attack');
-                this.tweens.add({
-                  targets: enemyVis.container,
-                  x: enemyVis.container.x - 22,
-                  duration: 130,
-                  yoyo: true,
-                  ease: 'Quad.easeOut',
-                  onComplete: () => {
-                    enemyVis.sprite.play('scrapper_walk', true);
-                  }
-                });
-              } else {
-                AnimationFX.playAttackAnimation(this, enemyVis.container, false);
-              }
+        const card = ev.sourceId ? this.unitCards.get(ev.sourceId) : undefined;
+        if (card) {
+          SoundManager.getInstance().playAttack(card.unit.faction);
+          const cu = this.state.combatState.units.find((u) => u.id === ev.sourceId);
+          const isRanged = (cu?.attackRange ?? 1) > 1;
+          const tv = ev.targetId ? this.enemyVisuals.get(ev.targetId) : undefined;
+          const target = tv ? { x: tv.container.x, y: tv.container.y - tv.bodyH * 0.45 + 30 } : undefined;
+          card.playAttack(isRanged, undefined, target);
+        } else {
+          SoundManager.getInstance().playAttack('cog');
+          const enemyVis = ev.sourceId ? this.enemyVisuals.get(ev.sourceId) : undefined;
+          if (enemyVis) {
+            enemyVis.attackingUntil = this.time.now + 420;
+            if (!playForgeAttack(enemyVis.sprite, enemyVis.key, 'walk')) {
+              AnimationFX.playAttackAnimation(this, enemyVis.sprite, false);
             }
           }
         }
-      } else if (ev.type === 'damage' && ev.x !== undefined && ev.y !== undefined) {
-        const pos = this.gridView.getSlotWorldPos(Math.floor(ev.x), ev.y);
-        // Pure retro white crescent slash arc
-        if (this.textures.exists('tex_slash_arc')) {
-          const slash = this.add.image(pos.x, pos.y, 'tex_slash_arc');
-          slash.setDepth(600);
-          this.tweens.add({
-            targets: slash,
-            alpha: { from: 1, to: 0 },
-            scale: { from: 1, to: 1.4 },
-            duration: 160,
-            onComplete: () => slash.destroy()
+      } else if (ev.type === 'damage') {
+        const enemyVis = ev.targetId ? this.enemyVisuals.get(ev.targetId) : undefined;
+        const card = ev.targetId ? this.unitCards.get(ev.targetId) : undefined;
+        let pos: { x: number; y: number } | null = null;
+        if (enemyVis) {
+          pos = { x: enemyVis.container.x, y: enemyVis.container.y - enemyVis.bodyH * 0.55 };
+          enemyVis.sprite.setTintFill(0xffffff);
+          this.time.delayedCall(70, () => {
+            if (enemyVis.sprite.active) enemyVis.sprite.clearTint();
           });
+        } else if (card) {
+          pos = { x: card.x, y: card.y - 30 };
+          card.playHitFlash();
+        } else if (ev.x !== undefined && ev.y !== undefined) {
+          pos = this.gridView.getSlotWorldPos(Math.floor(ev.x), ev.y);
         }
-        this.spawnParticleBurst(pos.x, pos.y, 'fx_spark_particle', 6);
-        this.showFloatingText(pos.x, pos.y - 15, `-${ev.amount}`, '#e63946');
-        if (ev.targetId) {
-          const card = this.unitCards.get(ev.targetId);
-          if (card) {
-            card.playHitFlash();
-          } else {
-            const enemyVis = this.enemyVisuals.get(ev.targetId);
-            if (enemyVis) {
-              // Pure white hit flash
-              enemyVis.sprite.setTintFill(0xffffff);
-              this.tweens.add({
-                targets: enemyVis.container,
-                x: enemyVis.container.x + 6,
-                duration: 60,
-                yoyo: true,
-                onComplete: () => {
-                  enemyVis.sprite.clearTint();
-                }
-              });
-            }
+        if (pos) {
+          if (this.textures.exists('tex_slash_arc') && enemyVis) {
+            const slash = this.add.image(pos.x, pos.y, 'tex_slash_arc').setDepth(1900).setScale(1.5);
+            this.tweens.add({
+              targets: slash,
+              alpha: { from: 1, to: 0 },
+              scale: { from: 1.5, to: 2.1 },
+              duration: 160,
+              onComplete: () => slash.destroy()
+            });
           }
+          this.spawnParticleBurst(pos.x, pos.y, 'fx_spark_particle', 4);
+          this.showFloatingText(pos.x + Phaser.Math.Between(-10, 10), pos.y - 24, `-${ev.amount}`, enemyVis ? '#ffe066' : '#ff5a5a');
         }
       }
     }
+  }
+
+  /** Death: white flash, pop, debris; the sprite then falls apart and fades. */
+  private killEnemyVisual(id: string, vis: EnemyVisual): void {
+    this.enemyVisuals.delete(id);
+    const { container, sprite } = vis;
+    const cx = container.x;
+    const cy = container.y - vis.bodyH * 0.45;
+    sprite.anims.stop();
+    sprite.setTintFill(0xffffff);
+    if (this.textures.exists('tex_scrap_debris')) this.spawnParticleBurst(cx, cy, 'tex_scrap_debris', 7);
+    this.spawnParticleBurst(cx, cy, 'fx_fire_particle', 6);
+    this.spawnParticleBurst(cx, cy, 'fx_smoke_particle', 4);
+    AnimationFX.spawnShockwaveRing(this, cx, container.y - 6, 0xffa500, 40);
+    this.time.delayedCall(80, () => {
+      if (sprite.active) sprite.setTint(0x6b5a7a);
+    });
+    this.tweens.add({
+      targets: container,
+      alpha: 0,
+      angle: sprite.flipX ? 12 : -12,
+      y: container.y + 6,
+      duration: 380,
+      delay: 90,
+      ease: 'Quad.easeIn',
+      onComplete: () => container.destroy()
+    });
   }
 
   private syncCombatEntities(): void {
@@ -828,72 +857,84 @@ export class RunScene extends Phaser.Scene {
     // 2. Sync enemy sprites
     const currentEnemyIds = new Set(this.state.combatState.enemies.filter((e) => !e.isDead).map((e) => e.id));
 
-    // Remove dead/cleared enemies
+    // Remove enemies that vanished without a death event (breach, wave end)
     for (const [id, visual] of this.enemyVisuals.entries()) {
       if (!currentEnemyIds.has(id)) {
-        visual.container.destroy();
-        this.enemyVisuals.delete(id);
+        this.killEnemyVisual(id, visual);
       }
     }
 
-    // Add or update active enemies
     for (const enemy of this.state.combatState.enemies) {
       if (enemy.isDead) continue;
 
       let visual = this.enemyVisuals.get(enemy.id);
       if (!visual) {
-        const container = this.add.container(0, 0);
-
-        // Retro drop shadow
-        const shadow = this.add.ellipse(0, 16, 36, 12, 0x09070d, 0.45);
-        container.add(shadow);
-
-        const isScrapper = enemy.defId === 'en_scrapper' || enemy.defId.includes('scrapper') || enemy.defId.includes('hound') || enemy.defId.includes('raider');
-        const isDrone = enemy.defId.includes('drone') || enemy.defId.includes('rover') || enemy.defId.includes('beetle');
-
-        let sprite: Phaser.GameObjects.Sprite;
-        if (isScrapper && this.anims.exists('scrapper_walk')) {
-          sprite = this.add.sprite(0, 0, 'tex_en_scrapper');
-          sprite.play('scrapper_walk');
-        } else if (isDrone && this.anims.exists('drone_fly')) {
-          sprite = this.add.sprite(0, 0, 'tex_en_shield_drone');
-          sprite.play('drone_fly');
-        } else {
-          sprite = this.add.sprite(0, 0, enemy.def.spriteKey);
-        }
-
-        const isColossus = enemy.defId === 'boss_iron_colossus';
-        const bossSize = isColossus ? 88 : (enemy.isBoss ? 64 : 48);
-        sprite.setDisplaySize(bossSize, bossSize);
-        container.add(sprite);
-
-        const hpBarBg = this.add.rectangle(0, -28, 42, 6, 0x141018);
-        hpBarBg.setStrokeStyle(1, 0x3d3047);
-        const hpBarFill = this.add.rectangle(-21, -28, 42, 6, 0xe63946);
-        hpBarFill.setOrigin(0, 0.5);
-        container.add(hpBarBg);
-        container.add(hpBarFill);
-
-        visual = { container, sprite, hpBarFill, isScrapper, isDrone };
+        visual = this.createEnemyVisual(enemy.id, enemy.def.spriteKey, enemy.isBoss);
         this.enemyVisuals.set(enemy.id, visual);
       }
 
-      // Smooth position calculation on GridView with retro hop-bounce
       const colX = this.gridView.x + enemy.x * this.gridView.tileWidth + this.gridView.tileWidth / 2;
-      const rowY = this.gridView.y + enemy.row * this.gridView.tileHeight + this.gridView.tileHeight / 2;
-      const hop = visual.isDrone ? Math.sin(this.time.now * 0.006) * 5 : -Math.abs(Math.sin(enemy.x * Math.PI * 2)) * 6;
-      visual.container.setPosition(colX, rowY + hop);
-      visual.container.setDepth(Math.floor(rowY));
+      const footY = this.gridView.y + enemy.row * this.gridView.tileHeight + this.gridView.tileHeight / 2 + FOOT_DY;
+      const moving = Math.abs(enemy.x - visual.lastX) > 0.0005;
+      visual.lastX = enemy.x;
+      visual.container.setPosition(Math.round(colX), footY);
+      visual.container.setDepth(Math.floor(footY));
 
-      // HP bar scale
+      if (this.time.now > visual.attackingUntil) {
+        playLoop(visual.sprite, visual.key, moving ? 'walk' : 'idle');
+      }
+
       const hpPct = Math.max(0, enemy.hp / enemy.maxHp);
-      visual.hpBarFill.setSize(42 * hpPct, 6);
+      visual.hpBarFill.setSize(visual.hpW * hpPct, 4);
 
-      // Boss bar update if boss
       if (enemy.isBoss) {
         this.bossBarFill.setSize(636 * hpPct, 22);
       }
     }
+  }
+
+  private createEnemyVisual(id: string, key: string, isBoss: boolean): EnemyVisual {
+    const def = SpriteForge.get(key);
+    const size = def?.size ?? 32;
+    const flying = def?.flying ?? false;
+    const scale = fieldScale(size);
+    const b = SpriteForge.bounds(key);
+    const bodyW = b ? (b.right - b.left + 1) * scale : size * scale;
+    const bodyH = b ? (size - b.top) * scale : size * scale;
+
+    const container = this.add.container(0, 0);
+    const shadow = this.add.ellipse(0, -2, Math.max(40, bodyW * 0.7), flying ? 10 : 16, 0x0b1408, flying ? 0.22 : 0.38);
+    container.add(shadow);
+
+    const sprite = this.add.sprite(0, scale, key).setOrigin(0.5, 1).setScale(scale).setFlipX(true);
+    if (this.anims.exists(`${key}_walk`)) sprite.play({ key: `${key}_walk`, startFrame: Phaser.Math.Between(0, 3) });
+    container.add(sprite);
+    if (flying) {
+      this.tweens.add({
+        targets: sprite,
+        y: scale - 8,
+        duration: 600 + Phaser.Math.Between(0, 200),
+        yoyo: true,
+        repeat: -1,
+        ease: 'Sine.easeInOut'
+      });
+    }
+
+    const hpW = isBoss ? 0 : Phaser.Math.Clamp(Math.round(bodyW * 0.55), 36, 72);
+    const barY = -bodyH - (flying ? 16 : 8);
+    const hpBarBg = this.add.rectangle(0, barY, hpW + 4, 8, 0x17121f);
+    const hpBarFill = this.add.rectangle(-hpW / 2, barY, hpW, 4, 0xe63946).setOrigin(0, 0.5);
+    hpBarBg.setVisible(!isBoss);
+    hpBarFill.setVisible(!isBoss);
+    container.add(hpBarBg);
+    container.add(hpBarFill);
+
+    // spawn pop-in
+    container.setAlpha(0);
+    this.tweens.add({ targets: container, alpha: 1, duration: 220 });
+
+    void id;
+    return { container, sprite, hpBarFill, hpW, key, flying, lastX: -1, attackingUntil: 0, bodyH };
   }
 
   private handleWaveVictory(): void {
@@ -930,6 +971,11 @@ export class RunScene extends Phaser.Scene {
 
     const currentWave = this.state.waveNumber;
     const act = this.state.actNumber;
+    const bgKey = actBackdropKey(act);
+    if (this.battleBg && this.textures.exists(bgKey) && this.battleBg.texture.key !== bgKey) {
+      this.battleBg.setTexture(bgKey).setScale(BG_SCALE);
+      this.cameras.main.flash(500, 255, 240, 200);
+    }
     this.waveInfoText.setText(`Волна ${currentWave} / 30 [АКТ ${act}]\nПодготовьте позиции и крутите горн-слот!`);
 
     // Act transition announcements
@@ -959,9 +1005,10 @@ export class RunScene extends Phaser.Scene {
     const allUnits = [...this.state.reserveBench, ...this.state.deployedUnits];
     const activeIds = new Set(allUnits.map((u) => u.instanceId));
 
-    // Destroy cards for removed/smelted units
+    // Destroy cards for removed/smelted units (and evolved ones, which need their new sprite)
+    const defById = new Map(allUnits.map((u) => [u.instanceId, u.defId]));
     for (const [id, card] of this.unitCards.entries()) {
-      if (!activeIds.has(id)) {
+      if (!activeIds.has(id) || defById.get(id) !== card.builtDefId) {
         card.destroy();
         this.unitCards.delete(id);
       }
@@ -980,6 +1027,7 @@ export class RunScene extends Phaser.Scene {
       } else {
         card.setPosition(slotPos.x, slotPos.y);
         card.unit = unit;
+        card.refreshLevel();
       }
       card.setDeployedMode(true);
     }
@@ -997,9 +1045,35 @@ export class RunScene extends Phaser.Scene {
       } else {
         card.setPosition(slot.x, slot.y);
         card.unit = unit;
+        card.refreshLevel();
       }
       card.setDeployedMode(false);
     }
+  }
+
+  /** Merge two units (same line + same level -> level + 1) or explain why not. */
+  private tryMerge(targetId: string, sacrificeId: string): void {
+    const all = [...this.state.reserveBench, ...this.state.deployedUnits];
+    const target = all.find((u) => u.instanceId === targetId);
+    const sacrifice = all.find((u) => u.instanceId === sacrificeId);
+    if (!target || !sacrifice) return;
+    const reason = SmeltManager.canMerge(target, sacrifice);
+    const card = this.unitCards.get(targetId);
+    const x = card?.x ?? 960;
+    const y = (card?.y ?? 540) - 60;
+    if (reason) {
+      const msg: Record<string, string> = {
+        different_archetype: 'Сливаются только роботы одной линейки!',
+        different_level: `Нужен робот того же уровня (${target.starRank}★)`,
+        max_level: 'Максимальный уровень — 5★',
+        same_unit: ''
+      };
+      if (msg[reason]) this.showFloatingText(x, y, msg[reason], '#ffb08a');
+      return;
+    }
+    RunReducer.dispatch(this.state, { type: 'SMELT_UNITS', targetId, sacrificeId }, this.rng, this.eventBus);
+    this.showFloatingText(x, y, `СЛИЯНИЕ! Уровень ${target.starRank}★`, '#ffd166');
+    ParticleKit.sparkleBurst(this, x, y + 40, 0xffd166, 14);
   }
 
   private attachCardDragHandling(card: UnitCard): void {
@@ -1022,12 +1096,7 @@ export class RunScene extends Phaser.Scene {
 
         if (existingUnit && existingUnit.instanceId !== droppedCard.unit.instanceId) {
           // SMELT: Drop card onto existing unit!
-          RunReducer.dispatch(
-            this.state,
-            { type: 'SMELT_UNITS', targetId: existingUnit.instanceId, sacrificeId: droppedCard.unit.instanceId },
-            this.rng,
-            this.eventBus
-          );
+          this.tryMerge(existingUnit.instanceId, droppedCard.unit.instanceId);
         } else {
           // DEPLOY
           RunReducer.dispatch(
@@ -1045,12 +1114,7 @@ export class RunScene extends Phaser.Scene {
 
         if (benchTarget) {
           // SMELT on bench
-          RunReducer.dispatch(
-            this.state,
-            { type: 'SMELT_UNITS', targetId: benchTarget.instanceId, sacrificeId: droppedCard.unit.instanceId },
-            this.rng,
-            this.eventBus
-          );
+          this.tryMerge(benchTarget.instanceId, droppedCard.unit.instanceId);
         } else if (droppedCard.unit.deployedSlot) {
           // UNDEPLOY
           RunReducer.dispatch(
@@ -1084,7 +1148,7 @@ export class RunScene extends Phaser.Scene {
       activeCores: this.state.activeCores
     });
 
-    this.hud.updateUnitsCount(this.state.deployedUnits.length, 5);
+    this.hud.updateUnitsCount(this.state.deployedUnits.length, BALANCE.PLAYER_DEPLOY_COLS * BALANCE.GRID_ROWS);
 
     if (this.reelView) {
       this.reelView.updateBadges(

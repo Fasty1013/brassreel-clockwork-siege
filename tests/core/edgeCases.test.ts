@@ -134,7 +134,7 @@ describe('QA Hardening: Critical Edge Cases Suite', () => {
     expect(state.reelStrips[0].length).toBe(initialLen);
   });
 
-  it('prohibits Smelt evolution past Star Rank 3', () => {
+  it('refuses to merge a level-3 unit with a level-1 unit', () => {
     const rng = PrngManager.createStreams('SMELT_MAX_STAR');
     const unitA = UnitFactory.createUnit('unit_cog_knight', rng.loot, { customStarRank: 3 });
     const unitB = UnitFactory.createUnit('unit_cog_knight', rng.loot);
@@ -144,18 +144,14 @@ describe('QA Hardening: Critical Edge Cases Suite', () => {
     expect(unitA.starRank).toBe(3);
   });
 
-  it('awards double XP when Smelting units of the same faction', () => {
+  it('merges only units of the same line and level', () => {
     const rng = PrngManager.createStreams('SMELT_XP_CHECK');
     const cogA = UnitFactory.createUnit('unit_cog_knight', rng.loot);
     const cogB = UnitFactory.createUnit('unit_cog_knight', rng.loot);
     const springC = UnitFactory.createUnit('unit_spring_archer', rng.loot);
 
-    // Same faction: Cog + Cog = 2 XP
-    const sameRes = SmeltManager.smelt(cogA, cogB);
-    expect(sameRes.xpGained).toBe(2);
-
-    // Different faction: Spring + Cog = 1 XP
-    const diffRes = SmeltManager.smelt(springC, cogA);
-    expect(diffRes.xpGained).toBe(1);
+    expect(SmeltManager.smelt(springC, cogA).merged).toBe(false);
+    expect(SmeltManager.smelt(cogA, cogB).merged).toBe(true);
+    expect(cogA.starRank).toBe(2);
   });
 });

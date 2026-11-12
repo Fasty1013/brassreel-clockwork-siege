@@ -120,6 +120,11 @@ export class ReelManager {
       const symbolsOnLine: ReelSymbol[] = payline.coords.map(([c, r]) => grid[c][r]);
       const evalResult = this.evaluateLine(payline, symbolsOnLine);
 
+      if (evalResult.matchType === 'pair') {
+        // pairs are not a win: only 3-in-a-row (row, column or diagonal) pays out
+        pairsCount++;
+        continue;
+      }
       if (evalResult.matchType !== 'none') {
         lineHits.push(evalResult);
 
@@ -141,19 +146,6 @@ export class ReelManager {
         }
         summonsToTrigger.push({
           faction: hit.faction,
-          tier,
-          isGilded: hit.isGilded
-        });
-      } else if (hit.matchType === 'pair') {
-        pairsCount++;
-        let faction: 'cog' | 'spring' | 'fuse' | 'coil' | 'scrap' = 'scrap';
-        let tier = 0;
-        if (activeModifiers?.hollowSpringPairBonus && hit.faction) {
-          faction = hit.faction;
-          tier = 1;
-        }
-        summonsToTrigger.push({
-          faction,
           tier,
           isGilded: hit.isGilded
         });

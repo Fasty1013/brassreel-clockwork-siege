@@ -99,7 +99,7 @@ describe('Data Catalog Validation Suite', () => {
 
     setLocale('ru');
     expect(t('ui.wave', { current: 3, total: 10 })).toBe('Волна 3 / 10');
-    expect(t('unit.cog_knight.name')).toBe('Рыцарь Шестерни');
+    expect(t('unit.cog_knight.name')).toBe('Страж-Бот');
   });
 
   it('verifies 100% key parity between EN and RU dictionaries', async () => {

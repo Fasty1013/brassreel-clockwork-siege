@@ -25,36 +25,33 @@ export class AssetLoader {
       this.registeredKeys.add(key);
     }
 
-    // 2. Scan and load external overrides if available
-    this.loadExternalOverrides(scene);
+    // 2. External PNG overrides are probed later (BootScene.create) — see loadExternalOverrides
   }
 
   /**
-   * Attempts to load external high-detail sprite overrides from /public/assets/
-   * If not found, Phaser simply continues using the procedural textures without failing.
+   * Optional external PNG atlas override (public/assets/sprites.png + sprites.json).
+   * The dev server answers missing files with index.html, which Phaser would try to
+   * parse as JSON and stall the loader — so we probe the file first and only queue
+   * the atlas when it really exists. Resolves once the atlas is loaded (or skipped).
    */
-  public static loadExternalOverrides(scene: Phaser.Scene): void {
-    if (this.externalAssetsAttempted) return;
+  public static loadExternalOverrides(scene: Phaser.Scene): Promise<void> {
+    if (this.externalAssetsAttempted) return Promise.resolve();
     this.externalAssetsAttempted = true;
 
-    // Optional external atlas paths
     const overrideAtlasPath = 'assets/sprites.json';
     const overridePngPath = 'assets/sprites.png';
 
-    // Hook loader error handler so missing optional external files don't throw unhandled warnings
-    scene.load.on(Phaser.Loader.Events.FILE_LOAD_ERROR, (file: Phaser.Loader.File) => {
-      // Graceful fallback: file is optional
-      if (file.key === 'external_sprites_atlas' || file.key.startsWith('ext_override_')) {
-        // Suppress error - fallback already active in TextureManager
-      }
-    });
-
-    // Check if atlas file is present
-    try {
-      scene.load.atlas('external_sprites_atlas', overridePngPath, overrideAtlasPath);
-    } catch {
-      // Ignored - fallback active
-    }
+    return fetch(overrideAtlasPath, { method: 'GET', cache: 'no-store' })
+      .then((res) => {
+        const type = res.headers.get('content-type') ?? '';
+        if (!res.ok || !type.includes('json')) return;
+        return new Promise<void>((resolve) => {
+          scene.load.atlas('external_sprites_atlas', overridePngPath, overrideAtlasPath);
+          scene.load.once(Phaser.Loader.Events.COMPLETE, () => resolve());
+          scene.load.start();
+        });
+      })
+      .catch(() => undefined);
   }
 
   /**

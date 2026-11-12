@@ -2,7 +2,14 @@ import Phaser from 'phaser';
 import { UNITS_DATA } from '@data/units';
 import { QUIRKS_DATA } from '@data/quirks';
 import { t } from '@data/i18n';
+import { SpriteForge } from '../art/forge/SpriteForge';
+import { backdrop, button, card, panel, text, title, UI } from './ModalKit';
 
+/**
+ * Evolution choice (level 3 and 5): pick one of two new classes.
+ * Each card shows the animated robot, its class stats, its trait and the
+ * "+1 module" bonus every evolution grants.
+ */
 export class EvolutionModal extends Phaser.GameObjects.Container {
   private cardA: Phaser.GameObjects.Container;
   private cardB: Phaser.GameObjects.Container;
@@ -11,31 +18,12 @@ export class EvolutionModal extends Phaser.GameObjects.Container {
   constructor(scene: Phaser.Scene) {
     super(scene, 960, 540);
 
-    // Dark blocking backdrop
-    const backdrop = scene.add.rectangle(0, 0, 1920, 1080, 0x000000, 0.8);
-    backdrop.setInteractive();
-    this.add(backdrop);
+    backdrop(this, 0.82);
+    panel(this, 1000, 760);
+    title(this, -330, 'ЭВОЛЮЦИЯ РОБОТА', 'Выберите новый класс — он сильнее и получает +1 модуль');
 
-    // Modal housing panel
-    const panel = scene.add.rectangle(0, 0, 840, 520, 0x1f1610);
-    panel.setStrokeStyle(4, 0xffd166);
-    this.add(panel);
-
-    const title = scene.add.text(0, -210, '★ ЭВОЛЮЦИЯ АВТОМАТОНА ★', {
-      fontSize: '24px',
-      color: '#ffd166',
-      fontStyle: 'bold'
-    }).setOrigin(0.5);
-    this.add(title);
-
-    const subtitle = scene.add.text(0, -170, 'Накоплен опыт сплава! Выберите направление перековки:', {
-      fontSize: '15px',
-      color: '#adb5bd'
-    }).setOrigin(0.5);
-    this.add(subtitle);
-
-    this.cardA = scene.add.container(-200, 20);
-    this.cardB = scene.add.container(200, 20);
+    this.cardA = scene.add.container(-240, 50);
+    this.cardB = scene.add.container(240, 50);
     this.add(this.cardA);
     this.add(this.cardB);
 
@@ -44,97 +32,59 @@ export class EvolutionModal extends Phaser.GameObjects.Container {
     scene.add.existing(this);
   }
 
-  public showEvolution(unitId: string, branchADefId: string, branchBDefId: string): void {
+  public showEvolution(unitId: string, branchADefId: string, branchBDefId: string, level?: number): void {
     this.currentUnitId = unitId;
-
-    this.renderBranchCard(this.cardA, branchADefId);
-    this.renderBranchCard(this.cardB, branchBDefId);
-
+    this.renderBranchCard(this.cardA, branchADefId, level);
+    this.renderBranchCard(this.cardB, branchBDefId, level);
     this.setVisible(true);
   }
 
-  private renderBranchCard(container: Phaser.GameObjects.Container, defId: string): void {
-    container.removeAll(true);
+  private renderBranchCard(c: Phaser.GameObjects.Container, defId: string, level?: number): void {
+    c.removeAll(true);
     const def = UNITS_DATA[defId];
     if (!def) return;
+    const scene = this.scene;
 
-    // Card BG
-    const bg = this.scene.add.rectangle(0, 0, 340, 320, 0x2b221a);
-    bg.setStrokeStyle(2, 0xd4a373);
-    container.add(bg);
+    card(c, 0, 0, 440, 580, true);
 
-    // Sprite
-    const sprite = this.scene.add.sprite(0, -90, def.spriteKey);
-    sprite.setDisplaySize(64, 64);
-    container.add(sprite);
+    // animated robot on a little plinth
+    c.add(scene.add.ellipse(0, -112, 180, 26, 0x0b0910, 0.5));
+    const key = level ? SpriteForge.ensureLevel(scene, def.spriteKey, level) : def.spriteKey;
+    const size = SpriteForge.get(def.spriteKey)?.size ?? 32;
+    const scale = size >= 48 ? 4 : 5;
+    const sprite = scene.add.sprite(0, -108, key).setOrigin(0.5, 1).setScale(scale);
+    if (scene.anims.exists(`${key}_idle`)) sprite.play(`${key}_idle`);
+    c.add(sprite);
 
-    // Title
-    const name = t(def.nameKey);
-    const titleText = this.scene.add.text(0, -40, name, {
-      fontSize: '18px',
-      color: '#ffd166',
-      fontStyle: 'bold'
-    }).setOrigin(0.5);
-    container.add(titleText);
+    text(c, 0, -74, t(def.nameKey), 30, UI.GOLD, { fontStyle: 'bold' });
 
-    // Stats summary
-    const statsText = this.scene.add.text(0, -10, `HP: ${def.baseHp}  |  УРОН: ${def.baseDamage}  |  БРОНЯ: ${def.armor ?? 0}`, {
-      fontSize: '13px',
-      color: '#e9ecef',
-      fontStyle: 'bold'
-    }).setOrigin(0.5);
-    container.add(statsText);
+    // stats as three labelled boxes
+    const stats: Array<[string, string]> = [
+      ['ЗДОРОВЬЕ', `${def.baseHp}`],
+      ['УРОН', `${def.baseDamage}`],
+      ['БРОНЯ', `${def.armor ?? 0}`]
+    ];
+    stats.forEach(([label, value], i) => {
+      const x = -130 + i * 130;
+      const box = scene.add.rectangle(x, -12, 118, 66, 0x15121b);
+      box.setStrokeStyle(2, 0x534764);
+      c.add(box);
+      text(c, x, -28, label, 15, UI.MUTED);
+      text(c, x, 2, value, 26, UI.CREAM);
+    });
 
-    // Quirk
     const quirk = QUIRKS_DATA[def.quirkId];
     const quirkName = quirk ? t(quirk.nameKey) : def.quirkId;
     const quirkDesc = quirk ? t(quirk.descKey) : '';
+    text(c, 0, 50, quirkName, 22, UI.TEAL);
+    text(c, 0, 100, quirkDesc, 18, UI.CREAM, { align: 'center', wordWrap: { width: 390 }, lineSpacing: 4 });
+    text(c, 0, 168, '+1 новый модуль', 20, UI.GREEN);
 
-    const quirkHeader = this.scene.add.text(0, 25, `Черта: ${quirkName}`, {
-      fontSize: '12px',
-      color: '#2ec4b6',
-      fontStyle: 'bold'
-    }).setOrigin(0.5);
-    container.add(quirkHeader);
-
-    const quirkBody = this.scene.add.text(0, 55, quirkDesc, {
-      fontSize: '11px',
-      color: '#ced4da',
-      wordWrap: { width: 300 },
-      align: 'center'
-    }).setOrigin(0.5);
-    container.add(quirkBody);
-
-    // Select Button
-    const btn = this.scene.add.rectangle(0, 115, 200, 42, 0xd4a373);
-    btn.setStrokeStyle(2, 0xffd166);
-    btn.setInteractive({ useHandCursor: true });
-    container.add(btn);
-
-    const btnText = this.scene.add.text(0, 115, 'ВЫБРАТЬ ФОРМУ', {
-      fontSize: '14px',
-      color: '#1f1610',
-      fontStyle: 'bold'
-    }).setOrigin(0.5);
-    container.add(btnText);
-
-    btn.on('pointerdown', () => {
-      if (this.currentUnitId) {
-        this.emit('evolution_selected', {
-          unitId: this.currentUnitId,
-          chosenBranchDefId: defId
-        });
-        this.hide();
-      }
-    });
-
-    btn.on('pointerover', () => {
-      btn.setFillStyle(0xffd166);
-    });
-
-    btn.on('pointerout', () => {
-      btn.setFillStyle(0xd4a373);
-    });
+    button(c, 0, 234, 300, 64, 'ВЫБРАТЬ', () => {
+      if (!this.currentUnitId) return;
+      this.emit('evolution_selected', { unitId: this.currentUnitId, chosenBranchDefId: defId });
+      this.hide();
+    }, { size: 28 });
   }
 
   public hide(): void {

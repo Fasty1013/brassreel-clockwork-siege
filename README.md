@@ -174,3 +174,9 @@ npm run preview
 
 Original project and procedural assets. MIT License.
 
+
+## Играть онлайн
+
+https://fasty1013.github.io/brassreel-clockwork-siege/
+
+Сайт обновляется автоматически при каждой отправке в ветку `main` (см. `.github/workflows/pages.yml`).

@@ -4,12 +4,15 @@ import { UNITS_DATA } from '@data/units';
 import { MODS_DATA } from '@data/mods';
 import { PRNG } from '../prng/sfc32';
 
+/** Unit level 1..5 (shown as stars). Two units of the same line and level merge into level + 1. */
+export type UnitLevel = 1 | 2 | 3 | 4 | 5;
+
 export interface UnitInstance {
   instanceId: string;
   defId: string;
   faction: Faction;
   tier: UnitTier;
-  starRank: 1 | 2 | 3;
+  starRank: UnitLevel;
   smeltXp: number;
   currentHp: number;
   maxHp: number;
@@ -39,7 +42,7 @@ export class UnitFactory {
     rng: PRNG,
     options?: {
       isGilded?: boolean;
-      customStarRank?: 1 | 2 | 3;
+      customStarRank?: UnitLevel;
       comboStatMult?: number;
     }
   ): UnitInstance {
@@ -50,7 +53,8 @@ export class UnitFactory {
 
     const instanceId = `unit_${nextUnitSequence++}_${def.faction}`;
     const isGilded = options?.isGilded ?? false;
-    const starRank = options?.customStarRank ?? (def.tier >= 1 ? (def.tier as 1 | 2 | 3) : 1);
+    // every freshly summoned unit starts at level 1; levels only come from merging
+    const starRank: UnitLevel = options?.customStarRank ?? 1;
 
     // Roll 2 or 3 mods
     const modCount = isGilded ? 3 : rng.next() < 0.5 ? 2 : 3;
@@ -58,6 +62,9 @@ export class UnitFactory {
 
     // Calculate aggregated stats
     const stats = this.computeEffectiveStats(def, rolledMods, options?.comboStatMult ?? 1.0, isGilded);
+    const levelMult = 1 + 0.5 * (starRank - 1);
+    stats.maxHp = Math.round(stats.maxHp * levelMult);
+    stats.damage = Math.round(stats.damage * levelMult);
 
     return {
       instanceId,

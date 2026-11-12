@@ -8,6 +8,9 @@ import { ProjectilesArt } from '../art/projectiles';
 import { SymbolArt } from '../art/symbols';
 import { BackdropArt } from '../art/environment/backdrop';
 import { UIFrameArt } from '../art/ui/frames';
+import { registerForgeArt } from '../art/forge';
+import { registerActBackdrops } from '../art/environment/actBackdrops';
+import { registerPanelTextures } from '../art/ui/UISkin';
 
 export class BootScene extends Phaser.Scene {
   constructor() {
@@ -27,6 +30,11 @@ export class BootScene extends Phaser.Scene {
     SymbolArt.registerAllSymbols(this);
     BackdropArt.registerBackdrop(this);
     UIFrameArt.registerAllUI(this);
+
+    // 3. Forged automaton sprites (all units, enemies and bosses) replace the placeholders above
+    registerForgeArt(this);
+    registerActBackdrops(this.textures);
+    registerPanelTextures(this.textures);
 
     const width = this.cameras.main.width;
     const height = this.cameras.main.height;
@@ -48,9 +56,9 @@ export class BootScene extends Phaser.Scene {
   }
 
   public create(): void {
-    // Immediate transition to MenuScene
-    this.time.delayedCall(300, () => {
-      this.scene.start('MenuScene');
+    // Optional PNG atlas overrides, then on to the menu
+    void AssetLoader.loadExternalOverrides(this).then(() => {
+      this.time.delayedCall(200, () => this.scene.start('MenuScene'));
     });
   }
 }

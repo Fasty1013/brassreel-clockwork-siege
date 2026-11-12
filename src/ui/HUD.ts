@@ -29,7 +29,7 @@ export class HUD extends Phaser.GameObjects.Container {
     this.add(this.cogsText);
 
     // 2. Boiler HP (Hearts) Pill
-    const hpPill = scene.add.image(760, 32, 'ui_hud_pill_hp');
+    const hpPill = scene.add.image(760, 32, 'ui_hud_pill_boiler');
     hpPill.setScale(2.5);
     this.add(hpPill);
     this.boilerText = scene.add.text(775, 32, '10/10', {

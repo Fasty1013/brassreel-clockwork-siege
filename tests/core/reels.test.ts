@@ -47,9 +47,9 @@ describe('Reels, Paylines, and Wild Evaluation Suite', () => {
     expect(jackpotHit?.matchType).toBe('jackpot');
   });
 
-  it('detects 2-of-a-kind (pairs) and triggers Scrap Bot summon', () => {
+  it('counts 2-of-a-kind pairs but never pays out for them (only 3 in a row wins)', () => {
     const s: (sym: any) => ReelSymbol = (sym) => ({ symbol: sym, isGilded: false });
-    // Row 1: (0,1)=fuse, (1,1)=fuse, (2,1)=spring -> pair of fuse
+    // Row 1: fuse, fuse, spring -> only a pair, no triple anywhere
     const grid: Grid3x3 = [
       [s('cog'), s('fuse'), s('crown')],
       [s('spring'), s('fuse'), s('coil')],
@@ -58,7 +58,8 @@ describe('Reels, Paylines, and Wild Evaluation Suite', () => {
 
     const result = ReelManager.evaluateGrid(grid);
     expect(result.pairsCount).toBeGreaterThan(0);
-    expect(result.totalSummonsToTrigger.some((s) => s.faction === 'scrap')).toBe(true);
+    expect(result.lineHits.length).toBe(0);
+    expect(result.totalSummonsToTrigger.length).toBe(0);
   });
 
   it('respects reel HOLD during spin', () => {

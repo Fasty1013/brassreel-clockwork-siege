@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { UISkin } from '../art/ui/UISkin';
 import { MetaManager } from '@core/meta/metaManager';
 import { SoundManager } from '../audio/SoundManager';
 import { ArchiveModal } from '../ui/ArchiveModal';
@@ -146,5 +147,8 @@ export class GameOverScene extends Phaser.Scene {
       SoundManager.getInstance().playButtonClick();
       this.scene.start('MenuScene');
     });
+
+    // pixel-art 9-slice skin for every framed panel/button in the scene
+    UISkin.install(this);
   }
 }

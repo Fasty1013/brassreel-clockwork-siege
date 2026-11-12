@@ -31,6 +31,12 @@ export const BALANCE = {
   SMELT_SAME_FACTION_XP: 2,
   XP_FOR_STAR_2: 3,
   XP_FOR_STAR_3: 6,
+  // Merge levels: same archetype line + same level -> level + 1
+  MAX_UNIT_LEVEL: 5,
+  /** +50% HP and damage per level above 1 */
+  LEVEL_STAT_BONUS: 0.5,
+  /** reaching these levels offers an evolution branch choice */
+  EVOLUTION_LEVELS: [3, 5] as readonly number[],
 
   // Starter Deck (10 symbols per reel)
   STARTER_REEL_1: ['cog', 'cog', 'cog', 'spring', 'spring', 'fuse', 'fuse', 'coil', 'wild', 'crown'] as const,

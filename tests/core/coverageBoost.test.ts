@@ -173,31 +173,26 @@ describe('Coverage & Edge Case Verification Suite', () => {
     expect(res.lineHits.some((h) => h.wildCount === 3)).toBe(true);
   });
 
-  it('exercises Smelt bonuses and Star 3 evolution in SmeltManager', () => {
+  it('exercises merge levels and two evolutions in SmeltManager', () => {
     const rng = PRNG.fromSeed('SMELT_FULL');
-    const knight = UnitFactory.createUnit('unit_cog_knight', rng);
-    const sac1 = UnitFactory.createUnit('unit_spring_archer', rng);
-
-    const res = SmeltManager.smelt(knight, sac1, {
+    const knight = UnitFactory.createUnit('unit_cog_knight', rng, { customStarRank: 2 });
+    const res = SmeltManager.smelt(knight, UnitFactory.createUnit('unit_cog_knight', rng, { customStarRank: 2 }), {
       furnaceBellowsBonus: true,
       cogWrenchBonus: true
     });
-    expect(res.xpGained).toBe(3);
+    expect(res.merged).toBe(true);
     expect(res.evolutionAvailable).toBe(true);
 
     const bulwark = SmeltManager.evolveUnit(knight, 'unit_cog_bulwark');
-    expect(bulwark.starRank).toBe(2);
+    expect(bulwark.starRank).toBe(3);
 
-    const sac2 = UnitFactory.createUnit('unit_cog_knight', rng);
-    const sac3 = UnitFactory.createUnit('unit_cog_knight', rng);
-    SmeltManager.smelt(bulwark, sac2);
-    const resFinal = SmeltManager.smelt(bulwark, sac3);
-
+    SmeltManager.smelt(bulwark, UnitFactory.createUnit('unit_cog_knight', rng, { customStarRank: 3 }));
+    const resFinal = SmeltManager.smelt(bulwark, UnitFactory.createUnit('unit_cog_knight', rng, { customStarRank: 4 }));
     expect(resFinal.evolutionAvailable).toBe(true);
     expect(resFinal.evolutionBranchA).toBe('unit_cog_fortress_golem');
 
     const golem = SmeltManager.evolveUnit(bulwark, 'unit_cog_fortress_golem');
-    expect(golem.starRank).toBe(3);
+    expect(golem.starRank).toBe(5);
   });
 
   it('evaluates all Inspection challenge types in WaveController', () => {

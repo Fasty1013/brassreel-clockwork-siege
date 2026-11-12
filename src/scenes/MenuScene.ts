@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { UISkin } from '../art/ui/UISkin';
 import { setLocale, getLocale } from '@data/i18n';
 import { SoundManager } from '../audio/SoundManager';
 import { ArchiveModal } from '../ui/ArchiveModal';
@@ -210,6 +211,9 @@ export class MenuScene extends Phaser.Scene {
       fontSize: '13px',
       color: '#6c757d'
     }).setOrigin(0.5);
+
+    // pixel-art 9-slice skin for every framed panel/button in the scene
+    UISkin.install(this);
   }
 
   public update(_time: number, delta: number): void {

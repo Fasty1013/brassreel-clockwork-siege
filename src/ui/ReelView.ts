@@ -3,6 +3,11 @@ import { ReelSymbol, Grid3x3, SpinResult } from '@core/reels/reels';
 import { SoundManager } from '../audio/SoundManager';
 import { ParticleKit } from '../presentation/ParticleKit';
 
+/** Symbols are 24px icons drawn at an integer ×3. */
+const SYM_SCALE = 3;
+
+const symKey = (symbol: string, gilded: boolean): string => `sym_${symbol}${gilded ? '_gilded' : ''}`;
+
 export class ReelView extends Phaser.GameObjects.Container {
   private chassisImage: Phaser.GameObjects.Image;
   private leverSprite: Phaser.GameObjects.Sprite;
@@ -41,35 +46,35 @@ export class ReelView extends Phaser.GameObjects.Container {
 
     // 3. Badges above Reels
     // Left: Spins remaining
-    const spinsBg = scene.add.rectangle(-84, -188, 68, 28, 0x18141f);
+    const spinsBg = scene.add.rectangle(-90, -188, 76, 32, 0x18141f);
     spinsBg.setStrokeStyle(2, 0x3d3047);
     this.add(spinsBg);
-    this.spinBadgeText = scene.add.text(-84, -188, '★ 3', {
+    this.spinBadgeText = scene.add.text(-90, -188, '★ 3', {
       fontFamily: 'monospace',
-      fontSize: '15px',
+      fontSize: '18px',
       color: '#ffd166',
       fontStyle: 'bold'
     }).setOrigin(0.5);
     this.add(this.spinBadgeText);
 
     // Center: Spin Cost
-    const costBg = scene.add.rectangle(0, -188, 86, 28, 0x18141f);
+    const costBg = scene.add.rectangle(0, -188, 92, 32, 0x18141f);
     costBg.setStrokeStyle(2, 0x3d3047);
     this.add(costBg);
     this.costBadgeText = scene.add.text(0, -188, 'БЕСПЛ.', {
       fontFamily: 'monospace',
-      fontSize: '14px',
-      color: '#2ec4b6',
+      fontSize: '17px',
+      color: '#5ae0d0',
       fontStyle: 'bold'
     }).setOrigin(0.5);
     this.add(this.costBadgeText);
 
     // Right: Paytable Book Button
-    const bookBtn = scene.add.rectangle(84, -188, 64, 28, 0x2e2538);
+    const bookBtn = scene.add.rectangle(92, -188, 84, 32, 0x2e2538);
     bookBtn.setStrokeStyle(2, 0xd4a373);
     bookBtn.setInteractive({ useHandCursor: true });
     this.add(bookBtn);
-    const bookTxt = scene.add.text(84, -188, '📖 ИНФО', {
+    const bookTxt = scene.add.text(92, -188, 'ВЫПЛАТЫ', {
       fontFamily: 'monospace',
       fontSize: '11px',
       color: '#ffd166',
@@ -97,11 +102,20 @@ export class ReelView extends Phaser.GameObjects.Container {
       this.add(colContainer);
       this.reelColumns.push(colContainer);
 
+      // reel strip: recessed cells with a soft inner shadow
+      const strip = scene.add.rectangle(0, 0, 86, 246, 0xc9bfae);
+      strip.setStrokeStyle(2, 0x8f7f6c);
+      colContainer.add(strip);
+
       this.symbolSprites[c] = [];
       for (let r = 0; r < 3; r++) {
         const rowY = -78 + r * 78;
-        const sprite = scene.add.sprite(0, rowY, 'sym_cog');
-        sprite.setDisplaySize(68, 68);
+        const cell = scene.add.rectangle(0, rowY, 78, 72, 0xe9e2d6);
+        cell.setStrokeStyle(1, 0xb3a693);
+        colContainer.add(cell);
+        colContainer.add(scene.add.rectangle(0, rowY - 33, 76, 4, 0xbfb3a1));
+        const sprite = scene.add.sprite(0, rowY + 2, 'sym_cog');
+        sprite.setScale(SYM_SCALE);
         colContainer.add(sprite);
         this.symbolSprites[c].push(sprite);
       }
@@ -127,16 +141,16 @@ export class ReelView extends Phaser.GameObjects.Container {
       });
 
       // 7. Hold Button
-      const holdBtn = scene.add.rectangle(colX, 172, 74, 26, 0x241d2c);
+      const holdBtn = scene.add.rectangle(colX, 172, 90, 30, 0x241d2c);
       holdBtn.setStrokeStyle(1, 0x6c757d);
       holdBtn.setInteractive({ useHandCursor: true });
       this.add(holdBtn);
       this.holdButtons.push(holdBtn);
 
-      const holdTxt = scene.add.text(colX, 172, 'HOLD', {
+      const holdTxt = scene.add.text(colX, 172, 'ДЕРЖАТЬ', {
         fontFamily: 'monospace',
-        fontSize: '11px',
-        color: '#adb5bd',
+        fontSize: '15px',
+        color: '#d8d2e0',
         fontStyle: 'bold'
       }).setOrigin(0.5);
       this.add(holdTxt);
@@ -195,13 +209,9 @@ export class ReelView extends Phaser.GameObjects.Container {
     for (let c = 0; c < 3; c++) {
       for (let r = 0; r < 3; r++) {
         const item: ReelSymbol = grid[c][r];
-        const tex = symTextureMap[item.symbol] ?? 'sym_cog';
-        this.symbolSprites[c][r].setTexture(tex);
-        if (item.isGilded) {
-          this.symbolSprites[c][r].setTint(0xffea00);
-        } else {
-          this.symbolSprites[c][r].clearTint();
-        }
+        const base = symTextureMap[item.symbol] ?? 'sym_cog';
+        const gilded = `${base}_gilded`;
+        this.symbolSprites[c][r].setTexture(item.isGilded && this.scene.textures.exists(gilded) ? gilded : base);
       }
     }
   }
@@ -215,7 +225,7 @@ export class ReelView extends Phaser.GameObjects.Container {
       } else {
         this.holdButtons[c].setFillStyle(0x241d2c);
         this.holdButtons[c].setStrokeStyle(1, 0x6c757d);
-        this.holdTexts[c].setColor('#adb5bd');
+        this.holdTexts[c].setColor('#d8d2e0');
       }
     }
   }
@@ -245,6 +255,7 @@ export class ReelView extends Phaser.GameObjects.Container {
         callback: () => {
           for (let r = 0; r < 3; r++) {
             sprites[r].setTexture(Phaser.Utils.Array.GetRandom(symbols));
+            sprites[r].setScale(SYM_SCALE, SYM_SCALE * 1.15).setAlpha(0.75);
           }
           SoundManager.getInstance().playReelTick(1.0 + c * 0.15);
         },
@@ -258,8 +269,9 @@ export class ReelView extends Phaser.GameObjects.Container {
 
         // Set final symbols
         for (let r = 0; r < 3; r++) {
+          sprites[r].setScale(SYM_SCALE).setAlpha(1);
           const item = finalGrid[c][r];
-          sprites[r].setTexture(`sym_${item.symbol}`);
+          sprites[r].setTexture(symKey(item.symbol, !!item.isGilded));
         }
 
         // Overshoot bounce
@@ -310,8 +322,8 @@ export class ReelView extends Phaser.GameObjects.Container {
       for (const [c, r] of coords) {
         this.scene.tweens.add({
           targets: this.symbolSprites[c][r],
-          scaleX: 1.25,
-          scaleY: 1.25,
+          scaleX: SYM_SCALE * 1.2,
+          scaleY: SYM_SCALE * 1.2,
           duration: 130,
           yoyo: true
         });

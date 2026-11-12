@@ -238,6 +238,11 @@ export class RunReducer {
           cogWrenchBonus: state.activeGadgets.includes('gadget_cog_wrench')
         });
 
+        if (!smeltResult.merged) {
+          // not the same line / level: nothing happens, the UI explains why
+          return state;
+        }
+
         // Remove sacrifice from bench or deployed
         state.reserveBench = state.reserveBench.filter((u) => u.instanceId !== sacrifice.instanceId);
         state.deployedUnits = state.deployedUnits.filter((u) => u.instanceId !== sacrifice.instanceId);
@@ -269,7 +274,7 @@ export class RunReducer {
         const allUnits = [...state.reserveBench, ...state.deployedUnits];
         const unit = allUnits.find((u) => u.instanceId === command.unitId);
         if (unit) {
-          SmeltManager.evolveUnit(unit, command.chosenBranchDefId);
+          SmeltManager.evolveUnit(unit, command.chosenBranchDefId, rng.loot);
           state.pendingEvolutionUnitId = undefined;
         }
         return state;
