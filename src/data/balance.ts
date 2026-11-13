@@ -33,6 +33,8 @@ export const BALANCE = {
   XP_FOR_STAR_3: 6,
   // Merge levels: same archetype line + same level -> level + 1
   MAX_UNIT_LEVEL: 5,
+  /** robots allowed on the field before skill-tree upgrades */
+  BASE_UNIT_CAP: 5,
   /** +50% HP and damage per level above 1 */
   LEVEL_STAT_BONUS: 0.5,
   /** reaching these levels offers an evolution branch choice */

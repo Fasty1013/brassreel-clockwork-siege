@@ -1,3 +1,4 @@
+import { BALANCE } from '@data/balance';
 import { describe, it, expect } from 'vitest';
 import { RunStateManager } from '@core/state/RunState';
 import { RunReducer } from '@core/state/reducer';
@@ -22,7 +23,7 @@ describe('Seed Determinism & Property Verification Suite', () => {
       }
 
       // 2. Deploy any units from bench to front line
-      while (state.reserveBench.length > 0 && state.deployedUnits.length < 8) {
+      while (state.reserveBench.length > 0 && state.deployedUnits.length < BALANCE.BASE_UNIT_CAP) {
         const u = state.reserveBench[0];
         const col = state.deployedUnits.length % 4;
         const row = Math.floor(state.deployedUnits.length / 4);

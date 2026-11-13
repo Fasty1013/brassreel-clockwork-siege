@@ -1,7 +1,8 @@
 /**
  * Full-resolution screenshot of the built game after running a setup snippet.
  *   npm run build && npx tsx tools/qa/shot.ts <out.png> "<js run in page>"
- * The snippet runs with `game` and a `pump(frames)` helper available.
+ * The snippet runs with `game` and a `pump(frames)` helper available;
+ * whatever it `return`s is printed as JSON.
  */
 import puppeteer from 'puppeteer-core';
 import http from 'http';
@@ -37,11 +38,12 @@ async function main(): Promise<void> {
     page.on('pageerror', (e: unknown) => console.error('PAGE ERROR:', (e as Error)?.message ?? e));
     await page.goto(`http://127.0.0.1:${PORT}/`, { waitUntil: 'networkidle0' });
     await new Promise((r) => setTimeout(r, 1500));
-    await page.evaluate(`(async () => {
+    const result = await page.evaluate(`(async () => {
       const game = window.game;
       const pump = (n) => { let t = performance.now(); for (let i = 0; i < n; i++) { t += 16.7; game.step(t, 16.7); } };
       ${snippet}
     })()`);
+    if (result !== undefined) console.log('result', JSON.stringify(result));
     await new Promise((r) => setTimeout(r, 400));
     await page.screenshot({ path: out });
     console.log('saved', out);

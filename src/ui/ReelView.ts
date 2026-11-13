@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import { ReelSymbol, Grid3x3, SpinResult } from '@core/reels/reels';
 import { SoundManager } from '../audio/SoundManager';
 import { ParticleKit } from '../presentation/ParticleKit';
+import { InfoTip } from './InfoTip';
 
 /** Symbols are 24px icons drawn at an integer ×3. */
 const SYM_SCALE = 3;
@@ -18,6 +19,7 @@ export class ReelView extends Phaser.GameObjects.Container {
   private nudgeButtons: Phaser.GameObjects.Image[] = [];
   private paylineGraphics: Phaser.GameObjects.Graphics;
   public isSpinning = false;
+  private tipTargets: { spins?: Phaser.GameObjects.Rectangle; cost?: Phaser.GameObjects.Rectangle; book?: Phaser.GameObjects.Rectangle } = {};
 
   // Header badges
   private spinBadgeText: Phaser.GameObjects.Text;
@@ -49,6 +51,7 @@ export class ReelView extends Phaser.GameObjects.Container {
     const spinsBg = scene.add.rectangle(-90, -188, 76, 32, 0x18141f);
     spinsBg.setStrokeStyle(2, 0x3d3047);
     this.add(spinsBg);
+    this.tipTargets.spins = spinsBg;
     this.spinBadgeText = scene.add.text(-90, -188, '★ 3', {
       fontFamily: 'monospace',
       fontSize: '18px',
@@ -61,6 +64,7 @@ export class ReelView extends Phaser.GameObjects.Container {
     const costBg = scene.add.rectangle(0, -188, 92, 32, 0x18141f);
     costBg.setStrokeStyle(2, 0x3d3047);
     this.add(costBg);
+    this.tipTargets.cost = costBg;
     this.costBadgeText = scene.add.text(0, -188, 'БЕСПЛ.', {
       fontFamily: 'monospace',
       fontSize: '17px',
@@ -74,6 +78,7 @@ export class ReelView extends Phaser.GameObjects.Container {
     bookBtn.setStrokeStyle(2, 0xd4a373);
     bookBtn.setInteractive({ useHandCursor: true });
     this.add(bookBtn);
+    this.tipTargets.book = bookBtn;
     const bookTxt = scene.add.text(92, -188, 'ВЫПЛАТЫ', {
       fontFamily: 'monospace',
       fontSize: '11px',
@@ -183,6 +188,34 @@ export class ReelView extends Phaser.GameObjects.Container {
         ParticleKit.sparkleBurst(this.scene, this.x + 190, this.y - 140, 0xffffff, 8);
       }
     });
+  }
+
+  /** Hover hints for the slot machine: lever, badges, symbols, nudge and hold buttons. */
+  public attachTips(tip: InfoTip, charges: () => { holds: number; nudges: number }): void {
+    const SYMBOL_INFO: Record<string, [string, string]> = {
+      sym_cog: ['Шестерня', '3 в ряд призывают Страж-Бота — крепкого бойца ближнего боя.'],
+      sym_spring: ['Пружина', '3 в ряд призывают Стрело-Бота — стрелка с дальней дистанции.'],
+      sym_fuse: ['Запал', '3 в ряд призывают Запал-Бота — подрывника, бьющего по площади.'],
+      sym_coil: ['Катушка', '3 в ряд призывают Искро-Бота — электрика с цепной молнией.'],
+      sym_wild: ['Джокер', 'Заменяет любой символ фракции и помогает собрать тройку.'],
+      sym_crown: ['Корона', '3 короны в ряд — джекпот: легендарный робот.']
+    };
+    for (const col of this.symbolSprites) {
+      for (const sprite of col) {
+        const info = (): [string, string] => {
+          const key = sprite.texture.key.replace('_gilded', '');
+          const [name, desc] = SYMBOL_INFO[key] ?? ['Символ', ''];
+          return sprite.texture.key.endsWith('_gilded') ? [`${name} (позолоченный)`, `${desc} Позолоченный символ даёт робота с лучшими модулями.`] : [name, desc];
+        };
+        tip.attach(sprite, 'Символ', () => `${info()[0]}. ${info()[1]}`);
+      }
+    }
+    tip.attach(this.leverSprite, 'Рычаг', 'Крутит барабаны (Пробел). Три одинаковых символа в ряд, столбец или по диагонали призывают робота на скамейку.');
+    if (this.tipTargets.spins) tip.attach(this.tipTargets.spins, 'Бесплатные прокрутки', 'Сколько бесплатных прокруток осталось в этой волне. Восполняются каждую волну.');
+    if (this.tipTargets.cost) tip.attach(this.tipTargets.cost, 'Цена прокрутки', 'Сколько стоит следующая прокрутка. Когда бесплатные кончились, прокрутка стоит пар и добавляет жар.');
+    if (this.tipTargets.book) tip.attach(this.tipTargets.book, 'Таблица выплат', 'Показывает, какие комбинации что призывают.');
+    this.nudgeButtons.forEach((btn) => tip.attach(btn, 'Сдвиг барабана', () => `Сдвигает этот барабан на один символ вниз без прокрутки. Осталось сдвигов: ${charges().nudges}.`));
+    this.holdButtons.forEach((btn) => tip.attach(btn, 'Удержание барабана', () => `Барабан не крутится при следующей прокрутке, остальные крутятся. Осталось удержаний: ${charges().holds}.`));
   }
 
   public updateBadges(spinsLeft: number, isFree: boolean, cost: number): void {

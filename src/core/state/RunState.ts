@@ -29,6 +29,8 @@ export interface RunState {
   lastSpinResult?: SpinResult;
   combatState?: CombatSimulationState;
   pendingEvolutionUnitId?: string;
+  /** in-run skill tree: node id -> bought rank */
+  skills: Record<string, number>;
 }
 
 export class RunStateManager {
@@ -57,7 +59,8 @@ export class RunStateManager {
       reserveBench: [],
       deployedUnits: [],
       activeCores: [],
-      activeGadgets: []
+      activeGadgets: [],
+      skills: {}
     };
   }
 }

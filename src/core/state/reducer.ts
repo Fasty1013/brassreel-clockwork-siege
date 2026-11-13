@@ -1,4 +1,5 @@
 import { RunState } from './RunState';
+import { SkillManager } from '../skills/skills';
 import { RngStreams } from '../prng/prngManager';
 import { ReelManager, SlotSymbol } from '../reels/reels';
 import { HeatManager } from '../heat/heat';
@@ -27,6 +28,7 @@ export type RunCommand =
       targetModIndexToReplace?: number;
     }
   | { type: 'CHOOSE_EVOLUTION'; unitId: string; chosenBranchDefId: string }
+  | { type: 'BUY_SKILL'; skillId: string }
   | { type: 'START_BATTLE' }
   | { type: 'STEP_BATTLE'; dt: number }
   | { type: 'USE_VALVE'; choice: 'slow' | 'heal' }
@@ -218,6 +220,8 @@ export class RunReducer {
 
         const benchIdx = state.reserveBench.findIndex((u) => u.instanceId === command.unitId);
         if (benchIdx === -1) return state;
+        // field limit: a new robot needs a free place (swapping with an occupant keeps the count)
+        if (!occupant && state.deployedUnits.length >= SkillManager.unitCap(state)) return state;
         const [unit] = state.reserveBench.splice(benchIdx, 1);
         if (occupant) {
           state.deployedUnits = state.deployedUnits.filter((u) => u.instanceId !== occupant.instanceId);
@@ -226,6 +230,12 @@ export class RunReducer {
         }
         unit.deployedSlot = target;
         state.deployedUnits.push(unit);
+        return state;
+      }
+
+      case 'BUY_SKILL': {
+        if (SkillManager.canBuy(state, command.skillId, RunReducer.canArrange(state)) !== null) return state;
+        SkillManager.buy(state, command.skillId);
         return state;
       }
 
@@ -303,6 +313,7 @@ export class RunReducer {
         if (state.phase !== 'PREP') return state;
         state.phase = 'BATTLE';
         state.combatState = CombatEngine.initCombatState(state.deployedUnits, state.boilerHp, state.maxBoilerHp);
+        SkillManager.applyCombatBuffs(state, state.combatState);
         this.waveController = new WaveController(state.waveNumber);
         this.waveController.initWaveSpawns(rng.combat);
         eventBus?.emit('wave_started', { waveNumber: state.waveNumber, actNumber: state.actNumber });
@@ -321,7 +332,7 @@ export class RunReducer {
         } else if (state.combatState.isVictory) {
           state.phase = 'RESULT';
           const waveDef = this.waveController.getCurrentWaveDef();
-          const earned = waveDef.rewardCogs + state.combatState.cogsEarned;
+          const earned = waveDef.rewardCogs + state.combatState.cogsEarned + SkillManager.bonusWaveCogs(state);
           EconomyManager.addCogs(state.economy, earned);
           eventBus?.emit('wave_completed', { waveNumber: state.waveNumber, rewardCogs: earned });
 
@@ -435,9 +446,9 @@ export class RunReducer {
             state.actNumber = 1;
           }
           state.phase = 'PREP';
-          state.freeSpinsLeft = BALANCE.FREE_SPINS_PER_WAVE;
-          state.holdsLeft = BALANCE.BASE_HOLD_CHARGES;
-          state.nudgesLeft = BALANCE.BASE_NUDGE_CHARGES;
+          state.freeSpinsLeft = BALANCE.FREE_SPINS_PER_WAVE + SkillManager.bonusSpins(state);
+          state.holdsLeft = BALANCE.BASE_HOLD_CHARGES + SkillManager.bonusHolds(state);
+          state.nudgesLeft = BALANCE.BASE_NUDGE_CHARGES + SkillManager.bonusNudges(state);
           state.heldReels = [false, false, false];
           HeatManager.coolDownAtWaveEnd(state.heat);
           EconomyManager.addSteam(state.economy, BALANCE.STEAM_PER_WAVE);

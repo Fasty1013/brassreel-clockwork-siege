@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import { SoundManager } from '../audio/SoundManager';
+import { InfoTip } from './InfoTip';
 
 export class HUD extends Phaser.GameObjects.Container {
   private boilerText: Phaser.GameObjects.Text;
@@ -11,6 +12,7 @@ export class HUD extends Phaser.GameObjects.Container {
   private valveText: Phaser.GameObjects.Text;
   private soundButton: Phaser.GameObjects.Rectangle;
   private soundText: Phaser.GameObjects.Text;
+  private skillsButton: Phaser.GameObjects.Rectangle;
 
   constructor(scene: Phaser.Scene) {
     super(scene, 0, 0);
@@ -90,6 +92,14 @@ export class HUD extends Phaser.GameObjects.Container {
       this.emit('use_valve', 'slow');
     });
 
+    // 5b. Skill tree button
+    this.skillsButton = scene.add.rectangle(1330, 32, 170, 36, 0x2b221a);
+    this.skillsButton.setStrokeStyle(2, 0xd4a373);
+    this.skillsButton.setInteractive({ useHandCursor: true });
+    this.add(this.skillsButton);
+    this.add(scene.add.text(1330, 32, 'ДРЕВО (T)', { fontSize: '16px', color: '#ffd166', fontStyle: 'bold' }).setOrigin(0.5));
+    this.skillsButton.on('pointerdown', () => this.emit('open_skills'));
+
     // 6. Sound Toggle Button
     this.soundButton = scene.add.rectangle(1820, 32, 44, 36, 0x241d2c);
     this.soundButton.setStrokeStyle(1, 0x8c5836);
@@ -147,6 +157,17 @@ export class HUD extends Phaser.GameObjects.Container {
       this.valveButton.setFillStyle(0x2b221a);
       this.valveText.setColor('#ffd166');
     }
+  }
+
+  /** Hover hints for every HUD element. */
+  public attachTips(tip: InfoTip): void {
+    tip.zone(580, 32, 150, 40, 'Шестерни', 'Валюта забега. Даются за победу в волне и за убитых врагов. Тратятся в мастерской и в древе навыков.');
+    tip.zone(760, 32, 150, 40, 'Котёл', 'Прочность вашей базы. Каждый враг, дошедший до левого края, отнимает 1. Когда прочность кончится — забег проигран.');
+    tip.zone(940, 32, 150, 40, 'Роботы на поле', 'Сколько роботов стоит на поле и сколько можно поставить. Лимит повышается в древе навыков, ветка «Логистика».');
+    tip.zone(1140, 32, 150, 40, 'Пар и жар', 'Слева пар: тратится на прокрутки, когда бесплатные кончились (+2 за волну). Справа жар: растёт от платных прокруток, выше 60% барабаны могут заклинить.');
+    tip.attach(this.skillsButton, 'Древо навыков', 'Постоянные улучшения на весь забег за шестерни: больше роботов на поле, здоровье, урон, прокрутки. Клавиша T.');
+    tip.attach(this.valveButton, 'Аварийный клапан', 'Один раз за бой: замедляет всех врагов на 60% на 5 секунд. Клавиша V.');
+    tip.attach(this.soundButton, 'Звук', 'Включить или выключить звук. Клавиша M.');
   }
 
   public updateUnitsCount(deployed: number, max: number): void {

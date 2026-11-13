@@ -13,11 +13,16 @@ import { ShopView } from '@ui/ShopView';
 import { EvolutionModal } from '@ui/EvolutionModal';
 import { CoreDraftModal } from '@ui/CoreDraftModal';
 import { GADGETS_DATA } from '@data/gadgets';
+import { ENEMIES_DATA } from '@data/enemies';
 import { BALANCE } from '@data/balance';
 import { ReelManager } from '@core/reels/reels';
 import { SoundManager } from '../audio/SoundManager';
 import { MetaManager } from '@core/meta/metaManager';
 import { SmeltManager } from '@core/smelt/smelt';
+import { SkillManager } from '@core/skills/skills';
+import { SkillTreeModal } from '@ui/SkillTreeModal';
+import { InfoTip } from '@ui/InfoTip';
+import { t } from '@data/i18n';
 import { AnimationFX } from '../fx/AnimationFX';
 import { SteampunkAtmosphere } from '../fx/SteampunkAtmosphere';
 import { ParticleKit } from '../presentation/ParticleKit';
@@ -62,6 +67,7 @@ export class RunScene extends Phaser.Scene {
   public shopView!: ShopView;
   public evolutionModal!: EvolutionModal;
   public coreDraftModal!: CoreDraftModal;
+  public skillTreeModal!: SkillTreeModal;
   public atmosphere!: SteampunkAtmosphere;
 
   // Cards & Visuals
@@ -192,6 +198,9 @@ export class RunScene extends Phaser.Scene {
     // Initial HUD & View update
     this.refreshHUD();
     this.syncUnitCards();
+
+    this.setupSkillTree();
+    this.setupInfoTips();
 
     // pixel-art 9-slice skin for every framed panel/button in the scene
     UISkin.install(this);
@@ -653,19 +662,16 @@ export class RunScene extends Phaser.Scene {
 
     if (this.state.deployedUnits.length === 0) {
       // Quality-of-life: if player clicks Engage with units on bench, auto-deploy them to frontline
-      if (this.state.reserveBench.length > 0) {
-        const availableSlots: [number, number][] = [
-          [0, 0], [0, 1], [0, 2], [0, 3], [0, 4],
-          [1, 0], [1, 1], [1, 2], [1, 3], [1, 4]
-        ];
-        let slotIdx = 0;
-        const toDeploy = [...this.state.reserveBench];
-        for (const u of toDeploy) {
-          if (slotIdx < availableSlots.length) {
-            const [c, r] = availableSlots[slotIdx++];
-            this.deployUnit(u.instanceId, c, r);
-          }
-        }
+      if (this.state.reserveBench.length > 0 && this.state.deployedUnits.length === 0) {
+        // nothing on the field yet: line the bench up in the first free cells, up to the limit
+        const taken = new Set(this.state.deployedUnits.map((u) => `${u.deployedSlot?.col},${u.deployedSlot?.row}`));
+        const free: [number, number][] = [];
+        for (let c = 0; c < 2; c++) for (let r = 0; r < BALANCE.GRID_ROWS; r++) if (!taken.has(`${c},${r}`)) free.push([c, r]);
+        const room = SkillManager.unitCap(this.state) - this.state.deployedUnits.length;
+        const toDeploy = [...this.state.reserveBench].slice(0, Math.max(0, room));
+        toDeploy.forEach((u, i) => {
+          if (free[i]) this.deployUnit(u.instanceId, free[i][0], free[i][1]);
+        });
       } else {
         this.showFloatingText(960, 300, 'Сначала покрутите барабаны (Пробел) и призовите автоматонов!', '#ffd166');
         return;
@@ -944,7 +950,14 @@ export class RunScene extends Phaser.Scene {
     container.setAlpha(0);
     this.tweens.add({ targets: container, alpha: 1, duration: 220 });
 
-    void id;
+    const enemyDef = Object.values(ENEMIES_DATA).find((e) => e.spriteKey === key);
+    if (enemyDef) {
+      InfoTip.of(this).attach(sprite, t(enemyDef.nameKey), () => {
+        const live = this.state.combatState?.enemies.find((e) => e.id === id);
+        const hp = live ? `${Math.max(0, Math.ceil(live.hp))}/${live.maxHp}` : `${enemyDef.hp}`;
+        return `${t(enemyDef.descKey)}\nЗдоровье: ${hp} · Урон: ${enemyDef.damage} · Броня: ${enemyDef.armor}`;
+      });
+    }
     return { container, sprite, hpBarFill, hpW, key, flying, lastX: -1, attackingUntil: 0, bodyH };
   }
 
@@ -1071,6 +1084,41 @@ export class RunScene extends Phaser.Scene {
     }
   }
 
+  /** Skill tree window + its HUD button and hotkey. */
+  private setupSkillTree(): void {
+    this.skillTreeModal = new SkillTreeModal(this);
+    const open = (): void => {
+      if (this.state.phase === 'GAME_OVER' || this.state.phase === 'VICTORY') return;
+      this.skillTreeModal.open(this.state, RunReducer.canArrange(this.state));
+    };
+    this.hud.on('open_skills', open);
+    this.input.keyboard?.on('keydown-T', () => {
+      if (this.skillTreeModal.visible) this.skillTreeModal.hide();
+      else open();
+    });
+    this.skillTreeModal.on('buy_skill', (skillId: string) => {
+      const before = SkillManager.rank(this.state, skillId);
+      RunReducer.dispatch(this.state, { type: 'BUY_SKILL', skillId }, this.rng, this.eventBus);
+      if (SkillManager.rank(this.state, skillId) > before) {
+        SoundManager.getInstance().playSmelt();
+        this.reelView.updateHolds(this.state.heldReels);
+      }
+      this.refreshHUD();
+      this.skillTreeModal.refresh(this.state, RunReducer.canArrange(this.state));
+    });
+  }
+
+  /** "What is this?" hints for everything that can be hovered. */
+  private setupInfoTips(): void {
+    const tip = InfoTip.of(this);
+    this.hud.attachTips(tip);
+    this.reelView.attachTips(tip, () => ({ holds: this.state.holdsLeft, nudges: this.state.nudgesLeft }));
+    tip.attach(this.engageButton, 'В бой', 'Начинает волну (Enter). Во время боя роботов переставлять нельзя.');
+    tip.attach(this.speedButton, 'Скорость боя', 'Переключает скорость сражения: 1×, 2×, 4×.');
+    tip.zone(224, 806, 380, 30, 'Резерв роботов', 'Сюда попадают призванные роботы. Перетащите робота на любую клетку поля. Робота на робота той же линейки и уровня — слияние.');
+    tip.zone(1176, 114, 280, 44, 'Волны', 'Номер текущей волны. Каждая 10-я волна — босс, после неё начинается новый акт.');
+  }
+
   /** Merge two units (same line + same level -> level + 1) or explain why not. */
   private tryMerge(targetId: string, sacrificeId: string): void {
     const all = [...this.state.reserveBench, ...this.state.deployedUnits];
@@ -1121,6 +1169,13 @@ export class RunScene extends Phaser.Scene {
         ) {
           // same line + same level: merge into the robot standing there
           this.tryMerge(existingUnit.instanceId, droppedCard.unit.instanceId);
+        } else if (
+          !existingUnit &&
+          !droppedCard.unit.deployedSlot &&
+          this.state.deployedUnits.length >= SkillManager.unitCap(this.state)
+        ) {
+          const cap = SkillManager.unitCap(this.state);
+          this.showFloatingText(dropX, dropY - 50, `Лимит роботов на поле: ${cap}. Повышается в древе навыков (T)`, '#ffb08a');
         } else {
           // place / move (an occupied cell swaps the two robots)
           RunReducer.dispatch(
@@ -1172,7 +1227,7 @@ export class RunScene extends Phaser.Scene {
       activeCores: this.state.activeCores
     });
 
-    this.hud.updateUnitsCount(this.state.deployedUnits.length, BALANCE.GRID_COLS * BALANCE.GRID_ROWS);
+    this.hud.updateUnitsCount(this.state.deployedUnits.length, SkillManager.unitCap(this.state));
 
     if (this.reelView) {
       this.reelView.updateBadges(
