@@ -37,6 +37,11 @@ export const BALANCE = {
   MAX_UNIT_LEVEL: 5,
   /** robots allowed on the field before skill-tree upgrades */
   BASE_UNIT_CAP: 5,
+  /** reserve bench seats; a summon that finds it full is melted into cogs */
+  BENCH_CAPACITY: 10,
+  BENCH_OVERFLOW_COGS: 3,
+  /** a jackpot legendary that finds the bench full is worth more */
+  BENCH_OVERFLOW_LEGENDARY_COGS: 25,
   /** +50% HP and damage per level above 1 */
   LEVEL_STAT_BONUS: 0.5,
   /** reaching these levels offers an evolution branch choice */

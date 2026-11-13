@@ -4,6 +4,7 @@ export type CoreEventType =
   | 'line_hit'
   | 'jackpot'
   | 'unit_summoned'
+  | 'bench_overflow'
   | 'unit_smelted'
   | 'evolution_ready'
   | 'jam_triggered'
@@ -34,6 +35,8 @@ export interface CoreEventPayloads {
   };
   jackpot: { choices: string[] };
   unit_summoned: { unitInstanceId: string; unitDefId: string; isGilded: boolean };
+  /** the bench was full: the summoned robot was melted into cogs instead */
+  bench_overflow: { unitDefId: string; cogs: number };
   unit_smelted: { targetId: string; sacrificeId: string; xpAdded: number; newTotalXp: number };
   evolution_ready: { unitInstanceId: string; branchA: string; branchB: string };
   jam_triggered: { heat: number; damagedUnitId?: string; lockedReelIndex: number };

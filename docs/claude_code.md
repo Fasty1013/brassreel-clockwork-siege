@@ -1,93 +1,85 @@
-# BRASSREEL: Clockwork Siege – Overview for Claude Code
+# BRASSREEL: Clockwork Siege — памятка для Claude Code
 
-**Tagline**: *Steampunk slot‑machine defence where you spin, summon pixel heroes, and battle in a vivid 2‑D arena.*
+Краткая выжимка для агента, который продолжает работу над проектом.
+Правила игры подробно — в [`GAME_INFO.md`](GAME_INFO.md), история изменений
+и список «что осталось» — в [`WORK_LOG.md`](WORK_LOG.md). Начинать стоит с них.
 
----
-
-## 1. Core Gameplay Loop
-1. **Spin the slot‑machine** – press *Spin*; the three reels stop on symbols.
-2. **Match symbols** – each matching line generates a **unit summon** or a **resource reward**.
-3. **Deploy the unit** – drag the summoned hero onto the meadow (left panel) or let the auto‑placement place it.
-4. **Combat phase** – enemies enter from the right, units fight using jump‑hop movement, projectile attacks and melee strikes.
-5. **Repeat** – after the battle ends you can spin again; the goal is to survive progressively harder waves and defeat the final boss.
+Старые документы `GDD.md`, `BALANCE.md`, `ARCHITECTURE.md`, `ART_BIBLE.md`,
+`ASSET_INVENTORY.md`, `HANDOFF.md` писались до визуальной переделки: архитектура
+в них верна, но правила (слияние, лимиты, цена прокрутки) и пути к графике устарели.
 
 ---
 
-## 2. Factions & Key Units
-- **Cog Faction** – *Cog Knight* (heavy melee, shield bash).
-- **Spring Faction** – *Spring Archer* (ranged, high‑arc arrows).
-- **Enemy Types**
-  - *Scrapper Enemy* – steel‑clad melee bots.
-  - *Drone Enemy* – floating flyers that fire laser bursts.
-- **Projectiles** – arrows, bomb shells, slash arcs, scrap debris.
+## 1. Что за игра
 
----
+Стимпанк-рогалик: слот-машина 3×3 призывает роботов, роботы на поле 8×5 сами
+защищают котёл от волн врагов. 30 волн, 3 акта, босс в конце каждого.
 
-## 3. Visual‑Art Approach
-- **Pixel‑art style** – native canvas **640 × 360**, integer‑scaled ×3 to 1920 × 1080 (nearest‑neighbor). 32‑color procedural palette.
-- **Sprite sizes** – units: 32 × 32 (elite 48 × 48, boss 96‑128). Icons: 28 × 28. 1 px dark contour with a subtle top‑left highlight.
-- **Animation** – "jump‑hop" walk, vertical hop on attack, white flash on hit, slash‑arc effect, scrap‑debris particles.
-- **UI composition** – dark violet‑gray frame, bright parchment‑style battle window, slot‑machine on the left, HUD on top‑center, minimal overlay.
+- Призыв — только 3 одинаковых символа в линию (8 линий). Пары ничего не дают.
+- 3 бесплатные прокрутки на волну, дальше за шестерни: 5, 7, 9… (цена растёт внутри волны).
+- Слияние: та же линейка и тот же уровень → уровень +1, максимум 5★. На 3★ и 5★ — эволюция.
+- Лимит роботов на поле 5, растёт в древе навыков (клавиша T). Скамейка — 10 мест.
+- У каждого класса своя способность, все работают в бою.
 
----
+## 2. Технологии
 
-## 4. Technical Stack
-- **Engine**: **Phaser 3.88** (WebGL/Canvas fallback).
-- **Language**: **TypeScript** (compiled with Vite).
-- **Launcher**: Windows .NET **TcpListener** (replaces HttpListener) serving the game at `http://127.0.0.1:38888/`.
-- **Procedural Assets**: `src/fx/proceduralAssets.ts` generates all textures at runtime — no external image files.
-- **Deterministic Core**: `src/core/` — SFC32 seeded RNG, EventBus, deterministic game logic. **Do not modify.**
-- **Tests**: Vitest, 75 tests in `tests/`.
-- **QA**: `tools/qa/verifyPlayability.ts` — automated screenshot verification of all game states.
+- **Phaser 3.88**, **TypeScript**, сборка **Vite**, тесты **Vitest**.
+- Холст 1920×1080, `Phaser.Scale.FIT`. Пиксельная графика, но холст сглаживается,
+  когда масштаб окна не целый (`syncCanvasSmoothing` в `src/main.ts`), иначе текст теряет строки пикселей.
+- Шрифт **Rubik** (`@fontsource/rubik`), задаётся в одном месте — `src/ui/TextStyles.ts`.
+  Минимальный размер 15 px. Pixelify Sans убран: его кириллица нечитаема.
+- Вся графика генерируется кодом, внешних картинок нет.
 
----
+## 3. Где что лежит
 
-## 5. Key Source Files
-| File | Purpose |
-|------|---------|
-| `src/scenes/BootScene.ts` | Asset registration, animation definitions |
-| `src/scenes/MenuScene.ts` | Main menu UI |
-| `src/scenes/RunScene.ts` | Main gameplay loop: spin → deploy → combat |
-| `src/ui/ReelView.ts` | Slot‑machine reel rendering |
-| `src/ui/UnitCard.ts` | Unit selection & deployment cards |
-| `src/ui/HUD.ts` | Top HUD (gold, HP, wave counter) |
-| `src/ui/GridView.ts` | Battle grid rendering |
-| `src/art/palette.ts` | 32‑color palette constants |
-| `src/art/characters/cogKnight.ts` | Cog Knight procedural sprite |
-| `src/art/characters/springArcher.ts` | Spring Archer procedural sprite |
-| `src/art/characters/scrapperEnemy.ts` | Scrapper Enemy procedural sprite |
-| `src/art/characters/droneEnemy.ts` | Drone Enemy procedural sprite |
-| `src/art/projectiles.ts` | Arrow, bomb, slash‑arc, scrap textures |
-| `src/fx/proceduralAssets.ts` | Central procedural asset generator |
-| `src/data/units.ts` | Unit stat definitions |
-| `src/core/` | Deterministic game engine (DO NOT MODIFY) |
+| Путь | Что там |
+|---|---|
+| `src/core/` | логика без Phaser и DOM, детерминирована зерном |
+| `src/core/state/reducer.ts` | все команды игрока (SPIN, DEPLOY_UNIT, SMELT_UNITS…) |
+| `src/core/state/RunState.ts` | состояние забега, `spinCost()` |
+| `src/core/combat/combatEngine.ts` | бой: тики, цели, урон |
+| `src/core/combat/quirkEffects.ts` | способности классов (по `effectType` + `params`) |
+| `src/core/smelt/smelt.ts` | слияние и эволюция |
+| `src/core/skills/skills.ts` | древо навыков, лимит роботов |
+| `src/data/` | баланс (`balance.ts`), роботы, способности (`quirks.ts`), враги, волны, навыки |
+| `src/data/i18n/ru.json`, `en.json` | тексты на двух языках |
+| `src/art/forge/` | генератор пиксельных фигурок: `roster.ts` (роботы), `bestiary.ts` (враги), `levelLook.ts` (вид по уровням) |
+| `src/art/environment/actBackdrops.ts` | фоны трёх актов |
+| `src/art/ui/UISkin.ts` | пиксельные панели |
+| `src/ui/` | HUD, барабаны (`ReelView`), карточки роботов, окна, подсказки (`InfoTip`) |
+| `src/scenes/RunScene.ts` | главный экран забега, связывает ядро и интерфейс |
+| `tests/` | тесты ядра и боя |
+| `tools/sim/` | безголовый симулятор с ботами для баланса |
+| `tools/qa/` | скриншоты и листы спрайтов без браузера |
 
----
+`src/art/characters/`, `src/fx/proceduralAssets.ts`, `ReferenceScene`, `AnimationViewerScene` —
+остатки ранних этапов; рабочая графика роботов и врагов идёт из `src/art/forge/`.
 
-## 6. Build & Run
+## 4. Правила работы
+
+1. `src/core/` не импортирует Phaser, `window`, `document`. Логика должна работать в Node (тесты, симулятор).
+2. Ядро детерминировано: случайность только через потоки `rng.reel / combat / loot / shop`.
+3. Правила игры (ядро) меняются, когда об этом просит автор игры. Числа — в `src/data/`.
+4. Тексты способностей в `i18n` должны совпадать с тем, что делает `quirkEffects.ts`.
+5. После изменений: `npm run typecheck`, `npm test`, `npm run build` — все должны проходить.
+6. Видимые изменения проверять в игре: сервер разработки (`.claude/launch.json`) или `tools/qa/shot.ts`.
+
+## 5. Команды
+
 ```bash
-npm install          # install deps
-npm run build        # production build → dist/
-npm run dev          # Vite dev server (hot reload)
-npm test             # run all Vitest tests
-npx tsx tools/qa/verifyPlayability.ts  # QA screenshot check
+npm run dev          # сервер разработки
+npm test             # тесты
+npm run typecheck    # проверка типов
+npm run build        # сборка в dist/
+npm run sim -- --runs 300 --bot smart --output out.json   # симуляция баланса
+npx tsx tools/qa/shot.ts out.png "<js>"   # скриншот собранной игры 1920×1080
+npx tsx tools/qa/renderForge.ts <папка> 5  # листы всех фигурок и уровней
 ```
 
-Windows launcher: compile `Launcher.cs` with `csc`, run `BRASSREEL.exe` → serves on `http://127.0.0.1:38888/`.
+Отладочные адреса: `?seed=123456789` — повторить забег, `?debug=gallery` — галерея фигурок.
 
----
+## 6. Публикация
 
-## 7. Reference Assets
-- **Reference video**: `docs/reference/gameplay.mp4` — target look, feel, and animation quality (game: *Slotbound*).
-- **Asset inventory**: `ASSET_INVENTORY.md` — full list of procedural asset definitions.
-- **Architecture**: `ARCHITECTURE.md` — system architecture documentation.
-
----
-
-## 8. Rules for Modification
-1. **DO NOT touch `src/core/`** — deterministic game logic is frozen.
-2. **Presentation layer only** — you may change rendering, art, animation, UI, and sound.
-3. **Stay 2‑D / Phaser** — no 3‑D, no engine changes.
-4. **Procedural art** — all sprites must remain procedural (no external `.png` files).
-5. **Run tests after every change** — `npm test` must pass with 0 failures.
-
+- Отправка в ветку `main` запускает `.github/workflows/pages.yml`: тесты, сборка,
+  обновление https://fasty1013.github.io/brassreel-clockwork-siege/ . Если тесты падают, сайт не обновляется.
+- `BRASSREEL.exe` (исходник `launcher/Launcher.cs`) раздаёт папку `dist/` и открывает игру окном браузера.

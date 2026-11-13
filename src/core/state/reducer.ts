@@ -144,7 +144,12 @@ export class RunReducer {
           });
           // Summon 1st legendary by default or add to bench
           const legendary = UnitFactory.createUnit('unit_legendary_steam_leviathan', rng.loot, { customStarRank: 3 });
-          state.reserveBench.push(legendary);
+          if (state.reserveBench.length < BALANCE.BENCH_CAPACITY) {
+            state.reserveBench.push(legendary);
+          } else {
+            EconomyManager.addCogs(state.economy, BALANCE.BENCH_OVERFLOW_LEGENDARY_COGS);
+            eventBus?.emit('bench_overflow', { unitDefId: legendary.defId, cogs: BALANCE.BENCH_OVERFLOW_LEGENDARY_COGS });
+          }
         }
 
         // Trigger unit summons to bench
@@ -160,6 +165,11 @@ export class RunReducer {
             isGilded: summon.isGilded,
             comboStatMult: comboMult
           });
+          if (state.reserveBench.length >= BALANCE.BENCH_CAPACITY) {
+            EconomyManager.addCogs(state.economy, BALANCE.BENCH_OVERFLOW_COGS);
+            eventBus?.emit('bench_overflow', { unitDefId: unit.defId, cogs: BALANCE.BENCH_OVERFLOW_COGS });
+            continue;
+          }
           state.reserveBench.push(unit);
           eventBus?.emit('unit_summoned', {
             unitInstanceId: unit.instanceId,
@@ -243,6 +253,7 @@ export class RunReducer {
 
       case 'UNDEPLOY_UNIT': {
         if (!RunReducer.canArrange(state)) return state;
+        if (state.reserveBench.length >= BALANCE.BENCH_CAPACITY) return state; // no free seat
         const depIdx = state.deployedUnits.findIndex((u) => u.instanceId === command.unitId);
         if (depIdx !== -1) {
           const [unit] = state.deployedUnits.splice(depIdx, 1);

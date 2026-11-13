@@ -135,3 +135,39 @@ describe('Deep Reducer Transitions & Game Loop Suite', () => {
     expect(state.phase).toBe('GAME_OVER');
   });
 });
+
+describe('Reserve bench capacity', () => {
+  it('melts summons into cogs once the bench is full', () => {
+    const rng = PrngManager.createStreams('BENCH_FULL');
+    const state = RunStateManager.createInitialState('BENCH_FULL');
+    const bus = new EventBus();
+    let overflow = 0;
+    bus.on('bench_overflow', () => overflow++);
+    while (state.reserveBench.length < BALANCE.BENCH_CAPACITY) {
+      state.reserveBench.push(UnitFactory.createUnit('unit_scrap_bot', rng.loot));
+    }
+    // spin until a line hits; every summon must be converted, the bench must not grow
+    for (let i = 0; i < 40 && overflow === 0; i++) {
+      state.freeSpinsLeft = 1;
+      const before = state.economy.cogs;
+      RunReducer.dispatch(state, { type: 'SPIN' }, rng, bus);
+      if (overflow > 0) expect(state.economy.cogs).toBeGreaterThan(before);
+    }
+    expect(overflow).toBeGreaterThan(0);
+    expect(state.reserveBench.length).toBe(BALANCE.BENCH_CAPACITY);
+  });
+
+  it('refuses to send a robot back to a full bench', () => {
+    const rng = PrngManager.createStreams('BENCH_UNDEPLOY');
+    const state = RunStateManager.createInitialState('BENCH_UNDEPLOY');
+    const fielded = UnitFactory.createUnit('unit_cog_knight', rng.loot);
+    fielded.deployedSlot = { col: 1, row: 1 };
+    state.deployedUnits.push(fielded);
+    while (state.reserveBench.length < BALANCE.BENCH_CAPACITY) {
+      state.reserveBench.push(UnitFactory.createUnit('unit_scrap_bot', rng.loot));
+    }
+    RunReducer.dispatch(state, { type: 'UNDEPLOY_UNIT', unitId: fielded.instanceId }, rng);
+    expect(state.deployedUnits).toContain(fielded);
+    expect(state.reserveBench.length).toBe(BALANCE.BENCH_CAPACITY);
+  });
+});

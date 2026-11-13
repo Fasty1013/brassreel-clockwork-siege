@@ -35,131 +35,131 @@
   },
   "unit": {
     "scrap_bot": {
-      "name": "Scrap Bot",
+      "name": "Scrap-Bot",
       "desc": "Fragile clockwork worker. Ideal fodder for the Smelt crucible."
     },
     "cog_knight": {
-      "name": "Cog Knight",
+      "name": "Guard-Bot",
       "desc": "Armored melee defender with reinforced iron chassis."
     },
     "cog_bulwark": {
-      "name": "Bulwark",
+      "name": "Bastion-Bot",
       "desc": "Heavily plated tank absorbing massive front-line punishment."
     },
     "cog_ramhead": {
-      "name": "Ramhead",
+      "name": "Ram-Bot",
       "desc": "Aggressive bruiser charging into enemy vanguards."
     },
     "cog_fortress_golem": {
-      "name": "Fortress Golem",
+      "name": "Fortress-Mech",
       "desc": "Colossal defense engine generating impenetrable barriers."
     },
     "cog_aegis_bastion": {
-      "name": "Aegis Bastion",
+      "name": "Aegis-Mech",
       "desc": "Reflects incoming physical damage back to attackers."
     },
     "cog_steam_juggernaut": {
-      "name": "Steam Juggernaut",
+      "name": "Jugger-Mech",
       "desc": "Heavy steam-powered brawler stunning enemy formations."
     },
     "cog_siegebreaker": {
-      "name": "Siegebreaker",
+      "name": "Siege-Mech",
       "desc": "Cleaves through entire columns with massive hydraulic hammer."
     },
     "spring_archer": {
-      "name": "Spring Archer",
+      "name": "Arrow-Bot",
       "desc": "Rapid marksman firing high-tension copper arrows."
     },
     "spring_sharpshooter": {
-      "name": "Sharpshooter",
+      "name": "Sniper-Bot",
       "desc": "Long-range sniper delivering deadly targeted shots."
     },
     "spring_repeater": {
-      "name": "Repeater",
+      "name": "Rapid-Bot",
       "desc": "Fires high-velocity bursts at rapid rates."
     },
     "spring_clockwork_ballista": {
-      "name": "Clockwork Ballista",
+      "name": "Ballista-Mech",
       "desc": "Siege ballista piercing multiple enemies in a row."
     },
     "spring_eagle_sentinel": {
-      "name": "Eagle Sentinel",
+      "name": "Eagle-Mech",
       "desc": "Executes targets with devastating critical strikes."
     },
     "spring_volley_array": {
-      "name": "Volley Array",
+      "name": "Volley-Mech",
       "desc": "Unleashes torrential 3-arrow volleys."
     },
     "spring_chrono_marksman": {
-      "name": "Chrono Marksman",
+      "name": "Chrono-Mech",
       "desc": "Attacks accelerate with each consecutive hit."
     },
     "fuse_sapper": {
-      "name": "Fuse Sapper",
+      "name": "Fuse-Bot",
       "desc": "Lobs volatile explosive canisters into enemy clusters."
     },
     "fuse_pyromancer": {
-      "name": "Pyromancer",
-      "desc": "Coats enemies in persistent burning molten slag."
+      "name": "Flamer-Bot",
+      "desc": "Sets enemies on fire with burning molten slag."
     },
     "fuse_demolitionist": {
-      "name": "Demolitionist",
-      "desc": "Concussive explosives knocking enemies backward."
+      "name": "Blaster-Bot",
+      "desc": "Shrapnel charges whose blast hits every enemy next to the target."
     },
     "fuse_magma_mortar": {
-      "name": "Magma Mortar",
+      "name": "Mortar-Mech",
       "desc": "Leaves persistent burning pools across target zones."
     },
     "fuse_hellfire_foundry": {
-      "name": "Hellfire Foundry",
+      "name": "Forge-Mech",
       "desc": "Amplifies damage against burning targets."
     },
     "fuse_blast_dynamo": {
-      "name": "Blast Dynamo",
+      "name": "Blast-Mech",
       "desc": "Tremendous shockwaves scattering approaching hordes."
     },
     "fuse_doom_barricade": {
-      "name": "Doom Barricade",
+      "name": "Barrier-Mech",
       "desc": "Deploys explosive proximity landmines."
     },
     "coil_sparker": {
-      "name": "Coil Sparker",
+      "name": "Spark-Bot",
       "desc": "Channels galvanic energy that arcs between enemies."
     },
     "coil_conduit": {
-      "name": "Conduit",
+      "name": "Wire-Bot",
       "desc": "Master of chain reactions and electrical conduction."
     },
     "coil_dynamo": {
-      "name": "Dynamo",
+      "name": "Dynamo-Bot",
       "desc": "Support caster granting shields and overcharge energy."
     },
     "coil_tesla_titan": {
-      "name": "Tesla Titan",
+      "name": "Tesla-Mech",
       "desc": "Arcs continuous high-voltage lightning through 5 targets."
     },
     "coil_storm_conductor": {
-      "name": "Storm Conductor",
-      "desc": "Calls down devastating thunderbolts from the ceiling."
+      "name": "Storm-Mech",
+      "desc": "Calls down devastating thunderbolts on the battlefield."
     },
     "coil_shield_galvanizer": {
-      "name": "Shield Galvanizer",
+      "name": "Shield-Mech",
       "desc": "Generates pulsating kinetic shields for nearby allies."
     },
     "coil_overload_core": {
-      "name": "Overload Core",
+      "name": "Overload-Mech",
       "desc": "Supercharges attack speeds of all adjacent defenders."
     },
     "steam_leviathan": {
-      "name": "Steam Leviathan",
-      "desc": "Legendary colossal dreadnought cleaving wide swathes."
+      "name": "Leviathan-Mech",
+      "desc": "Legendary dreadnought that splashes nearby foes and shrugs off damage."
     },
     "solarion_sun_forge": {
-      "name": "Solarion Sun-Forge",
+      "name": "Solarion-Mech",
       "desc": "Focuses a concentrated continuous beam melting enemy armor."
     },
     "chrono_warden": {
-      "name": "Chrono Warden",
+      "name": "Chrono-Warden-Mech",
       "desc": "Warps battlefield temporal flow, drastically slowing all foes."
     }
   },

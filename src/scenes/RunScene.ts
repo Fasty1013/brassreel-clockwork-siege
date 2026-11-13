@@ -74,6 +74,7 @@ export class RunScene extends Phaser.Scene {
   private unitCards: Map<string, UnitCard> = new Map();
   private enemyVisuals: Map<string, EnemyVisual> = new Map();
   private benchSlots: { x: number; y: number }[] = [];
+  private benchTitle?: Phaser.GameObjects.Text;
   private battleBg!: Phaser.GameObjects.Image;
 
   // Controls
@@ -358,24 +359,25 @@ export class RunScene extends Phaser.Scene {
   private createBenchArea(): void {
     // Reserve Shelf under Slot Machine
     const shelfX = 224;
-    const shelfY = 880;
-    const benchBg = this.add.rectangle(shelfX, shelfY, 400, 190, 0x18141f);
+    const shelfY = 884;
+    const benchBg = this.add.rectangle(shelfX, shelfY, 400, 200, 0x18141f);
     benchBg.setStrokeStyle(2, 0x3d3047);
 
-    this.add.text(shelfX, shelfY - 74, '[ РЕЗЕРВ АВТОМАТОНОВ ]', {
+    this.benchTitle = this.add.text(shelfX, shelfY - 85, `РЕЗЕРВ 0/${BALANCE.BENCH_CAPACITY}`, {
       fontFamily: 'monospace',
-      fontSize: '13px',
+      fontSize: '15px',
       color: '#ffd166',
       fontStyle: 'bold'
     }).setOrigin(0.5);
 
-    // 5 Bench slots in a clean row
+    // BENCH_CAPACITY seats in two rows of five
     this.benchSlots = [];
+    const perRow = 5;
     const slotStartX = shelfX - 150;
     const slotSpacing = 75;
-    for (let i = 0; i < 5; i++) {
-      const slotX = slotStartX + i * slotSpacing;
-      const slotY = shelfY + 12;
+    for (let i = 0; i < BALANCE.BENCH_CAPACITY; i++) {
+      const slotX = slotStartX + (i % perRow) * slotSpacing;
+      const slotY = shelfY - 26 + Math.floor(i / perRow) * 84;
       const slotOutline = this.add.rectangle(slotX, slotY, 68, 80, 0x241d2c);
       slotOutline.setStrokeStyle(1, 0x534764, 0.7);
       this.benchSlots.push({ x: slotX, y: slotY });
@@ -609,6 +611,10 @@ export class RunScene extends Phaser.Scene {
     });
 
     // Smelt text floater & fusion vortex
+    this.eventBus.on('bench_overflow', (data) => {
+      this.showFloatingText(224, 760, `Резерв полон — робот переплавлен: +${data.cogs} шестерни`, '#ffb08a');
+    });
+
     this.eventBus.on('unit_smelted', (data) => {
       SoundManager.getInstance().playSmelt();
       const card = this.unitCards.get(data.targetId);
@@ -1082,6 +1088,12 @@ export class RunScene extends Phaser.Scene {
       card.setDeployedMode(false);
     }
 
+    if (this.benchTitle) {
+      const n = this.state.reserveBench.length;
+      this.benchTitle.setText(`РЕЗЕРВ ${n}/${BALANCE.BENCH_CAPACITY}`);
+      this.benchTitle.setColor(n >= BALANCE.BENCH_CAPACITY ? '#e63946' : '#ffd166');
+    }
+
     // robots that fought in the last wave were locked for the battle — unlock them for prep
     const canDrag = RunReducer.canArrange(this.state);
     for (const card of this.unitCards.values()) {
@@ -1192,13 +1204,17 @@ export class RunScene extends Phaser.Scene {
         }
       } else if (dropY > 580) {
         // Dropped back onto Bench
-        const benchTarget = this.state.reserveBench.find(
-          (u) => u.instanceId !== droppedCard.unit.instanceId && Math.abs(droppedCard.x - this.getCardX(u.instanceId)) < 40
-        );
+        const benchTarget = this.state.reserveBench.find((u) => {
+          if (u.instanceId === droppedCard.unit.instanceId) return false;
+          const c = this.unitCards.get(u.instanceId);
+          return !!c && Math.abs(droppedCard.x - c.x) < 36 && Math.abs(droppedCard.y - c.y) < 40;
+        });
 
         if (benchTarget) {
           // SMELT on bench
           this.tryMerge(benchTarget.instanceId, droppedCard.unit.instanceId);
+        } else if (droppedCard.unit.deployedSlot && this.state.reserveBench.length >= BALANCE.BENCH_CAPACITY) {
+          this.showFloatingText(dropX, dropY - 50, `Резерв полон (${BALANCE.BENCH_CAPACITY} мест)`, '#ffb08a');
         } else if (droppedCard.unit.deployedSlot) {
           // UNDEPLOY
           RunReducer.dispatch(
@@ -1213,10 +1229,6 @@ export class RunScene extends Phaser.Scene {
       this.syncUnitCards();
       this.refreshHUD();
     });
-  }
-
-  private getCardX(unitId: string): number {
-    return this.unitCards.get(unitId)?.x ?? 0;
   }
 
   private refreshHUD(): void {
