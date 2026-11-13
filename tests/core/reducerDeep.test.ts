@@ -8,47 +8,41 @@ import { CombatEngine } from '@core/combat/combatEngine';
 import { BALANCE } from '@data/balance';
 
 describe('Deep Reducer Transitions & Game Loop Suite', () => {
-  it('charges cogs for paid spins, raising the price every paid spin of the wave', () => {
+  it('charges cogs for every spin, raising the price within a wave', () => {
     const rng = PrngManager.createStreams('EXTRA_SPIN_TEST');
     const state = RunStateManager.createInitialState('EXTRA_SPIN_TEST');
     const bus = new EventBus();
-
-    // Free spins cost nothing
-    expect(RunStateManager.spinCost(state)).toBe(0);
-    RunReducer.dispatch(state, { type: 'SPIN' }, rng, bus);
-    RunReducer.dispatch(state, { type: 'SPIN' }, rng, bus);
-    RunReducer.dispatch(state, { type: 'SPIN' }, rng, bus);
-    expect(state.freeSpinsLeft).toBe(0);
-
     state.economy.cogs = 100;
-    const initialHeat = state.heat.currentHeat;
-    const base = BALANCE.EXTRA_SPIN_COG_BASE;
-    const step = BALANCE.EXTRA_SPIN_COG_STEP;
+    const base = BALANCE.SPIN_COST_BASE;
+    const step = BALANCE.SPIN_COST_STEP;
 
-    // 1st paid spin: BASE cogs, +20 heat
-    expect(RunStateManager.spinCost(state)).toBe(base);
-    RunReducer.dispatch(state, { type: 'SPIN' }, rng, bus);
-    expect(state.economy.cogs).toBe(100 - base);
-    expect(state.heat.currentHeat).toBe(initialHeat + BALANCE.EXTRA_SPIN_HEAT_ADD);
+    // the very first spin already costs cogs
+    let spent = 0;
+    for (let i = 0; i < BALANCE.COOL_SPINS_PER_WAVE; i++) {
+      const price = RunStateManager.spinCost(state);
+      expect(price).toBe(base + step * i);
+      RunReducer.dispatch(state, { type: 'SPIN' }, rng, bus);
+      spent += price;
+      expect(state.economy.cogs).toBe(100 - spent);
+      expect(state.heat.currentHeat).toBe(0); // cool spins do not heat
+    }
 
-    // 2nd paid spin is STEP more expensive
-    expect(RunStateManager.spinCost(state)).toBe(base + step);
-    state.heat.currentHeat = 0; // keep jams out of the way
+    // past the cool spins every spin also adds heat
+    const price = RunStateManager.spinCost(state);
     RunReducer.dispatch(state, { type: 'SPIN' }, rng, bus);
-    expect(state.economy.cogs).toBe(100 - base - (base + step));
-    expect(RunStateManager.spinCost(state)).toBe(base + 2 * step);
+    expect(state.economy.cogs).toBe(100 - spent - price);
+    expect(state.heat.currentHeat).toBe(BALANCE.EXTRA_SPIN_HEAT_ADD);
   });
 
-  it('refuses a paid spin the player cannot afford', () => {
+  it('refuses a spin the player cannot afford', () => {
     const rng = PrngManager.createStreams('POOR_SPIN');
     const state = RunStateManager.createInitialState('POOR_SPIN');
-    state.freeSpinsLeft = 0;
-    state.economy.cogs = BALANCE.EXTRA_SPIN_COG_BASE - 1;
+    state.economy.cogs = BALANCE.SPIN_COST_BASE - 1;
     const before = [...state.reelIndices];
     RunReducer.dispatch(state, { type: 'SPIN' }, rng);
-    expect(state.economy.cogs).toBe(BALANCE.EXTRA_SPIN_COG_BASE - 1);
+    expect(state.economy.cogs).toBe(BALANCE.SPIN_COST_BASE - 1);
     expect(state.reelIndices).toEqual(before);
-    expect(state.paidSpinsThisWave).toBe(0);
+    expect(state.spinsThisWave).toBe(0);
   });
 
   it('handles hold toggle on and off', () => {
@@ -148,10 +142,11 @@ describe('Reserve bench capacity', () => {
     }
     // spin until a line hits; every summon must be converted, the bench must not grow
     for (let i = 0; i < 40 && overflow === 0; i++) {
-      state.freeSpinsLeft = 1;
+      state.economy.cogs = 1000;
+      state.spinsThisWave = 0;
       const before = state.economy.cogs;
       RunReducer.dispatch(state, { type: 'SPIN' }, rng, bus);
-      if (overflow > 0) expect(state.economy.cogs).toBeGreaterThan(before);
+      if (overflow > 0) expect(state.economy.cogs).toBeGreaterThan(before - RunStateManager.spinCost({ ...state, spinsThisWave: 0 }));
     }
     expect(overflow).toBeGreaterThan(0);
     expect(state.reserveBench.length).toBe(BALANCE.BENCH_CAPACITY);
@@ -169,5 +164,32 @@ describe('Reserve bench capacity', () => {
     RunReducer.dispatch(state, { type: 'UNDEPLOY_UNIT', unitId: fielded.instanceId }, rng);
     expect(state.deployedUnits).toContain(fielded);
     expect(state.reserveBench.length).toBe(BALANCE.BENCH_CAPACITY);
+  });
+});
+
+describe('Jammed spins', () => {
+  it('a jam spends the cogs, keeps the reels and leaves no stale win behind', () => {
+    const rng = PrngManager.createStreams('JAM_CLEAR');
+    const state = RunStateManager.createInitialState('JAM_CLEAR');
+    const bus = new EventBus();
+    let jammed = false;
+    bus.on('jam_triggered', () => { jammed = true; });
+    for (let i = 0; i < 60 && !jammed; i++) {
+      state.economy.cogs = 1000;
+      state.spinsThisWave = BALANCE.COOL_SPINS_PER_WAVE;
+      state.heat.currentHeat = 100;
+      state.heldReels = [false, false, false];
+      const before = [...state.reelIndices];
+      const bench = state.reserveBench.length;
+      RunReducer.dispatch(state, { type: 'SPIN' }, rng, bus);
+      if (jammed) {
+        expect(state.reelIndices).toEqual(before);
+        expect(state.reserveBench.length).toBe(bench);
+        expect(state.lastSpinResult).toBeUndefined();
+        expect(state.economy.cogs).toBeLessThan(1000);
+      }
+    }
+    expect(jammed).toBe(true);
+    expect(RunStateManager.nextJamChance(state)).toBeGreaterThan(0);
   });
 });

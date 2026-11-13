@@ -54,7 +54,7 @@ export class ReelView extends Phaser.GameObjects.Container {
     spinsBg.setStrokeStyle(2, 0x3d3047);
     this.add(spinsBg);
     this.tipTargets.spins = spinsBg;
-    this.spinBadgeText = scene.add.text(-90, -188, 'беспл. 3', {
+    this.spinBadgeText = scene.add.text(-90, -188, 'без жара 3', {
       fontFamily: 'monospace',
       fontSize: '16px',
       color: '#ffd166',
@@ -67,7 +67,7 @@ export class ReelView extends Phaser.GameObjects.Container {
     costBg.setStrokeStyle(2, 0x3d3047);
     this.add(costBg);
     this.tipTargets.cost = costBg;
-    this.costBadgeText = scene.add.text(0, -188, 'БЕСПЛ.', {
+    this.costBadgeText = scene.add.text(0, -188, '3', {
       fontFamily: 'monospace',
       fontSize: '17px',
       color: '#5ae0d0',
@@ -214,38 +214,40 @@ export class ReelView extends Phaser.GameObjects.Container {
         tip.attach(sprite, 'Символ', () => `${info()[0]}. ${info()[1]}`);
       }
     }
-    tip.attach(this.leverSprite, 'Рычаг', 'Крутит барабаны (Пробел). Три одинаковых символа в ряд, столбец или по диагонали призывают робота на скамейку.');
-    if (this.tipTargets.spins) tip.attach(this.tipTargets.spins, 'Бесплатные прокрутки', 'Сколько бесплатных прокруток осталось в этой волне. Восполняются каждую волну.');
-    if (this.tipTargets.cost) tip.attach(this.tipTargets.cost, 'Цена прокрутки', `Сколько шестерней стоит следующая прокрутка. Когда бесплатные кончились, первая платная стоит ${BALANCE.EXTRA_SPIN_COG_BASE}, каждая следующая в этой волне на ${BALANCE.EXTRA_SPIN_COG_STEP} дороже. Цена сбрасывается в новой волне. Платная прокрутка добавляет ${BALANCE.EXTRA_SPIN_HEAT_ADD}% жара.`);
+    tip.attach(this.leverSprite, 'Рычаг', 'Крутит барабаны за шестерни (Пробел) — цена на плашке над барабанами. Три одинаковых символа в ряд, столбец или по диагонали призывают робота на скамейку.');
+    if (this.tipTargets.spins) tip.attach(this.tipTargets.spins, 'Жар машины', `Первые ${BALANCE.COOL_SPINS_PER_WAVE} прокрутки волны не греют машину. Каждая следующая добавляет ${BALANCE.EXTRA_SPIN_HEAT_ADD}% жара: чаще джокеры и короны. Выше 60% прокрутка может заклинить — шестерни потрачены, барабаны не крутятся, робота нет. Красная надпись — шанс заклинить при следующей прокрутке.`);
+    if (this.tipTargets.cost) tip.attach(this.tipTargets.cost, 'Цена прокрутки', `Каждая прокрутка стоит шестерни. Первая в волне — ${BALANCE.SPIN_COST_BASE}, каждая следующая на ${BALANCE.SPIN_COST_STEP} дороже. В новой волне цена снова ${BALANCE.SPIN_COST_BASE}. Красная цена — шестерней не хватает.`);
     if (this.tipTargets.book) tip.attach(this.tipTargets.book, 'Таблица выплат', 'Показывает, какие комбинации что призывают.');
     this.nudgeButtons.forEach((btn) => tip.attach(btn, 'Сдвиг барабана', () => `Сдвигает этот барабан на один символ вниз без прокрутки. Осталось сдвигов: ${charges().nudges}.`));
     this.holdButtons.forEach((btn) => tip.attach(btn, 'Удержание барабана', () => `Барабан не крутится при следующей прокрутке, остальные крутятся. Осталось удержаний: ${charges().holds}.`));
   }
 
   /**
-   * Left plate: free spins left this wave. Centre plate: what the NEXT spin costs —
-   * "БЕСПЛ." or the cog price with a cog icon (red when the player cannot pay).
+   * Left plate: spins left this wave that do not heat the furnace.
+   * Centre plate: what the NEXT spin costs in cogs (red when the player cannot pay).
    */
-  public updateBadges(freeSpinsLeft: number, cost: number, affordable: boolean): void {
-    this.spinBadgeText.setText(`беспл. ${freeSpinsLeft}`);
-    this.spinBadgeText.setColor(freeSpinsLeft > 0 ? '#2ec4b6' : '#7b6b8d');
-    fitText(this.spinBadgeText, 70);
-    if (cost <= 0) {
-      this.costBadgeText.setText('БЕСПЛ.');
-      this.costBadgeText.setColor('#2ec4b6');
-      this.costBadgeText.setX(0);
-      this.costCogIcon?.setVisible(false);
+  public updateBadges(coolSpinsLeft: number, cost: number, affordable: boolean, jamChance = 0): void {
+    if (coolSpinsLeft > 0) {
+      this.spinBadgeText.setText(`без жара ${coolSpinsLeft}`);
+      this.spinBadgeText.setColor('#2ec4b6');
+    } else if (jamChance > 0) {
+      // the next spin can jam: show the risk instead of the heat step
+      this.spinBadgeText.setText(`заклин. ${Math.round(jamChance * 100)}%`);
+      this.spinBadgeText.setColor('#e63946');
     } else {
-      this.costBadgeText.setText(`${cost}`);
-      this.costBadgeText.setColor(affordable ? '#ffd166' : '#e63946');
-      this.costBadgeText.setX(-12);
-      if (!this.costCogIcon) {
-        this.costCogIcon = this.scene.add.image(0, -188, 'sym_cog').setScale(0.75);
-        this.add(this.costCogIcon);
-      }
-      this.costCogIcon.setX(-12 + this.costBadgeText.width / 2 + 16).setVisible(true);
+      this.spinBadgeText.setText(`+${BALANCE.EXTRA_SPIN_HEAT_ADD}% жара`);
+      this.spinBadgeText.setColor('#f77f00');
     }
-    fitText(this.costBadgeText, 84);
+    fitText(this.spinBadgeText, 70);
+    this.costBadgeText.setText(`${cost}`);
+    this.costBadgeText.setColor(affordable ? '#ffd166' : '#e63946');
+    this.costBadgeText.setX(-12);
+    if (!this.costCogIcon) {
+      this.costCogIcon = this.scene.add.image(0, -188, 'sym_cog').setScale(0.75);
+      this.add(this.costCogIcon);
+    }
+    this.costCogIcon.setX(-12 + this.costBadgeText.width / 2 + 16).setVisible(true);
+    fitText(this.costBadgeText, 60);
   }
 
   /** Short red pulse on the price plate when a spin is refused for lack of cogs. */

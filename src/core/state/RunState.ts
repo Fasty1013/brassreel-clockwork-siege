@@ -1,4 +1,5 @@
 import { BALANCE } from '@data/balance';
+import { SkillManager } from '../skills/skills';
 import { ReelSymbol, SpinResult, SlotSymbol } from '../reels/reels';
 import { UnitInstance } from '../units/unitFactory';
 import { HeatState, HeatManager } from '../heat/heat';
@@ -16,9 +17,10 @@ export interface RunState {
   maxBoilerHp: number;
   holdsLeft: number;
   nudgesLeft: number;
-  freeSpinsLeft: number;
-  /** paid spins already bought this wave — each one raises the next price */
-  paidSpinsThisWave: number;
+  /** spins made this wave — each one raises the next price */
+  spinsThisWave: number;
+  /** cogs paid for the most recent spin (for the UI) */
+  lastSpinCost?: number;
   heldReels: [boolean, boolean, boolean];
   reelStrips: [ReelSymbol[], ReelSymbol[], ReelSymbol[]];
   reelIndices: [number, number, number];
@@ -36,10 +38,22 @@ export interface RunState {
 }
 
 export class RunStateManager {
-  /** Cogs the next spin costs: 0 while free spins remain, then BASE, BASE+STEP, … within a wave. */
+  /** Cogs the next spin costs: BASE, BASE+STEP, BASE+2·STEP… within a wave, minus skill discount. */
   public static spinCost(state: RunState): number {
-    if (state.freeSpinsLeft > 0) return 0;
-    return BALANCE.EXTRA_SPIN_COG_BASE + BALANCE.EXTRA_SPIN_COG_STEP * (state.paidSpinsThisWave ?? 0);
+    const raw = BALANCE.SPIN_COST_BASE + BALANCE.SPIN_COST_STEP * (state.spinsThisWave ?? 0);
+    return Math.max(BALANCE.SPIN_COST_MIN, raw - SkillManager.spinDiscount(state));
+  }
+
+  /** Chance (0..1) that the NEXT spin jams: only spins past the cool ones heat up and can jam. */
+  public static nextJamChance(state: RunState, jamReductionPct = 0): number {
+    if (RunStateManager.coolSpinsLeft(state) > 0) return 0;
+    const heat = Math.min(state.heat.maxHeat, state.heat.currentHeat + BALANCE.EXTRA_SPIN_HEAT_ADD);
+    return HeatManager.getJamChance(heat, jamReductionPct);
+  }
+
+  /** How many more spins this wave leave the furnace cold (no heat, no jam risk). */
+  public static coolSpinsLeft(state: RunState): number {
+    return Math.max(0, BALANCE.COOL_SPINS_PER_WAVE - (state.spinsThisWave ?? 0));
   }
 
   public static createInitialState(seed: string): RunState {
@@ -58,8 +72,7 @@ export class RunStateManager {
       maxBoilerHp: BALANCE.INITIAL_BOILER_HP,
       holdsLeft: BALANCE.BASE_HOLD_CHARGES,
       nudgesLeft: BALANCE.BASE_NUDGE_CHARGES,
-      freeSpinsLeft: BALANCE.FREE_SPINS_PER_WAVE,
-      paidSpinsThisWave: 0,
+      spinsThisWave: 0,
       heldReels: [false, false, false],
       reelStrips: strips,
       reelIndices: [0, 0, 0],

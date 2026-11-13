@@ -62,9 +62,6 @@ export class SkillManager {
         state.maxBoilerHp += node.perRank;
         state.boilerHp += node.perRank;
         break;
-      case 'free_spin':
-        state.freeSpinsLeft += node.perRank;
-        break;
       case 'hold':
         state.holdsLeft += node.perRank;
         break;
@@ -78,8 +75,9 @@ export class SkillManager {
   }
 
   /** Per-wave refills (added on top of the base values). */
-  public static bonusSpins(state: RunState): number {
-    return this.total(state, 'free_spin');
+  /** Cogs knocked off every spin by the skill tree. */
+  public static spinDiscount(state: RunState): number {
+    return this.total(state, 'spin_discount');
   }
   public static bonusHolds(state: RunState): number {
     return this.total(state, 'hold');

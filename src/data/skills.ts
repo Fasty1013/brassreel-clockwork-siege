@@ -13,7 +13,7 @@ export type SkillEffect =
   | 'boiler_hp'     // +N max boiler HP (and heals that much)
   | 'dmg_pct'       // +N% robot damage
   | 'atkspd_pct'    // +N% robot attack speed
-  | 'free_spin'     // +N free spins per wave
+  | 'spin_discount' // every spin costs N cogs less (never below the minimum)
   | 'hold'          // +N reel holds per wave
   | 'nudge';        // +N reel nudges per wave
 
@@ -56,7 +56,7 @@ export const SKILLS: SkillNode[] = [
   { id: 'ars_overheat', branch: 'arsenal', tier: 2, name: 'Перегрев стволов', desc: '+{n}% урона всем роботам', effect: 'dmg_pct', perRank: 20, maxRank: 2, costs: [60, 90], requires: 'ars_grease' },
 
   // ---- Mechanics
-  { id: 'mech_spin', branch: 'mechanics', tier: 0, name: 'Лишний оборот', desc: '+{n} бесплатная прокрутка за волну', effect: 'free_spin', perRank: 1, maxRank: 2, costs: [25, 45] },
+  { id: 'mech_spin', branch: 'mechanics', tier: 0, name: 'Смазанный механизм', desc: 'Каждая прокрутка дешевле на {n} шестерню', effect: 'spin_discount', perRank: 1, maxRank: 2, costs: [25, 45] },
   { id: 'mech_hold', branch: 'mechanics', tier: 1, name: 'Стопор', desc: '+{n} удержание барабана за волну', effect: 'hold', perRank: 1, maxRank: 2, costs: [20, 35], requires: 'mech_spin' },
   { id: 'mech_nudge', branch: 'mechanics', tier: 2, name: 'Толкатель', desc: '+{n} сдвиг барабана за волну', effect: 'nudge', perRank: 1, maxRank: 2, costs: [25, 40], requires: 'mech_hold' }
 ];

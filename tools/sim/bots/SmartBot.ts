@@ -40,14 +40,13 @@ export class SmartBot implements BotPolicy {
       }
     }
 
-    // 2. Execute Free Spins
-    const freeSpins = state.freeSpinsLeft;
-    for (let i = 0; i < freeSpins; i++) {
+    // 2. Spin the cool (no-heat) spins; the reducer refuses spins it cannot pay for
+    for (let i = 0; i < BALANCE.COOL_SPINS_PER_WAVE; i++) {
       commands.push({ type: 'SPIN' });
     }
 
-    // 3. Push Your Luck: one paid spin only if Heat <= 40 and cogs to spare
-    if (state.heat.currentHeat <= 40 && state.economy.cogs >= BALANCE.EXTRA_SPIN_COG_BASE + 15) {
+    // 3. Push Your Luck: one hot spin only if Heat <= 40 and cogs to spare
+    if (state.heat.currentHeat <= 40 && state.economy.cogs >= 35) {
       commands.push({ type: 'SPIN' });
     }
 

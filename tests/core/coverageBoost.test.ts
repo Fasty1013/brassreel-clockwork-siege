@@ -1,3 +1,4 @@
+import { BALANCE } from '@data/balance';
 import { describe, it, expect } from 'vitest';
 import { EventBus } from '@core/events/events';
 import { EconomyManager, EconomyState } from '@core/economy/economy';
@@ -313,13 +314,12 @@ describe('Coverage & Edge Case Verification Suite', () => {
     knight.deployedSlot = { col: 0, row: 0 };
     state.deployedUnits.push(knight);
 
-    state.freeSpinsLeft = 0;
-    state.economy.steam = 5;
+    state.spinsThisWave = BALANCE.COOL_SPINS_PER_WAVE; // past the cool spins: every spin can jam
     state.heat.currentHeat = 100; // 100 Heat = 35% jam chance
 
     let jamHappened = false;
     for (let s = 0; s < 30; s++) {
-      state.economy.steam = 5;
+      state.economy.cogs = 1000;
       RunReducer.dispatch(state, { type: 'SPIN' }, rng, bus);
       if (state.heldReels.some((h) => h === true)) {
         jamHappened = true;

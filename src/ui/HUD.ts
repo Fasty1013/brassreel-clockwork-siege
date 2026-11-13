@@ -160,6 +160,13 @@ export class HUD extends Phaser.GameObjects.Container {
     }
   }
 
+  /** Brief bounce of the cog counter so a spent payment is noticed. */
+  public pulseCogs(): void {
+    this.scene.tweens.killTweensOf(this.cogsText);
+    this.cogsText.setScale(1);
+    this.scene.tweens.add({ targets: this.cogsText, scale: 1.35, duration: 110, yoyo: true, ease: 'Quad.easeOut' });
+  }
+
   /** Hover hints for every HUD element. */
   public attachTips(tip: InfoTip): void {
     tip.zone(580, 32, 150, 40, 'Шестерни', 'Валюта забега. Даются за победу в волне и за убитых врагов. Тратятся в мастерской и в древе навыков.');

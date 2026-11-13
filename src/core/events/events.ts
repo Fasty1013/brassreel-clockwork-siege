@@ -24,7 +24,7 @@ export type CoreEventType =
   | 'run_defeat';
 
 export interface CoreEventPayloads {
-  spin_start: { freeSpinsLeft: number; heat: number };
+  spin_start: { spinsThisWave: number; cost: number; heat: number };
   reel_stopped: { reelIndex: number; symbols: [string, string, string] };
   line_hit: {
     lineIndex: number;

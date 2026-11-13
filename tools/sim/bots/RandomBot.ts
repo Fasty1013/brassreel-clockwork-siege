@@ -10,7 +10,7 @@ export class RandomBot implements BotPolicy {
     const commands: RunCommand[] = [];
 
     // Spin 1 to 3 times randomly
-    const spins = rng.loot.nextRange(1, Math.max(1, state.freeSpinsLeft));
+    const spins = rng.loot.nextRange(1, 3);
     for (let i = 0; i < spins; i++) {
       commands.push({ type: 'SPIN' });
     }

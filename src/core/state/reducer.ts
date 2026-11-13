@@ -61,14 +61,19 @@ export class RunReducer {
       case 'SPIN': {
         if (state.phase !== 'PREP') return state;
 
-        // Extra spins cost cogs (rising every paid spin of the wave) and add Heat
-        const isExtraSpin = state.freeSpinsLeft <= 0;
-        if (isExtraSpin) {
-          const cost = RunStateManager.spinCost(state);
-          if (!EconomyManager.spendCogs(state.economy, cost)) {
-            return state; // Cannot afford the spin
-          }
-          state.paidSpinsThisWave = (state.paidSpinsThisWave ?? 0) + 1;
+        // Every spin costs cogs, rising with each spin of the wave
+        const cost = RunStateManager.spinCost(state);
+        if (!EconomyManager.spendCogs(state.economy, cost)) {
+          return state; // Cannot afford the spin
+        }
+        const heats = RunStateManager.coolSpinsLeft(state) <= 0;
+        state.spinsThisWave = (state.spinsThisWave ?? 0) + 1;
+        state.lastSpinCost = cost;
+        // the previous result must never be shown again as if it were this spin's
+        state.lastSpinResult = undefined;
+
+        // Spins beyond the cool ones heat the furnace and risk a jam
+        if (heats) {
           state.heat.currentHeat = Math.min(state.heat.maxHeat, state.heat.currentHeat + BALANCE.EXTRA_SPIN_HEAT_ADD);
           eventBus?.emit('heat_changed', { currentHeat: state.heat.currentHeat, delta: BALANCE.EXTRA_SPIN_HEAT_ADD });
 
@@ -98,12 +103,10 @@ export class RunReducer {
             });
             return state;
           }
-        } else {
-          state.freeSpinsLeft--;
         }
 
         // Spin reels
-        eventBus?.emit('spin_start', { freeSpinsLeft: state.freeSpinsLeft, heat: state.heat.currentHeat });
+        eventBus?.emit('spin_start', { spinsThisWave: state.spinsThisWave, cost, heat: state.heat.currentHeat });
         const nextIndices = ReelManager.spinReels(
           state.reelStrips,
           state.reelIndices,
@@ -459,8 +462,7 @@ export class RunReducer {
             state.actNumber = 1;
           }
           state.phase = 'PREP';
-          state.freeSpinsLeft = BALANCE.FREE_SPINS_PER_WAVE + SkillManager.bonusSpins(state);
-          state.paidSpinsThisWave = 0;
+          state.spinsThisWave = 0;
           state.holdsLeft = BALANCE.BASE_HOLD_CHARGES + SkillManager.bonusHolds(state);
           state.nudgesLeft = BALANCE.BASE_NUDGE_CHARGES + SkillManager.bonusNudges(state);
           state.heldReels = [false, false, false];

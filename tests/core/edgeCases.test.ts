@@ -65,8 +65,8 @@ describe('QA Hardening: Critical Edge Cases Suite', () => {
     const rng = PrngManager.createStreams('JAM_TEST_100');
     const state = RunStateManager.createInitialState('JAM_TEST_100');
     state.heat.currentHeat = 100;
-    state.freeSpinsLeft = 0;
-    state.economy.steam = 5;
+    state.spinsThisWave = 3;
+    state.economy.cogs = 1000;
 
     const unit = UnitFactory.createUnit('unit_cog_knight', rng.loot);
     state.deployedUnits.push(unit);
@@ -80,7 +80,7 @@ describe('QA Hardening: Critical Edge Cases Suite', () => {
 
     // Spin multiple times with 100 heat until jam triggers
     for (let i = 0; i < 20 && !jamTriggered; i++) {
-      state.freeSpinsLeft = 1;
+      state.economy.cogs = 1000;
       RunReducer.dispatch(state, { type: 'SPIN' }, rng, bus);
     }
 

@@ -10,14 +10,13 @@ export class GreedyBot implements BotPolicy {
   public decidePrepActions(state: RunState, _rng: RngStreams): RunCommand[] {
     const commands: RunCommand[] = [];
 
-    // Always use all free spins
-    const freeSpins = state.freeSpinsLeft;
-    for (let i = 0; i < freeSpins; i++) {
+    // Spin every cool (no-heat) spin; the reducer refuses spins it cannot pay for
+    for (let i = 0; i < BALANCE.COOL_SPINS_PER_WAVE; i++) {
       commands.push({ type: 'SPIN' });
     }
 
     // Push 1 extra spin if it leaves a cog cushion for the shop
-    if (state.economy.cogs >= BALANCE.EXTRA_SPIN_COG_BASE + 20 && state.heat.currentHeat < 40) {
+    if (state.economy.cogs >= 40 && state.heat.currentHeat < 40) {
       commands.push({ type: 'SPIN' });
     }
 

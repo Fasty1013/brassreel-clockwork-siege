@@ -648,22 +648,64 @@ export class RunScene extends Phaser.Scene {
     this.spinButton?.setFillStyle(0x6c757d);
 
     // Dispatch spin
+    const cogsBefore = this.state.economy.cogs;
+    let jam: { heat: number; damagedUnitId?: string; lockedReelIndex: number } | null = null;
+    const onJam = (d: { heat: number; damagedUnitId?: string; lockedReelIndex: number }): void => { jam = d; };
+    this.eventBus.on('jam_triggered', onJam);
     RunReducer.dispatch(this.state, { type: 'SPIN' }, this.rng, this.eventBus);
+    this.eventBus.off('jam_triggered', onJam);
+    const paid = cogsBefore - this.state.economy.cogs;
+    if (paid > 0) {
+      // make every payment visible: under the cog counter and next to the slot price
+      this.showFloatingText(595, 100, `−${paid} шестерней`, '#ffd166');
+      this.showFloatingText(224, 250, `−${paid}`, '#ffd166');
+      this.hud.pulseCogs();
+    }
+    this.refreshHUD();
+
+    if (jam) {
+      this.showJam(jam);
+      return;
+    }
+
     const finalGrid = ReelManager.extractGrid(this.state.reelStrips, this.state.reelIndices);
 
     this.reelView.playSpinAnimation(finalGrid, this.state.heldReels, () => {
       this.isSpinning = false;
       this.refreshHUD();
 
-      if (this.state.lastSpinResult) {
-        this.reelView.highlightWinningLines(this.state.lastSpinResult);
-        if (this.state.lastSpinResult.lineHits && this.state.lastSpinResult.lineHits.length > 0) {
-          if (this.speechBubbleText) {
-            this.speechBubbleText.setText('Отлично! Сплав готов! Автоматон призван в резерв!');
-          }
+      const result = this.state.lastSpinResult;
+      if (result) {
+        this.reelView.highlightWinningLines(result);
+        if (this.speechBubbleText) {
+          this.speechBubbleText.setText(
+            result.lineHits && result.lineHits.length > 0
+              ? 'Отлично! Сплав готов! Автоматон призван в резерв!'
+              : 'Нет трёх в ряд. Крутите ещё или расставляйте роботов.'
+          );
         }
       }
 
+      this.syncUnitCards();
+    });
+  }
+
+  /**
+   * A jam: the cogs are spent but the reels did not turn. Say so loudly instead of
+   * replaying a spin that lands on the old symbols (which looked like an unpaid win).
+   */
+  private showJam(jam: { heat: number; damagedUnitId?: string; lockedReelIndex: number }): void {
+    this.reelView.clearPaylines();
+    this.cameras.main.shake(350, 0.006);
+    SoundManager.getInstance().playValveHiss();
+    this.showFloatingText(224, 330, 'ЗАКЛИНИЛО!', '#e63946');
+    if (jam.damagedUnitId) this.showFloatingText(224, 370, 'Робот на поле получил урон', '#ffb08a');
+    this.speechBubbleText?.setText(
+      `Заклинило (жар ${jam.heat}%)! Барабаны не провернулись — робота нет. Барабан ${jam.lockedReelIndex + 1} заблокирован.`
+    );
+    this.time.delayedCall(400, () => {
+      this.isSpinning = false;
+      this.refreshHUD();
       this.syncUnitCards();
     });
   }
@@ -1248,7 +1290,13 @@ export class RunScene extends Phaser.Scene {
 
     if (this.reelView) {
       const cost = RunStateManager.spinCost(this.state);
-      this.reelView.updateBadges(this.state.freeSpinsLeft, cost, cost <= this.state.economy.cogs);
+      const jamReduction = this.state.activeCores.includes('core_pressure_valve') ? 0.1 : 0;
+      this.reelView.updateBadges(
+        RunStateManager.coolSpinsLeft(this.state),
+        cost,
+        cost <= this.state.economy.cogs,
+        RunStateManager.nextJamChance(this.state, jamReduction)
+      );
     }
 
     // Update Wave Ribbon
@@ -1275,13 +1323,8 @@ export class RunScene extends Phaser.Scene {
 
     // Spin button text
     if (this.state.phase === 'PREP') {
-      if (this.state.freeSpinsLeft > 0) {
-        this.spinButtonText?.setText(`КРУТИТЬ (${this.state.freeSpinsLeft} БЕСПЛ.)`);
-        this.spinButton?.setFillStyle(0xd4a373);
-      } else {
-        this.spinButtonText?.setText(`КРУТИТЬ (${RunStateManager.spinCost(this.state)} ШЕСТЕРНЕЙ, +${BALANCE.EXTRA_SPIN_HEAT_ADD}% ЖАРА)`);
-        this.spinButton?.setFillStyle(0xe76f51);
-      }
+      this.spinButtonText?.setText(`КРУТИТЬ (${RunStateManager.spinCost(this.state)} ШЕСТЕРНЕЙ)`);
+      this.spinButton?.setFillStyle(0xd4a373);
       this.nudgeButtonText?.setText(`СДВИГ БАРАБАНА (${this.state.nudgesLeft})`);
     }
   }

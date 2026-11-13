@@ -78,9 +78,9 @@ describe('Field limit and in-run skill tree', () => {
   it('boiler, spin, hold and nudge skills apply immediately', () => {
     const { state, buy } = setup(1000);
     const hp = state.maxBoilerHp;
-    const spins = state.freeSpinsLeft;
+    const price = RunStateManager.spinCost(state);
     buy('mech_spin');
-    expect(state.freeSpinsLeft).toBe(spins + 1);
+    expect(RunStateManager.spinCost(state)).toBe(price - 1);
     buy('arm_plating');
     buy('arm_plates');
     buy('arm_boiler');
