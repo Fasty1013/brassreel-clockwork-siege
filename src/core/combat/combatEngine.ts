@@ -3,6 +3,7 @@ import { UnitInstance } from '../units/unitFactory';
 import { EnemyDefinition } from '@data/schemas/enemySchema';
 import { ENEMIES_DATA } from '@data/enemies';
 import { PRNG } from '../prng/sfc32';
+import { enemyGrowth } from '../waves/enemyGrowth';
 import {
   QuirkRuntime,
   createQuirkRuntime,
@@ -165,17 +166,21 @@ export class CombatEngine {
 
   /**
    * Spawns an enemy into the combat simulation.
+   * `enemyPower` is the wave's toughness multiplier (1 = base stats).
    */
   public static spawnEnemy(
     state: CombatSimulationState,
     enemyDefId: string,
     row: number,
-    sequence: number
+    sequence: number,
+    enemyPower = 1
   ): CombatEnemy {
     const def = ENEMIES_DATA[enemyDefId];
     if (!def) {
       throw new Error(`Enemy definition not found: ${enemyDefId}`);
     }
+    const growth = enemyGrowth(enemyPower);
+    const hp = Math.round(def.hp * growth.hp);
 
     const enemy: CombatEnemy = {
       id: `en_${sequence}_${enemyDefId}`,
@@ -184,9 +189,9 @@ export class CombatEngine {
       x: 7.8, // Right edge
       y: row + 0.5,
       row,
-      hp: def.hp,
-      maxHp: def.hp,
-      damage: def.damage,
+      hp,
+      maxHp: hp,
+      damage: Math.round(def.damage * growth.damage),
       attackSpeed: def.attackSpeed,
       attackRange: def.attackRange,
       armor: def.armor ?? 0,
@@ -289,16 +294,16 @@ export class CombatEngine {
             : enemy.attackSpeed;
           enemy.attackCooldown = 1.0 / Math.max(0.2, effectiveAttackSpeed);
         }
+        // Shooters keep closing in while they fire, so a fight can never freeze
+        // with an enemy plinking away from where no robot can reach it.
+        const gap = enemy.x - targetUnit.x - 1;
+        if (enemy.attackRange > 1 && gap > 0) {
+          const stepLen = this.enemyMoveSpeed(enemy, state, unitSlow) * BALANCE.RANGED_ADVANCE_RATIO * dt;
+          enemy.x -= Math.min(gap, stepLen);
+        }
       } else {
         // Advance leftward
-        let effectiveMoveSpeed = enemy.moveSpeed * unitSlow;
-        if (state.valveSlowRemaining > 0) {
-          effectiveMoveSpeed *= (1 - BALANCE.VALVE_SLOW_RATIO);
-        } else if (enemy.statuses.slowDuration > 0) {
-          effectiveMoveSpeed *= (1 - enemy.statuses.slowRatio);
-        }
-
-        enemy.x -= effectiveMoveSpeed * dt;
+        enemy.x -= this.enemyMoveSpeed(enemy, state, unitSlow) * dt;
 
         // Check for breach at column 0 border (x <= 0)
         if (enemy.x <= 0.1) {
@@ -329,6 +334,22 @@ export class CombatEngine {
     }
 
     return state.events;
+  }
+
+  /** Tiles per second this enemy walks right now (valve and slow effects included). */
+  private static enemyMoveSpeed(enemy: CombatEnemy, state: CombatSimulationState, unitSlow: number): number {
+    let speed = enemy.moveSpeed * unitSlow;
+    if (state.valveSlowRemaining > 0) {
+      speed *= (1 - BALANCE.VALVE_SLOW_RATIO);
+    } else if (enemy.statuses.slowDuration > 0) {
+      speed *= (1 - enemy.statuses.slowRatio);
+    }
+    return speed;
+  }
+
+  /** Damage that gets through armor: armor subtracts, but a share of every hit always lands. */
+  public static damageAfterArmor(rawDmg: number, armor: number): number {
+    return Math.max(1, Math.round(Math.max(rawDmg - armor, rawDmg * BALANCE.MIN_DAMAGE_RATIO)));
   }
 
   /**
@@ -417,18 +438,22 @@ export class CombatEngine {
     return closestEnemy;
   }
 
+  /** The nearest robot in the enemy's lane that it can reach: the front line shields the back line. */
   private static findDefenderInRange(enemy: CombatEnemy, units: CombatUnit[]): CombatUnit | null {
+    let nearest: CombatUnit | null = null;
+    let nearestDx = Infinity;
     for (const unit of units) {
       if (unit.isDead) continue;
       // In same row lane and within enemy attack range
       if (Math.abs(unit.y - enemy.y) < 0.6) {
         const dx = enemy.x - unit.x;
-        if (dx >= 0 && dx <= enemy.attackRange) {
-          return unit;
+        if (dx >= 0 && dx <= enemy.attackRange && dx < nearestDx) {
+          nearest = unit;
+          nearestDx = dx;
         }
       }
     }
-    return null;
+    return nearest;
   }
 
   private static executeUnitAttack(
@@ -461,7 +486,7 @@ export class CombatEngine {
       rawDmg *= critMult;
     }
 
-    const netDmg = Math.max(1, Math.round(rawDmg - shaped.armor));
+    const netDmg = this.damageAfterArmor(rawDmg, shaped.armor);
     hitEnemy(state, unit.id, target, netDmg);
 
     // Mod trigger effects (burn, shock, stun, lifesteal)
@@ -496,7 +521,7 @@ export class CombatEngine {
       targetId: target.id
     });
 
-    const netDmg = Math.max(1, Math.round((enemy.damage - target.armor) * incomingDamageFactor(target)));
+    const netDmg = Math.max(1, Math.round(this.damageAfterArmor(enemy.damage, target.armor) * incomingDamageFactor(target)));
 
     if (target.shield > 0) {
       if (target.shield >= netDmg) {

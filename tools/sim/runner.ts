@@ -6,6 +6,7 @@ import { BotPolicy } from './bots/BotPolicy';
 import { RandomBot } from './bots/RandomBot';
 import { GreedyBot } from './bots/GreedyBot';
 import { SmartBot } from './bots/SmartBot';
+import { HumanBot } from './bots/HumanBot';
 import { TelemetryAggregator, SimulationRunMetrics } from './telemetry';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -13,10 +14,10 @@ import * as path from 'path';
 import { MetaManager } from '../../src/core/meta/metaManager';
 import { MetaState } from '../../src/core/meta/metaSchema';
 
-function parseArgs(): { runs: number; botName: 'random' | 'greedy' | 'smart'; seed: string; output?: string; waves: number; metaLevel: 'none' | 'mid' | 'max' } {
+function parseArgs(): { runs: number; botName: 'random' | 'greedy' | 'smart' | 'human'; seed: string; output?: string; waves: number; metaLevel: 'none' | 'mid' | 'max' } {
   const args = process.argv.slice(2);
   let runs = 1000;
-  let botName: 'random' | 'greedy' | 'smart' = 'smart';
+  let botName: 'random' | 'greedy' | 'smart' | 'human' = 'smart';
   let seed = 'BRASS_SIM_SEED';
   let output: string | undefined;
   let waves = 10;
@@ -53,6 +54,8 @@ function getBot(botName: string): BotPolicy {
       return new RandomBot();
     case 'greedy':
       return new GreedyBot();
+    case 'human':
+      return new HumanBot();
     case 'smart':
     default:
       return new SmartBot();
@@ -168,7 +171,7 @@ export function runSimulationRun(
 
 export function runHeadlessBatch(
   runs: number,
-  botName: 'random' | 'greedy' | 'smart',
+  botName: 'random' | 'greedy' | 'smart' | 'human',
   masterSeed: string,
   maxWaves = 10,
   metaLevel: 'none' | 'mid' | 'max' = 'none'

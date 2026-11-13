@@ -26,6 +26,8 @@ export const WaveDefinitionSchema = z.object({
   actNumber: z.number().int().min(1).max(3),
   titleKey: z.string().min(1),
   rewardCogs: z.number().int().positive(),
+  /** how many times tougher this wave's enemies are than their base stats (1 = base) */
+  enemyPower: z.number().min(1).optional().default(1),
   spawns: z.array(WaveSpawnGroupSchema).min(1),
   isInspection: z.boolean().optional().default(false),
   inspectionChallenge: InspectionChallengeSchema.optional(),

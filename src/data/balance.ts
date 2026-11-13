@@ -69,6 +69,18 @@ export const BALANCE = {
     4: { statMult: 1.50, bonusXp: 1, bonusCogs: 10 }
   },
 
+  // Enemy growth: the player's army keeps getting stronger (more robots, levels,
+  // classes, skills), so every wave has an `enemyPower` in src/data/waves.ts —
+  // how many times tougher its enemies are than their base stats.
+  /** global difficulty dial: 1 = as tuned, 0.8 = easier, 1.2 = harder (scales the growth above ×1) */
+  ENEMY_POWER_SCALE: 1,
+  /** enemy damage grows at this share of the HP growth */
+  ENEMY_DMG_GROWTH_SHARE: 0.5,
+  /** armor never blocks more than (1 - this) of a hit, for robots and enemies alike */
+  MIN_DAMAGE_RATIO: 0.25,
+  /** shooters keep walking at this share of their speed while they fire, until they stand next to their target */
+  RANGED_ADVANCE_RATIO: 0.4,
+
   // Emergency Valve
   VALVE_SLOW_DURATION_S: 5,
   VALVE_SLOW_RATIO: 0.6,

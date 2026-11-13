@@ -54,10 +54,11 @@ export class WaveController {
     }
 
     // Spawn enemies whose time has come
+    const enemyPower = this.getCurrentWaveDef().enemyPower ?? 1;
     for (let i = this.pendingSpawns.length - 1; i >= 0; i--) {
       const spawn = this.pendingSpawns[i];
       if (combatState.elapsedSeconds >= spawn.spawnTime) {
-        CombatEngine.spawnEnemy(combatState, spawn.enemyId, spawn.row, this.spawnSequence++);
+        CombatEngine.spawnEnemy(combatState, spawn.enemyId, spawn.row, this.spawnSequence++, enemyPower);
         this.pendingSpawns.splice(i, 1);
       }
     }

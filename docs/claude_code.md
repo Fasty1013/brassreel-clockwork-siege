@@ -64,6 +64,13 @@
 5. После изменений: `npm run typecheck`, `npm test`, `npm run build` — все должны проходить.
 6. Видимые изменения проверять в игре: сервер разработки (`.claude/launch.json`) или `tools/qa/shot.ts`.
 
+## 4а. Баланс сложности
+
+- Сила врагов задаётся числом `enemyPower` у каждой волны в `src/data/waves.ts` (HP ×сила, урон растёт на `ENEMY_DMG_GROWTH_SHARE` от этого). Общий регулятор — `BALANCE.ENEMY_POWER_SCALE` (1 — как настроено, 0.8 — легче, 1.2 — сложнее).
+- Числа не выдумываются руками: их подбирает `npm run sim:calibrate` по боту `HumanBot` (сливает роботов, покупает навыки, ставит строй). После изменения роботов, навыков, бонусов слияния или состава волн калибровку надо перезапустить и перенести числа в `waves.ts`.
+- `npm run sim:balance` показывает результат. Ориентир: `HumanBot` проходит 30 волн примерно в 70% забегов, зависших боёв (столбец `stalls`) — ноль.
+- Старые боты `smart` и `greedy` не сливают роботов по новым правилам и не покупают навыки — по ним баланс мерить нельзя.
+
 ## 5. Команды
 
 ```bash
@@ -71,7 +78,9 @@ npm run dev          # сервер разработки
 npm test             # тесты
 npm run typecheck    # проверка типов
 npm run build        # сборка в dist/
-npm run sim -- --runs 300 --bot smart --output out.json   # симуляция баланса
+npm run sim -- --runs 300 --bot human --waves 30   # симуляция (боты: human, smart, greedy, random)
+npm run sim:balance                 # отчёт по волнам: смертность, прорывы, потери роботов
+npm run sim:calibrate               # подобрать enemyPower каждой волны (-- --check — только замерить)
 npx tsx tools/qa/shot.ts out.png "<js>"   # скриншот собранной игры 1920×1080
 npx tsx tools/qa/renderForge.ts <папка> 5  # листы всех фигурок и уровней
 ```

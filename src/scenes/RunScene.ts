@@ -766,7 +766,7 @@ export class RunScene extends Phaser.Scene {
       this.inspectionText.setText('★ ПРОВЕРКА ОТК: Кислотный шторм! Победить за 45 сек! ★');
       this.inspectionBanner.setVisible(true);
     } else if (this.state.waveNumber === 25) {
-      this.inspectionText.setText('★ ПРОВЕРКА ОТК: Тяжёлый конвой! Победить за 50 сек! ★');
+      this.inspectionText.setText('★ ПРОВЕРКА ОТК: Тяжёлый конвой! Победить за 60 сек! ★');
       this.inspectionBanner.setVisible(true);
     }
 

@@ -12,6 +12,8 @@
     "test:coverage": "vitest run --coverage",
     "typecheck": "tsc --noEmit",
     "sim": "tsx tools/sim/runner.ts",
+    "sim:balance": "tsx tools/sim/balanceReport.ts",
+    "sim:calibrate": "tsx tools/sim/calibrate.ts",
     "playtest": "tsx tests/e2e/playtestBrowser.ts",
     "desktop:preview": "vite preview",
     "build:exe": "powershell -Command \"& 'C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\csc.exe' /target:winexe /out:BRASSREEL.exe /r:System.Windows.Forms.dll /r:System.Drawing.dll launcher\\Launcher.cs\""
