@@ -404,11 +404,14 @@ export class RunScene extends Phaser.Scene {
     this.engageButton.setScale(2.8);
     this.engageButton.setInteractive({ useHandCursor: true });
 
-    this.engageButtonText = this.add.text(1760, 975, 'В БОЙ ▶ (Enter)', {
+    // dark tag behind the label: bare yellow text vanished against the parchment frame
+    this.engageButtonText = this.add.text(1760, 978, 'В БОЙ ▶ (Enter)', {
       fontFamily: 'monospace',
-      fontSize: '14px',
+      fontSize: '16px',
       color: '#ffd166',
-      fontStyle: 'bold'
+      fontStyle: 'bold',
+      backgroundColor: '#1a1520',
+      padding: { x: 8, y: 3 }
     }).setOrigin(0.5);
 
     this.skullBtnPulseTween = this.tweens.add({
@@ -626,9 +629,11 @@ export class RunScene extends Phaser.Scene {
   public handleSpinClick(): void {
     if (this.isSpinning || this.state.phase !== 'PREP') return;
 
-    // Check if extra spin and can't afford steam
-    if (this.state.freeSpinsLeft <= 0 && this.state.economy.steam < BALANCE.EXTRA_SPIN_STEAM_COST) {
-      this.showFloatingText(240, 500, 'Недостаточно Пара!', '#e63946');
+    // Paid spin the player cannot afford
+    const spinCost = RunStateManager.spinCost(this.state);
+    if (spinCost > this.state.economy.cogs) {
+      this.showFloatingText(240, 500, `Нужно ${spinCost} шестерней!`, '#e63946');
+      this.reelView.flashCostBadge();
       return;
     }
 
@@ -1230,11 +1235,8 @@ export class RunScene extends Phaser.Scene {
     this.hud.updateUnitsCount(this.state.deployedUnits.length, SkillManager.unitCap(this.state));
 
     if (this.reelView) {
-      this.reelView.updateBadges(
-        this.state.freeSpinsLeft,
-        this.state.freeSpinsLeft > 0,
-        BALANCE.EXTRA_SPIN_STEAM_COST
-      );
+      const cost = RunStateManager.spinCost(this.state);
+      this.reelView.updateBadges(this.state.freeSpinsLeft, cost, cost <= this.state.economy.cogs);
     }
 
     // Update Wave Ribbon
@@ -1265,7 +1267,7 @@ export class RunScene extends Phaser.Scene {
         this.spinButtonText?.setText(`КРУТИТЬ (${this.state.freeSpinsLeft} БЕСПЛ.)`);
         this.spinButton?.setFillStyle(0xd4a373);
       } else {
-        this.spinButtonText?.setText(`КРУТИТЬ (ПАР: 1, +20 HEAT)`);
+        this.spinButtonText?.setText(`КРУТИТЬ (${RunStateManager.spinCost(this.state)} ШЕСТЕРНЕЙ, +${BALANCE.EXTRA_SPIN_HEAT_ADD}% ЖАРА)`);
         this.spinButton?.setFillStyle(0xe76f51);
       }
       this.nudgeButtonText?.setText(`СДВИГ БАРАБАНА (${this.state.nudgesLeft})`);

@@ -3,6 +3,20 @@ import { UnitInstance } from '../units/unitFactory';
 import { EnemyDefinition } from '@data/schemas/enemySchema';
 import { ENEMIES_DATA } from '@data/enemies';
 import { PRNG } from '../prng/sfc32';
+import {
+  QuirkRuntime,
+  createQuirkRuntime,
+  applyBattleStart,
+  tickUnitQuirk,
+  attackSpeedMultiplier,
+  enemySlowFromUnits,
+  modifyOutgoing,
+  afterUnitHit,
+  hitEnemy,
+  incomingDamageFactor,
+  afterUnitStruck,
+  onUnitDeath
+} from './quirkEffects';
 
 export interface CombatUnit {
   id: string;
@@ -21,6 +35,8 @@ export interface CombatUnit {
   attackCooldown: number;
   shield: number;
   isDead: boolean;
+  /** runtime memory of the class ability (counters, timers, mines) */
+  quirk: QuirkRuntime;
   statuses: {
     burnDps: number;
     burnDuration: number;
@@ -97,7 +113,7 @@ export class CombatEngine {
       .filter((u) => u.deployedSlot !== undefined)
       .map((u) => {
         const slot = u.deployedSlot!;
-        return {
+        const unit: CombatUnit = {
           id: u.instanceId,
           sourceUnit: u,
           col: slot.col,
@@ -114,6 +130,7 @@ export class CombatEngine {
           attackCooldown: 1.0 / u.attackSpeed,
           shield: 0,
           isDead: false,
+          quirk: { attackCount: 0, speedStacks: 0, auraTimer: 0, minesLeft: 0, stunnedTargets: [] },
           statuses: {
             burnDps: 0,
             burnDuration: 0,
@@ -124,6 +141,9 @@ export class CombatEngine {
             slowDuration: 0
           }
         };
+        unit.quirk = createQuirkRuntime(unit);
+        applyBattleStart(unit);
+        return unit;
       });
 
     return {
@@ -219,6 +239,7 @@ export class CombatEngine {
     for (const unit of state.units) {
       if (unit.isDead) continue;
 
+      tickUnitQuirk(unit, state, dt);
       if (unit.statuses.stunDuration > 0) continue;
 
       unit.attackCooldown -= dt;
@@ -227,15 +248,17 @@ export class CombatEngine {
         const target = this.findBestEnemyTarget(unit, state.enemies);
         if (target) {
           this.executeUnitAttack(unit, target, state, rng);
+          const baseSpeed = unit.attackSpeed * attackSpeedMultiplier(unit, state);
           const effectiveAttackSpeed = unit.statuses.slowDuration > 0
-            ? unit.attackSpeed * (1 - unit.statuses.slowRatio)
-            : unit.attackSpeed;
+            ? baseSpeed * (1 - unit.statuses.slowRatio)
+            : baseSpeed;
           unit.attackCooldown = 1.0 / Math.max(0.2, effectiveAttackSpeed);
         }
       }
     }
 
     // 4. Enemies action & movement loop
+    const unitSlow = enemySlowFromUnits(state);
     for (const enemy of state.enemies) {
       if (enemy.isDead) continue;
 
@@ -268,7 +291,7 @@ export class CombatEngine {
         }
       } else {
         // Advance leftward
-        let effectiveMoveSpeed = enemy.moveSpeed;
+        let effectiveMoveSpeed = enemy.moveSpeed * unitSlow;
         if (state.valveSlowRemaining > 0) {
           effectiveMoveSpeed *= (1 - BALANCE.VALVE_SLOW_RATIO);
         } else if (enemy.statuses.slowDuration > 0) {
@@ -420,7 +443,7 @@ export class CombatEngine {
       targetId: target.id
     });
 
-    // Damage calculation: Max(1, Dmg - Armor)
+    // Damage calculation: Max(1, Dmg - Armor), shaped by the unit's class ability
     let rawDmg = unit.damage;
 
     // Check shock on target
@@ -428,34 +451,18 @@ export class CombatEngine {
       rawDmg *= (1 + target.statuses.shockBonusPct);
     }
 
-    // Check crit chance
+    const shaped = modifyOutgoing(unit, target, state, rawDmg, target.armor, rng);
+    rawDmg = shaped.rawDmg;
+
+    // Check crit chance (an execute-style ability replaces the normal crit roll)
     const critChance = unit.sourceUnit.mods.reduce((acc, m) => acc + (m.statModifiers?.critChancePct ?? 0), 0.05);
-    if (rng.next() < critChance) {
+    if (!shaped.critReplaced && rng.next() < critChance) {
       const critMult = unit.sourceUnit.mods.reduce((acc, m) => acc + (m.statModifiers?.critDamagePct ?? 0), 2.0);
       rawDmg *= critMult;
     }
 
-    const netDmg = Math.max(1, Math.round(rawDmg - target.armor));
-
-    // Apply shield absorption first
-    if (target.shield > 0) {
-      if (target.shield >= netDmg) {
-        target.shield -= netDmg;
-      } else {
-        const leftover = netDmg - target.shield;
-        target.shield = 0;
-        target.hp -= leftover;
-      }
-    } else {
-      target.hp -= netDmg;
-    }
-
-    state.events.push({
-      type: 'damage',
-      sourceId: unit.id,
-      targetId: target.id,
-      amount: netDmg
-    });
+    const netDmg = Math.max(1, Math.round(rawDmg - shaped.armor));
+    hitEnemy(state, unit.id, target, netDmg);
 
     // Mod trigger effects (burn, shock, stun, lifesteal)
     for (const mod of unit.sourceUnit.mods) {
@@ -473,56 +480,8 @@ export class CombatEngine {
       }
     }
 
-    // Quirk: recoil spring (ricochet)
-    if (unit.sourceUnit.quirkId === 'quirk_recoil_spring' && rng.next() < 0.2) {
-      const secondary = state.enemies.find((e) => !e.isDead && e.id !== target.id && Math.abs(e.x - target.x) < 2.0);
-      if (secondary) {
-        const bounceDmg = Math.max(1, Math.round(netDmg * 0.6));
-        secondary.hp -= bounceDmg;
-        state.events.push({
-          type: 'damage',
-          sourceId: unit.id,
-          targetId: secondary.id,
-          amount: bounceDmg
-        });
-        if (secondary.hp <= 0) {
-          secondary.isDead = true;
-          state.cogsEarned += secondary.def.bountyCogs ?? 1;
-        }
-      }
-    }
-
-    // Quirk: chain lightning
-    if (unit.sourceUnit.quirkId === 'quirk_electric_conduction') {
-      const secondary = state.enemies.find((e) => !e.isDead && e.id !== target.id && Math.abs(e.x - target.x) < 2.5);
-      if (secondary) {
-        const chainDmg = Math.max(1, Math.round(netDmg * 0.5));
-        secondary.hp -= chainDmg;
-        secondary.statuses.shockBonusPct = 0.2;
-        secondary.statuses.shockDuration = 3.0;
-        state.events.push({
-          type: 'damage',
-          sourceId: unit.id,
-          targetId: secondary.id,
-          amount: chainDmg
-        });
-        if (secondary.hp <= 0) {
-          secondary.isDead = true;
-          state.cogsEarned += secondary.def.bountyCogs ?? 1;
-        }
-      }
-    }
-
-    if (target.hp <= 0) {
-      target.isDead = true;
-      const bounty = target.def.bountyCogs ?? 1;
-      state.cogsEarned += bounty;
-      state.events.push({
-        type: 'death',
-        sourceId: target.id,
-        amount: bounty
-      });
-    }
+    // Class ability follow-ups: ricochet, chains, cleave, burn, stun, knockback…
+    afterUnitHit(unit, target, state, netDmg, rng);
   }
 
   private static executeEnemyAttack(
@@ -537,7 +496,7 @@ export class CombatEngine {
       targetId: target.id
     });
 
-    const netDmg = Math.max(1, Math.round(enemy.damage - target.armor));
+    const netDmg = Math.max(1, Math.round((enemy.damage - target.armor) * incomingDamageFactor(target)));
 
     if (target.shield > 0) {
       if (target.shield >= netDmg) {
@@ -558,15 +517,8 @@ export class CombatEngine {
       amount: netDmg
     });
 
-    // Quirk: damage reflection (Aegis Bastion)
-    if (target.sourceUnit.quirkId === 'quirk_damage_reflection') {
-      const reflectDmg = Math.round(netDmg * 0.3);
-      enemy.hp -= reflectDmg;
-      if (enemy.hp <= 0) {
-        enemy.isDead = true;
-        state.cogsEarned += enemy.def.bountyCogs ?? 1;
-      }
-    }
+    // Class ability: reflect part of the hit back
+    afterUnitStruck(target, enemy, state, netDmg);
 
     if (target.hp <= 0) {
       target.isDead = true;
@@ -574,19 +526,8 @@ export class CombatEngine {
         type: 'death',
         sourceId: target.id
       });
-
-      // Quirk: death explosion (Fuse Sapper)
-      if (target.sourceUnit.quirkId === 'quirk_death_explosion') {
-        for (const e of state.enemies) {
-          if (!e.isDead && Math.abs(e.x - target.x) <= 1.5 && Math.abs(e.y - target.y) <= 1.5) {
-            e.hp -= 120;
-            if (e.hp <= 0) {
-              e.isDead = true;
-              state.cogsEarned += e.def.bountyCogs ?? 1;
-            }
-          }
-        }
-      }
+      // Class ability: explode on destruction
+      onUnitDeath(target, state);
     }
   }
 }

@@ -636,7 +636,7 @@
     },
     "fortress_barricade": {
       "name": "Fortress Barricade",
-      "desc": "Generates a 250 HP barrier over nearby allies every 8 seconds."
+      "desc": "Every 8s shields itself and adjacent robots for 250."
     },
     "damage_reflection": {
       "name": "Damage Reflection",
@@ -644,19 +644,19 @@
     },
     "impact_charge": {
       "name": "Impact Charge",
-      "desc": "Stuns targeted enemy for 2.0 seconds on impact."
+      "desc": "The first hit on each new target stuns it for 2s (bosses are immune)."
     },
     "siege_cleave": {
       "name": "Siege Cleave",
-      "desc": "Attacks cleave for 40% damage in adjacent lanes."
+      "desc": "Hits splash enemies next to the target for 40% damage."
     },
     "recoil_spring": {
       "name": "Recoil Spring",
       "desc": "20% chance for projectile to ricochet for 60% damage."
     },
     "infinite_pierce": {
-      "name": "Infinite Pierce",
-      "desc": "Bolts pierce through up to 3 enemies in a lane."
+      "name": "Piercing Bolt",
+      "desc": "Shots pierce up to 2 more enemies in the same row behind the target."
     },
     "high_ground_crit": {
       "name": "High Ground Crit",
@@ -664,7 +664,7 @@
     },
     "triple_burst": {
       "name": "Triple Burst",
-      "desc": "Fires a rapid 3-shot burst every attack cycle."
+      "desc": "Every attack is a burst: 2 extra shots for 40% damage each."
     },
     "focus_acceleration": {
       "name": "Focus Acceleration",
@@ -680,7 +680,7 @@
     },
     "thermal_vulnerability": {
       "name": "Thermal Vulnerability",
-      "desc": "Debuffs target taking +25% bonus explosive damage."
+      "desc": "Ignites the target; burning enemies take +25% damage from all robots."
     },
     "concussive_knockback": {
       "name": "Concussive Knockback",
@@ -688,7 +688,7 @@
     },
     "proximity_mines": {
       "name": "Proximity Mines",
-      "desc": "Deploys 2 explosive mines dealing 150 damage on contact."
+      "desc": "Lays 2 mines each battle: an enemy that comes close takes 150 damage."
     },
     "electric_conduction": {
       "name": "Electric Conduction",
@@ -703,28 +703,60 @@
       "desc": "Every 4th hit calls a 300 damage thunderbolt stunning for 1.5s."
     },
     "kinetic_shield_aura": {
-      "name": "Kinetic Shield Aura",
-      "desc": "Shields adjacent defenders for 120 HP every 6 seconds."
+      "name": "Kinetic Shield",
+      "desc": "Every 6s shields itself and adjacent robots for 120."
     },
     "overclock_field": {
       "name": "Overclock Field",
-      "desc": "Boosts attack speed of adjacent allies by +25%."
+      "desc": "Adjacent robots attack 25% faster."
     },
     "steam_shroud": {
       "name": "Steam Shroud",
-      "desc": "Reduces incoming damage by 20% and cleaves for 30% damage."
+      "desc": "Takes 20% less damage; hits splash adjacent enemies for 30%."
     },
     "solar_beam": {
       "name": "Solar Beam",
-      "desc": "Shreds 50% enemy armor and deals +25% bonus damage."
+      "desc": "Ignores 50% of the target's armor and deals +25% damage."
     },
     "time_dilation": {
       "name": "Time Dilation",
-      "desc": "Drastically slows enemy advance by 40%."
+      "desc": "While alive, all enemies move 40% slower."
     },
     "steam_aegis": {
       "name": "Steam Aegis",
-      "desc": "Reduces incoming damage by 20% and cleaves for 30% damage."
+      "desc": "Takes 20% less damage; hits splash adjacent enemies for 30%."
+    },
+    "tower_shield": {
+      "name": "Tower Shield",
+      "desc": "Starts each battle with a shield worth 35% of max HP."
+    },
+    "battering_ram": {
+      "name": "Battering Ram",
+      "desc": "Every 3rd hit deals +40 damage and stuns the target for 1s."
+    },
+    "armor_piercer": {
+      "name": "Armor Piercer",
+      "desc": "Shots ignore 60% of the target's armor."
+    },
+    "double_shot": {
+      "name": "Double Shot",
+      "desc": "30% chance to fire a second shot for 70% damage."
+    },
+    "incendiary": {
+      "name": "Incendiary",
+      "desc": "Sets the target on fire: 20 damage per second for 3s."
+    },
+    "shrapnel": {
+      "name": "Shrapnel Charge",
+      "desc": "The blast hits enemies next to the target for 50% damage."
+    },
+    "twin_arc": {
+      "name": "Twin Arc",
+      "desc": "Lightning jumps to 2 more targets for 60% damage and shocks them."
+    },
+    "static_field": {
+      "name": "Static Field",
+      "desc": "Every 6s shields itself and adjacent robots for 60."
     }
   },
   "wave": {

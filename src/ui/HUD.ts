@@ -58,7 +58,8 @@ export class HUD extends Phaser.GameObjects.Container {
     const steamPill = scene.add.image(1140, 32, 'ui_hud_pill_steam');
     steamPill.setScale(2.5);
     this.add(steamPill);
-    this.steamText = scene.add.text(1125, 32, '3/5', {
+    // steam no longer pays for spins (cogs do) — the pill shows only furnace heat
+    this.steamText = scene.add.text(1125, 32, 'Жар', {
       fontFamily: 'monospace',
       fontSize: '15px',
       color: '#00b4d8',
@@ -66,7 +67,7 @@ export class HUD extends Phaser.GameObjects.Container {
     }).setOrigin(0.5);
     this.add(this.steamText);
 
-    this.heatText = scene.add.text(1175, 32, '0%', {
+    this.heatText = scene.add.text(1172, 32, '0%', {
       fontFamily: 'monospace',
       fontSize: '15px',
       color: '#f77f00',
@@ -139,7 +140,7 @@ export class HUD extends Phaser.GameObjects.Container {
     }
 
     this.cogsText.setText(`${data.cogs}`);
-    this.steamText.setText(`${data.steam}/${data.maxSteam}`);
+    this.steamText.setText('Жар');
     this.heatText.setText(`${data.heat}%`);
 
     if (data.heat >= 60) {
@@ -164,7 +165,7 @@ export class HUD extends Phaser.GameObjects.Container {
     tip.zone(580, 32, 150, 40, 'Шестерни', 'Валюта забега. Даются за победу в волне и за убитых врагов. Тратятся в мастерской и в древе навыков.');
     tip.zone(760, 32, 150, 40, 'Котёл', 'Прочность вашей базы. Каждый враг, дошедший до левого края, отнимает 1. Когда прочность кончится — забег проигран.');
     tip.zone(940, 32, 150, 40, 'Роботы на поле', 'Сколько роботов стоит на поле и сколько можно поставить. Лимит повышается в древе навыков, ветка «Логистика».');
-    tip.zone(1140, 32, 150, 40, 'Пар и жар', 'Слева пар: тратится на прокрутки, когда бесплатные кончились (+2 за волну). Справа жар: растёт от платных прокруток, выше 60% барабаны могут заклинить.');
+    tip.zone(1140, 32, 150, 40, 'Жар', 'Растёт от платных прокруток, остывает между волнами. Чем горячее, тем чаще выпадают джокеры и короны, но выше 60% барабаны могут заклинить.');
     tip.attach(this.skillsButton, 'Древо навыков', 'Постоянные улучшения на весь забег за шестерни: больше роботов на поле, здоровье, урон, прокрутки. Клавиша T.');
     tip.attach(this.valveButton, 'Аварийный клапан', 'Один раз за бой: замедляет всех врагов на 60% на 5 секунд. Клавиша V.');
     tip.attach(this.soundButton, 'Звук', 'Включить или выключить звук. Клавиша M.');

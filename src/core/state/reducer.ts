@@ -1,4 +1,4 @@
-import { RunState } from './RunState';
+import { RunState, RunStateManager } from './RunState';
 import { SkillManager } from '../skills/skills';
 import { RngStreams } from '../prng/prngManager';
 import { ReelManager, SlotSymbol } from '../reels/reels';
@@ -61,12 +61,14 @@ export class RunReducer {
       case 'SPIN': {
         if (state.phase !== 'PREP') return state;
 
-        // Determine if extra spin with Heat & Steam cost
+        // Extra spins cost cogs (rising every paid spin of the wave) and add Heat
         const isExtraSpin = state.freeSpinsLeft <= 0;
         if (isExtraSpin) {
-          if (!EconomyManager.spendSteam(state.economy, BALANCE.EXTRA_SPIN_STEAM_COST)) {
-            return state; // Cannot afford steam
+          const cost = RunStateManager.spinCost(state);
+          if (!EconomyManager.spendCogs(state.economy, cost)) {
+            return state; // Cannot afford the spin
           }
+          state.paidSpinsThisWave = (state.paidSpinsThisWave ?? 0) + 1;
           state.heat.currentHeat = Math.min(state.heat.maxHeat, state.heat.currentHeat + BALANCE.EXTRA_SPIN_HEAT_ADD);
           eventBus?.emit('heat_changed', { currentHeat: state.heat.currentHeat, delta: BALANCE.EXTRA_SPIN_HEAT_ADD });
 
@@ -447,6 +449,7 @@ export class RunReducer {
           }
           state.phase = 'PREP';
           state.freeSpinsLeft = BALANCE.FREE_SPINS_PER_WAVE + SkillManager.bonusSpins(state);
+          state.paidSpinsThisWave = 0;
           state.holdsLeft = BALANCE.BASE_HOLD_CHARGES + SkillManager.bonusHolds(state);
           state.nudgesLeft = BALANCE.BASE_NUDGE_CHARGES + SkillManager.bonusNudges(state);
           state.heldReels = [false, false, false];

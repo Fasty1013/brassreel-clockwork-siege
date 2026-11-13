@@ -1,3 +1,4 @@
+import { BALANCE } from '@data/balance';
 import { BotPolicy } from './BotPolicy';
 import { RunState } from '@core/state/RunState';
 import { RunCommand } from '@core/state/reducer';
@@ -45,8 +46,8 @@ export class SmartBot implements BotPolicy {
       commands.push({ type: 'SPIN' });
     }
 
-    // 3. Push Your Luck: Overdrive Spin only if Heat <= 40 and Steam >= 2
-    if (state.heat.currentHeat <= 40 && state.economy.steam >= 2) {
+    // 3. Push Your Luck: one paid spin only if Heat <= 40 and cogs to spare
+    if (state.heat.currentHeat <= 40 && state.economy.cogs >= BALANCE.EXTRA_SPIN_COG_BASE + 15) {
       commands.push({ type: 'SPIN' });
     }
 

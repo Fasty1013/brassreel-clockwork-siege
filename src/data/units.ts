@@ -49,7 +49,7 @@ export const UNITS_DATA: Record<string, UnitDefinition> = {
     attackRange: 1,
     armor: 14,
     moveSpeed: 0.8,
-    quirkId: 'quirk_iron_plating',
+    quirkId: 'quirk_tower_shield',
     evolutionBranchA: 'unit_cog_fortress_golem',
     evolutionBranchB: 'unit_cog_aegis_bastion',
     spriteKey: 'tex_cog_bulwark'
@@ -67,7 +67,7 @@ export const UNITS_DATA: Record<string, UnitDefinition> = {
     attackRange: 1,
     armor: 8,
     moveSpeed: 1.2,
-    quirkId: 'quirk_iron_plating',
+    quirkId: 'quirk_battering_ram',
     evolutionBranchA: 'unit_cog_steam_juggernaut',
     evolutionBranchB: 'unit_cog_siegebreaker',
     spriteKey: 'tex_cog_ramhead'
@@ -165,7 +165,7 @@ export const UNITS_DATA: Record<string, UnitDefinition> = {
     attackRange: 7,
     armor: 3,
     moveSpeed: 0.9,
-    quirkId: 'quirk_recoil_spring',
+    quirkId: 'quirk_armor_piercer',
     evolutionBranchA: 'unit_spring_clockwork_ballista',
     evolutionBranchB: 'unit_spring_eagle_sentinel',
     spriteKey: 'tex_spring_sharpshooter'
@@ -183,7 +183,7 @@ export const UNITS_DATA: Record<string, UnitDefinition> = {
     attackRange: 4,
     armor: 4,
     moveSpeed: 1.05,
-    quirkId: 'quirk_recoil_spring',
+    quirkId: 'quirk_double_shot',
     evolutionBranchA: 'unit_spring_volley_array',
     evolutionBranchB: 'unit_spring_chrono_marksman',
     spriteKey: 'tex_spring_repeater'
@@ -281,7 +281,7 @@ export const UNITS_DATA: Record<string, UnitDefinition> = {
     attackRange: 4,
     armor: 4,
     moveSpeed: 1.0,
-    quirkId: 'quirk_death_explosion',
+    quirkId: 'quirk_incendiary',
     evolutionBranchA: 'unit_fuse_magma_mortar',
     evolutionBranchB: 'unit_fuse_hellfire_foundry',
     spriteKey: 'tex_fuse_pyromancer'
@@ -299,7 +299,7 @@ export const UNITS_DATA: Record<string, UnitDefinition> = {
     attackRange: 4,
     armor: 5,
     moveSpeed: 0.9,
-    quirkId: 'quirk_death_explosion',
+    quirkId: 'quirk_shrapnel',
     evolutionBranchA: 'unit_fuse_blast_dynamo',
     evolutionBranchB: 'unit_fuse_doom_barricade',
     spriteKey: 'tex_fuse_demolitionist'
@@ -397,7 +397,7 @@ export const UNITS_DATA: Record<string, UnitDefinition> = {
     attackRange: 4,
     armor: 4,
     moveSpeed: 1.0,
-    quirkId: 'quirk_electric_conduction',
+    quirkId: 'quirk_twin_arc',
     evolutionBranchA: 'unit_coil_tesla_titan',
     evolutionBranchB: 'unit_coil_storm_conductor',
     spriteKey: 'tex_coil_conduit'
@@ -415,7 +415,7 @@ export const UNITS_DATA: Record<string, UnitDefinition> = {
     attackRange: 3,
     armor: 6,
     moveSpeed: 1.0,
-    quirkId: 'quirk_electric_conduction',
+    quirkId: 'quirk_static_field',
     evolutionBranchA: 'unit_coil_shield_galvanizer',
     evolutionBranchB: 'unit_coil_overload_core',
     spriteKey: 'tex_coil_dynamo'

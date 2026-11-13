@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { BALANCE } from '@data/balance';
 import { ReelSymbol, Grid3x3, SpinResult } from '@core/reels/reels';
 import { SoundManager } from '../audio/SoundManager';
 import { ParticleKit } from '../presentation/ParticleKit';
@@ -24,6 +25,7 @@ export class ReelView extends Phaser.GameObjects.Container {
   // Header badges
   private spinBadgeText: Phaser.GameObjects.Text;
   private costBadgeText: Phaser.GameObjects.Text;
+  private costCogIcon?: Phaser.GameObjects.Image;
 
   constructor(scene: Phaser.Scene, x: number, y: number) {
     super(scene, x, y);
@@ -52,9 +54,9 @@ export class ReelView extends Phaser.GameObjects.Container {
     spinsBg.setStrokeStyle(2, 0x3d3047);
     this.add(spinsBg);
     this.tipTargets.spins = spinsBg;
-    this.spinBadgeText = scene.add.text(-90, -188, '★ 3', {
+    this.spinBadgeText = scene.add.text(-90, -188, 'беспл. 3', {
       fontFamily: 'monospace',
-      fontSize: '18px',
+      fontSize: '16px',
       color: '#ffd166',
       fontStyle: 'bold'
     }).setOrigin(0.5);
@@ -81,10 +83,12 @@ export class ReelView extends Phaser.GameObjects.Container {
     this.tipTargets.book = bookBtn;
     const bookTxt = scene.add.text(92, -188, 'ВЫПЛАТЫ', {
       fontFamily: 'monospace',
-      fontSize: '11px',
+      fontSize: '15px',
       color: '#ffd166',
       fontStyle: 'bold'
     }).setOrigin(0.5);
+    // keep the label inside its 84 px plate whatever the font metrics are
+    fitText(bookTxt, 76);
     this.add(bookTxt);
 
     bookBtn.on('pointerdown', () => {
@@ -212,21 +216,41 @@ export class ReelView extends Phaser.GameObjects.Container {
     }
     tip.attach(this.leverSprite, 'Рычаг', 'Крутит барабаны (Пробел). Три одинаковых символа в ряд, столбец или по диагонали призывают робота на скамейку.');
     if (this.tipTargets.spins) tip.attach(this.tipTargets.spins, 'Бесплатные прокрутки', 'Сколько бесплатных прокруток осталось в этой волне. Восполняются каждую волну.');
-    if (this.tipTargets.cost) tip.attach(this.tipTargets.cost, 'Цена прокрутки', 'Сколько стоит следующая прокрутка. Когда бесплатные кончились, прокрутка стоит пар и добавляет жар.');
+    if (this.tipTargets.cost) tip.attach(this.tipTargets.cost, 'Цена прокрутки', `Сколько шестерней стоит следующая прокрутка. Когда бесплатные кончились, первая платная стоит ${BALANCE.EXTRA_SPIN_COG_BASE}, каждая следующая в этой волне на ${BALANCE.EXTRA_SPIN_COG_STEP} дороже. Цена сбрасывается в новой волне. Платная прокрутка добавляет ${BALANCE.EXTRA_SPIN_HEAT_ADD}% жара.`);
     if (this.tipTargets.book) tip.attach(this.tipTargets.book, 'Таблица выплат', 'Показывает, какие комбинации что призывают.');
     this.nudgeButtons.forEach((btn) => tip.attach(btn, 'Сдвиг барабана', () => `Сдвигает этот барабан на один символ вниз без прокрутки. Осталось сдвигов: ${charges().nudges}.`));
     this.holdButtons.forEach((btn) => tip.attach(btn, 'Удержание барабана', () => `Барабан не крутится при следующей прокрутке, остальные крутятся. Осталось удержаний: ${charges().holds}.`));
   }
 
-  public updateBadges(spinsLeft: number, isFree: boolean, cost: number): void {
-    this.spinBadgeText.setText(`★ ${spinsLeft}`);
-    if (isFree) {
+  /**
+   * Left plate: free spins left this wave. Centre plate: what the NEXT spin costs —
+   * "БЕСПЛ." or the cog price with a cog icon (red when the player cannot pay).
+   */
+  public updateBadges(freeSpinsLeft: number, cost: number, affordable: boolean): void {
+    this.spinBadgeText.setText(`беспл. ${freeSpinsLeft}`);
+    this.spinBadgeText.setColor(freeSpinsLeft > 0 ? '#2ec4b6' : '#7b6b8d');
+    fitText(this.spinBadgeText, 70);
+    if (cost <= 0) {
       this.costBadgeText.setText('БЕСПЛ.');
       this.costBadgeText.setColor('#2ec4b6');
+      this.costBadgeText.setX(0);
+      this.costCogIcon?.setVisible(false);
     } else {
-      this.costBadgeText.setText(`${cost} Пар`);
-      this.costBadgeText.setColor('#ffd166');
+      this.costBadgeText.setText(`${cost}`);
+      this.costBadgeText.setColor(affordable ? '#ffd166' : '#e63946');
+      this.costBadgeText.setX(-12);
+      if (!this.costCogIcon) {
+        this.costCogIcon = this.scene.add.image(0, -188, 'sym_cog').setScale(0.75);
+        this.add(this.costCogIcon);
+      }
+      this.costCogIcon.setX(-12 + this.costBadgeText.width / 2 + 16).setVisible(true);
     }
+    fitText(this.costBadgeText, 84);
+  }
+
+  /** Short red pulse on the price plate when a spin is refused for lack of cogs. */
+  public flashCostBadge(): void {
+    this.scene.tweens.add({ targets: this.costBadgeText, scale: 1.3, duration: 90, yoyo: true, repeat: 1 });
   }
 
   public setGrid(grid: Grid3x3): void {
@@ -371,4 +395,10 @@ export class ReelView extends Phaser.GameObjects.Container {
   public clearPaylines(): void {
     this.paylineGraphics.clear();
   }
+}
+
+/** Shrink a label uniformly so it never spills out of its plate. */
+function fitText(text: Phaser.GameObjects.Text, maxWidth: number): void {
+  text.setScale(1);
+  if (text.width > maxWidth) text.setScale(maxWidth / text.width);
 }

@@ -17,6 +17,8 @@ export interface RunState {
   holdsLeft: number;
   nudgesLeft: number;
   freeSpinsLeft: number;
+  /** paid spins already bought this wave — each one raises the next price */
+  paidSpinsThisWave: number;
   heldReels: [boolean, boolean, boolean];
   reelStrips: [ReelSymbol[], ReelSymbol[], ReelSymbol[]];
   reelIndices: [number, number, number];
@@ -34,6 +36,12 @@ export interface RunState {
 }
 
 export class RunStateManager {
+  /** Cogs the next spin costs: 0 while free spins remain, then BASE, BASE+STEP, … within a wave. */
+  public static spinCost(state: RunState): number {
+    if (state.freeSpinsLeft > 0) return 0;
+    return BALANCE.EXTRA_SPIN_COG_BASE + BALANCE.EXTRA_SPIN_COG_STEP * (state.paidSpinsThisWave ?? 0);
+  }
+
   public static createInitialState(seed: string): RunState {
     const strips: [ReelSymbol[], ReelSymbol[], ReelSymbol[]] = [
       BALANCE.STARTER_REEL_1.map((s) => ({ symbol: s as SlotSymbol, isGilded: false })),
@@ -51,6 +59,7 @@ export class RunStateManager {
       holdsLeft: BALANCE.BASE_HOLD_CHARGES,
       nudgesLeft: BALANCE.BASE_NUDGE_CHARGES,
       freeSpinsLeft: BALANCE.FREE_SPINS_PER_WAVE,
+      paidSpinsThisWave: 0,
       heldReels: [false, false, false],
       reelStrips: strips,
       reelIndices: [0, 0, 0],

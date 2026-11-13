@@ -24,11 +24,72 @@ export interface QuirkDefinition {
     | 'steam_shroud'
     | 'solar_beam'
     | 'time_dilation'
-    | 'scrap_scavenge';
+    | 'scrap_scavenge'
+    | 'start_shield'
+    | 'armor_pierce'
+    | 'double_shot'
+    | 'ignite';
   params: Record<string, number>;
 }
 
 export const QUIRKS_DATA: Record<string, QuirkDefinition> = {
+  // --- Tier 2 class abilities: each evolution branch gets its own ---
+  quirk_tower_shield: {
+    id: 'quirk_tower_shield',
+    nameKey: 'quirk.tower_shield.name',
+    descKey: 'quirk.tower_shield.desc',
+    effectType: 'start_shield',
+    params: { hpPct: 0.35 }
+  },
+  quirk_battering_ram: {
+    id: 'quirk_battering_ram',
+    nameKey: 'quirk.battering_ram.name',
+    descKey: 'quirk.battering_ram.desc',
+    effectType: 'thunderbolt',
+    params: { hitInterval: 3, damage: 40, stunSeconds: 1 }
+  },
+  quirk_armor_piercer: {
+    id: 'quirk_armor_piercer',
+    nameKey: 'quirk.armor_piercer.name',
+    descKey: 'quirk.armor_piercer.desc',
+    effectType: 'armor_pierce',
+    params: { pct: 0.6 }
+  },
+  quirk_double_shot: {
+    id: 'quirk_double_shot',
+    nameKey: 'quirk.double_shot.name',
+    descKey: 'quirk.double_shot.desc',
+    effectType: 'double_shot',
+    params: { chance: 0.3, damagePct: 0.7 }
+  },
+  quirk_incendiary: {
+    id: 'quirk_incendiary',
+    nameKey: 'quirk.incendiary.name',
+    descKey: 'quirk.incendiary.desc',
+    effectType: 'ignite',
+    params: { dps: 20, durationSeconds: 3 }
+  },
+  quirk_shrapnel: {
+    id: 'quirk_shrapnel',
+    nameKey: 'quirk.shrapnel.name',
+    descKey: 'quirk.shrapnel.desc',
+    effectType: 'cleave',
+    params: { cleavePct: 0.5 }
+  },
+  quirk_twin_arc: {
+    id: 'quirk_twin_arc',
+    nameKey: 'quirk.twin_arc.name',
+    descKey: 'quirk.twin_arc.desc',
+    effectType: 'chain_lightning',
+    params: { maxJumps: 2, damageRatio: 0.6 }
+  },
+  quirk_static_field: {
+    id: 'quirk_static_field',
+    nameKey: 'quirk.static_field.name',
+    descKey: 'quirk.static_field.desc',
+    effectType: 'shield_aura',
+    params: { shieldAmount: 60, intervalSeconds: 6 }
+  },
   quirk_scrap_plating: {
     id: 'quirk_scrap_plating',
     nameKey: 'quirk.scrap_plating.name',

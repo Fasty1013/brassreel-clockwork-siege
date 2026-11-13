@@ -1,3 +1,4 @@
+import { BALANCE } from '@data/balance';
 import { BotPolicy } from './BotPolicy';
 import { RunState } from '@core/state/RunState';
 import { RunCommand } from '@core/state/reducer';
@@ -15,8 +16,8 @@ export class GreedyBot implements BotPolicy {
       commands.push({ type: 'SPIN' });
     }
 
-    // Push 1 extra spin if steam is available
-    if (state.economy.steam >= 2 && state.heat.currentHeat < 40) {
+    // Push 1 extra spin if it leaves a cog cushion for the shop
+    if (state.economy.cogs >= BALANCE.EXTRA_SPIN_COG_BASE + 20 && state.heat.currentHeat < 40) {
       commands.push({ type: 'SPIN' });
     }
 

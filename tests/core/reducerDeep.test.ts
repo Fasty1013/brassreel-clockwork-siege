@@ -5,27 +5,50 @@ import { PrngManager } from '@core/prng/prngManager';
 import { UnitFactory } from '@core/units/unitFactory';
 import { EventBus } from '@core/events/events';
 import { CombatEngine } from '@core/combat/combatEngine';
+import { BALANCE } from '@data/balance';
 
 describe('Deep Reducer Transitions & Game Loop Suite', () => {
-  it('performs extra spins, consuming steam and accumulating heat', () => {
+  it('charges cogs for paid spins, raising the price every paid spin of the wave', () => {
     const rng = PrngManager.createStreams('EXTRA_SPIN_TEST');
     const state = RunStateManager.createInitialState('EXTRA_SPIN_TEST');
     const bus = new EventBus();
 
-    // Consume all 3 free spins
+    // Free spins cost nothing
+    expect(RunStateManager.spinCost(state)).toBe(0);
     RunReducer.dispatch(state, { type: 'SPIN' }, rng, bus);
     RunReducer.dispatch(state, { type: 'SPIN' }, rng, bus);
     RunReducer.dispatch(state, { type: 'SPIN' }, rng, bus);
     expect(state.freeSpinsLeft).toBe(0);
 
-    const initialSteam = state.economy.steam;
+    state.economy.cogs = 100;
     const initialHeat = state.heat.currentHeat;
+    const base = BALANCE.EXTRA_SPIN_COG_BASE;
+    const step = BALANCE.EXTRA_SPIN_COG_STEP;
 
-    // 4th Spin = Overdrive Spin (costs 1 steam, adds +20 heat)
+    // 1st paid spin: BASE cogs, +20 heat
+    expect(RunStateManager.spinCost(state)).toBe(base);
     RunReducer.dispatch(state, { type: 'SPIN' }, rng, bus);
+    expect(state.economy.cogs).toBe(100 - base);
+    expect(state.heat.currentHeat).toBe(initialHeat + BALANCE.EXTRA_SPIN_HEAT_ADD);
 
-    expect(state.economy.steam).toBe(initialSteam - 1);
-    expect(state.heat.currentHeat).toBe(initialHeat + 20);
+    // 2nd paid spin is STEP more expensive
+    expect(RunStateManager.spinCost(state)).toBe(base + step);
+    state.heat.currentHeat = 0; // keep jams out of the way
+    RunReducer.dispatch(state, { type: 'SPIN' }, rng, bus);
+    expect(state.economy.cogs).toBe(100 - base - (base + step));
+    expect(RunStateManager.spinCost(state)).toBe(base + 2 * step);
+  });
+
+  it('refuses a paid spin the player cannot afford', () => {
+    const rng = PrngManager.createStreams('POOR_SPIN');
+    const state = RunStateManager.createInitialState('POOR_SPIN');
+    state.freeSpinsLeft = 0;
+    state.economy.cogs = BALANCE.EXTRA_SPIN_COG_BASE - 1;
+    const before = [...state.reelIndices];
+    RunReducer.dispatch(state, { type: 'SPIN' }, rng);
+    expect(state.economy.cogs).toBe(BALANCE.EXTRA_SPIN_COG_BASE - 1);
+    expect(state.reelIndices).toEqual(before);
+    expect(state.paidSpinsThisWave).toBe(0);
   });
 
   it('handles hold toggle on and off', () => {

@@ -5,18 +5,20 @@ import Phaser from 'phaser';
  *
  * Every `scene.add.text(...)` goes through `installTextDefaults()`, which swaps the
  * generic families used around the codebase ('monospace', 'sans-serif', or none)
- * for UI_FONT. To switch the whole game to a bundled pixel font, add an
- * @font-face (see main.ts + loadUiFont) — nothing else has to change.
+ * for UI_FONT. The font is bundled (see main.ts + loadUiFont).
+ *
+ * Rubik replaced Pixelify Sans: the pixel font's Cyrillic is heavily stylised
+ * (Б→6, в→8, Ш→W, Д→A) and became unreadable once the canvas is scaled down.
  */
-export const UI_FONT = '"Pixelify Sans", Consolas, "Lucida Console", monospace';
+export const UI_FONT = 'Rubik, "Segoe UI", Arial, sans-serif';
 
-/** Wait for both weights (with Cyrillic glyphs) so the first frame already uses the pixel font. */
+/** Wait for both weights (with Cyrillic glyphs) so the first frame already uses the UI font. */
 export function loadUiFont(): Promise<void> {
   if (typeof document === 'undefined' || !document.fonts) return Promise.resolve();
   const sample = 'Шестерни Gears 0123';
   return Promise.all([
-    document.fonts.load(`500 20px "Pixelify Sans"`, sample),
-    document.fonts.load(`700 20px "Pixelify Sans"`, sample)
+    document.fonts.load(`500 20px Rubik`, sample),
+    document.fonts.load(`700 20px Rubik`, sample)
   ])
     .then(() => undefined)
     .catch(() => undefined);

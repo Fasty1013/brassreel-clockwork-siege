@@ -15,7 +15,9 @@ export const BALANCE = {
 
   // Slot Machine
   FREE_SPINS_PER_WAVE: 3,
-  EXTRA_SPIN_STEAM_COST: 1,
+  /** paid spins cost cogs: the first paid spin of a wave costs BASE, each next one STEP more */
+  EXTRA_SPIN_COG_BASE: 5,
+  EXTRA_SPIN_COG_STEP: 2,
   EXTRA_SPIN_HEAT_ADD: 20,
   WAVE_HEAT_COOLDOWN: 30,
   HEAT_JAM_THRESHOLD: 60,
