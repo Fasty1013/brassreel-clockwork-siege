@@ -7,16 +7,16 @@ export const GADGETS_DATA: Record<string, GadgetDefinition> = {
     nameKey: 'gadget.brass_knuckles.name',
     descKey: 'gadget.brass_knuckles.desc',
     type: 'passive',
-    cost: 18,
+    cost: 30,
     effectType: 'faction_damage_buff',
-    params: { faction: 1, damagePct: 0.15 } // 1 = Cog
+    params: { faction: 1, damagePct: 0.2 } // 1 = Cog
   },
   gadget_sharpening_stone: {
     id: 'gadget_sharpening_stone',
     nameKey: 'gadget.sharpening_stone.name',
     descKey: 'gadget.sharpening_stone.desc',
     type: 'passive',
-    cost: 18,
+    cost: 30,
     effectType: 'faction_range_buff',
     params: { faction: 2, rangeBonus: 1 } // 2 = Spring
   },
@@ -25,7 +25,7 @@ export const GADGETS_DATA: Record<string, GadgetDefinition> = {
     nameKey: 'gadget.gunpowder_flask.name',
     descKey: 'gadget.gunpowder_flask.desc',
     type: 'passive',
-    cost: 18,
+    cost: 30,
     effectType: 'faction_damage_buff',
     params: { faction: 3, damagePct: 0.25 } // 3 = Fuse
   },
@@ -34,7 +34,7 @@ export const GADGETS_DATA: Record<string, GadgetDefinition> = {
     nameKey: 'gadget.copper_coil.name',
     descKey: 'gadget.copper_coil.desc',
     type: 'passive',
-    cost: 18,
+    cost: 25,
     effectType: 'shock_duration_buff',
     params: { durationBonusSeconds: 3 }
   },
@@ -43,16 +43,16 @@ export const GADGETS_DATA: Record<string, GadgetDefinition> = {
     nameKey: 'gadget.toolkit.name',
     descKey: 'gadget.toolkit.desc',
     type: 'passive',
-    cost: 25,
+    cost: 80,
     effectType: 'expand_field_capacity',
-    params: { extraCapacity: 2 }
+    params: { extraCapacity: 1 }
   },
   gadget_oil_can: {
     id: 'gadget_oil_can',
     nameKey: 'gadget.oil_can.name',
     descKey: 'gadget.oil_can.desc',
     type: 'passive',
-    cost: 20,
+    cost: 40,
     effectType: 'global_attack_speed',
     params: { speedPct: 0.1 }
   },
@@ -61,7 +61,7 @@ export const GADGETS_DATA: Record<string, GadgetDefinition> = {
     nameKey: 'gadget.iron_plates.name',
     descKey: 'gadget.iron_plates.desc',
     type: 'passive',
-    cost: 20,
+    cost: 30,
     effectType: 'expand_boiler_hp',
     params: { hpBonus: 2 }
   },
@@ -70,7 +70,7 @@ export const GADGETS_DATA: Record<string, GadgetDefinition> = {
     nameKey: 'gadget.steam_gauge.name',
     descKey: 'gadget.steam_gauge.desc',
     type: 'passive',
-    cost: 22,
+    cost: 20,
     effectType: 'faster_cooling',
     params: { coolingBonus: 20 }
   },
@@ -79,7 +79,7 @@ export const GADGETS_DATA: Record<string, GadgetDefinition> = {
     nameKey: 'gadget.magnet_arm.name',
     descKey: 'gadget.magnet_arm.desc',
     type: 'passive',
-    cost: 15,
+    cost: 25,
     effectType: 'bonus_bounty_cogs',
     params: { extraCogs: 1 }
   },
@@ -88,25 +88,25 @@ export const GADGETS_DATA: Record<string, GadgetDefinition> = {
     nameKey: 'gadget.lucky_coin.name',
     descKey: 'gadget.lucky_coin.desc',
     type: 'passive',
-    cost: 24,
-    effectType: 'boost_wild_chance',
-    params: { bonusPct: 0.2 }
+    cost: 45,
+    effectType: 'add_wild_symbols',
+    params: { perReel: 1 }
   },
   gadget_pressure_spring: {
     id: 'gadget_pressure_spring',
     nameKey: 'gadget.pressure_spring.name',
     descKey: 'gadget.pressure_spring.desc',
     type: 'passive',
-    cost: 20,
+    cost: 30,
     effectType: 'knockback_boost',
-    params: { extraTiles: 1 }
+    params: { knockbackTiles: 0.3 }
   },
   gadget_insulated_gloves: {
     id: 'gadget_insulated_gloves',
     nameKey: 'gadget.insulated_gloves.name',
     descKey: 'gadget.insulated_gloves.desc',
     type: 'passive',
-    cost: 22,
+    cost: 20,
     effectType: 'prevent_reel_lock_on_jam',
     params: { enabled: 1 }
   },
@@ -115,16 +115,16 @@ export const GADGETS_DATA: Record<string, GadgetDefinition> = {
     nameKey: 'gadget.cog_wrench.name',
     descKey: 'gadget.cog_wrench.desc',
     type: 'passive',
-    cost: 20,
-    effectType: 'bonus_smelt_xp',
-    params: { bonusXp: 1 }
+    cost: 35,
+    effectType: 'merge_bonus_mod',
+    params: { mods: 1 }
   },
   gadget_lens_array: {
     id: 'gadget_lens_array',
     nameKey: 'gadget.lens_array.name',
     descKey: 'gadget.lens_array.desc',
     type: 'passive',
-    cost: 25,
+    cost: 40,
     effectType: 'global_crit_chance',
     params: { critChancePct: 0.15 }
   },
@@ -133,9 +133,9 @@ export const GADGETS_DATA: Record<string, GadgetDefinition> = {
     nameKey: 'gadget.reinforced_boiler.name',
     descKey: 'gadget.reinforced_boiler.desc',
     type: 'passive',
-    cost: 28,
+    cost: 35,
     effectType: 'reduce_leak_damage',
-    params: { reduction: 1 }
+    params: { freeLeaks: 1 }
   },
   gadget_steam_battery: {
     id: 'gadget_steam_battery',
@@ -151,7 +151,7 @@ export const GADGETS_DATA: Record<string, GadgetDefinition> = {
     nameKey: 'gadget.discount_coupon.name',
     descKey: 'gadget.discount_coupon.desc',
     type: 'passive',
-    cost: 20,
+    cost: 40,
     effectType: 'shop_discount',
     params: { discountPct: 0.2 }
   },
@@ -169,17 +169,17 @@ export const GADGETS_DATA: Record<string, GadgetDefinition> = {
     nameKey: 'gadget.chrono_gear.name',
     descKey: 'gadget.chrono_gear.desc',
     type: 'passive',
-    cost: 30,
-    effectType: 'boss_emergency_reset',
-    params: { enabled: 1 }
+    cost: 35,
+    effectType: 'extra_valve',
+    params: { extraValves: 1 }
   },
   gadget_scrap_magnet: {
     id: 'gadget_scrap_magnet',
     nameKey: 'gadget.scrap_magnet.name',
     descKey: 'gadget.scrap_magnet.desc',
     type: 'passive',
-    cost: 22,
-    effectType: 'upgrade_scrap_bots',
+    cost: 30,
+    effectType: 'scrap_press',
     params: { intervalSummon: 3 }
   },
 
@@ -244,8 +244,8 @@ export const GADGETS_DATA: Record<string, GadgetDefinition> = {
     descKey: 'gadget.bribe_token.desc',
     type: 'consumable',
     cost: 10,
-    effectType: 'reroll_shop_rare',
-    params: { guaranteedRarity: 2 }
+    effectType: 'reroll_shop_upgrades',
+    params: {}
   },
   gadget_sentry_kit: {
     id: 'gadget_sentry_kit',

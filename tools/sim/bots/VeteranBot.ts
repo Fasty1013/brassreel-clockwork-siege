@@ -8,6 +8,9 @@ import { SmeltManager } from '@core/smelt/smelt';
 import { UnitInstance } from '@core/units/unitFactory';
 import { UNITS_DATA } from '@data/units';
 import { BALANCE } from '@data/balance';
+import { GADGETS_DATA } from '@data/gadgets';
+import { GadgetManager } from '@core/gadgets/gadgets';
+import { EconomyManager } from '@core/economy/economy';
 
 export interface VeteranOptions {
   /** buy skill-tree nodes */
@@ -16,6 +19,8 @@ export interface VeteranOptions {
   holds: boolean;
   /** spend spare cogs on center-reel symbols once the skill list is done */
   symbols: boolean;
+  /** buy workshop gadgets */
+  gadgets: boolean;
   /** rank-by-rank buying order; the bot saves up for the next entry */
   skillOrder: string[];
 }
@@ -28,6 +33,15 @@ export const DEFAULT_SKILL_ORDER: string[] = [
   'log_command', 'ars_grease', 'log_command', 'ars_grease', 'ars_grease',
   'ars_overheat', 'arm_plates', 'ars_overheat', 'arm_plates', 'arm_plates',
   'arm_boiler', 'arm_boiler', 'mech_spin', 'mech_spin', 'mech_hold', 'mech_hold', 'mech_nudge', 'mech_nudge'
+];
+
+/** The bot's taste in permanent gadgets, best first. */
+const PASSIVE_PREFERENCE = [
+  'gadget_toolkit', 'gadget_oil_can', 'gadget_lens_array', 'gadget_reinforced_boiler',
+  'gadget_brass_knuckles', 'gadget_gunpowder_flask', 'gadget_sharpening_stone', 'gadget_iron_plates',
+  'gadget_chrono_gear', 'gadget_cog_wrench', 'gadget_discount_coupon', 'gadget_pressure_spring',
+  'gadget_magnet_arm', 'gadget_copper_coil', 'gadget_lucky_coin', 'gadget_golden_key',
+  'gadget_scrap_magnet', 'gadget_steam_battery', 'gadget_steam_gauge', 'gadget_insulated_gloves'
 ];
 
 const JACKPOT_VALUE = 4; // a level-3 legendary is worth about four fresh robots
@@ -95,10 +109,11 @@ export class VeteranBot implements BotPolicy {
   public interactive = true;
   private opts: VeteranOptions;
   private baselineCache = new Map<string, number>();
+  private rerollsThisShop = 0;
 
   constructor(name = 'VeteranBot', opts: Partial<VeteranOptions> = {}) {
     this.name = name;
-    this.opts = { skills: true, holds: true, symbols: false, skillOrder: DEFAULT_SKILL_ORDER, ...opts };
+    this.opts = { skills: true, holds: true, symbols: false, gadgets: true, skillOrder: DEFAULT_SKILL_ORDER, ...opts };
   }
 
   // ------------------------------------------------------------------ prep
@@ -161,6 +176,45 @@ export class VeteranBot implements BotPolicy {
       return SkillManager.canBuy(state, id, true) === null ? id : null;
     }
     return null;
+  }
+
+  private nextSkillCost(state: RunState): number {
+    if (!this.opts.skills) return 0;
+    const wanted: Record<string, number> = {};
+    for (const id of this.opts.skillOrder) {
+      wanted[id] = (wanted[id] ?? 0) + 1;
+      if (SkillManager.rank(state, id) < wanted[id]) return SkillManager.nextCost(state, id) ?? 0;
+    }
+    return 0;
+  }
+
+  /** Which gadget on the shelf to buy now, if any. Saves up for the next skill first. */
+  private pickGadget(state: RunState): string | null {
+    const reserve = this.nextSkillCost(state);
+    const affordable = (id: string): boolean => state.economy.cogs - GadgetManager.price(state, id) >= reserve;
+    const bossNext = (state.waveNumber + 1) % 10 === 0;
+    const wants = (id: string): boolean => {
+      const g = GADGETS_DATA[id];
+      if (g.type === 'passive') return true;
+      switch (g.effectType) {
+        case 'heal_boiler':
+          return state.boilerHp <= state.maxBoilerHp - 2;
+        case 'battle_damage_surge':
+          return bossNext && state.consumables.overcharges === 0;
+        case 'spawn_temporary_turret':
+          return bossNext && state.consumables.turrets === 0;
+        case 'stun_front_enemies':
+          return bossNext && state.consumables.grenades === 0;
+        default:
+          return false;
+      }
+    };
+    const rank = (id: string): number => {
+      const order = PASSIVE_PREFERENCE.indexOf(id);
+      return order === -1 ? PASSIVE_PREFERENCE.length : order;
+    };
+    const candidates = state.shopOffers.filter((id) => wants(id) && affordable(id)).sort((a, b) => rank(a) - rank(b));
+    return candidates[0] ?? null;
   }
 
   private skillsDone(state: RunState): boolean {
@@ -296,6 +350,22 @@ export class VeteranBot implements BotPolicy {
     const skill = this.nextSkill(state);
     if (skill) return [{ type: 'BUY_SKILL', skillId: skill }];
 
+    if (this.opts.gadgets) {
+      const gadget = this.pickGadget(state);
+      if (gadget) return [{ type: 'BUY_GADGET', gadgetId: gadget }];
+      // nothing worth buying on the shelf: restock while there are cogs to spare
+      const reroll = EconomyManager.getRerollCost(state.economy, GadgetManager.discount(state));
+      const passivesLeft = GadgetManager.pool(state, true).length > 0;
+      if (
+        passivesLeft &&
+        this.rerollsThisShop < 6 &&
+        state.economy.cogs - reroll >= this.nextSkillCost(state) + 60
+      ) {
+        this.rerollsThisShop++;
+        return [{ type: 'REROLL_SHOP' }];
+      }
+    }
+
     if (this.opts.symbols && this.skillsDone(state) && state.economy.cogs >= BALANCE.COST_ADD_SYMBOL) {
       // the workshop only sells symbols for the center reel; feed the line the army is built on
       const counts: Record<string, number> = { cog: 0, spring: 0, fuse: 0, coil: 0 };
@@ -305,6 +375,7 @@ export class VeteranBot implements BotPolicy {
       const symbol = (Object.keys(counts) as SlotSymbol[]).sort((a, b) => counts[b] - counts[a])[0];
       return [{ type: 'BUY_SYMBOL', reelIndex: 1, symbol }];
     }
+    this.rerollsThisShop = 0;
     return [{ type: 'START_NEXT_WAVE' }];
   }
 

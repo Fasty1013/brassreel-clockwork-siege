@@ -4,6 +4,7 @@ import { UnitInstance } from '../units/unitFactory';
 import { HeatState, HeatManager } from '../heat/heat';
 import { EconomyState, EconomyManager } from '../economy/economy';
 import { CombatSimulationState } from '../combat/combatEngine';
+import { ConsumableStock, GadgetManager } from '../gadgets/gadgets';
 
 export type RunPhase = 'PREP' | 'BATTLE' | 'RESULT' | 'SHOP' | 'GAME_OVER' | 'VICTORY';
 
@@ -31,6 +32,12 @@ export interface RunState {
   pendingEvolutionUnitId?: string;
   /** in-run skill tree: node id -> bought rank */
   skills: Record<string, number>;
+  /** gadget ids currently on the workshop shelf */
+  shopOffers: string[];
+  /** consumable gadgets bought and not used yet */
+  consumables: ConsumableStock;
+  /** spins in a row without a winning line (scrap press) */
+  dryStreak: number;
 }
 
 export class RunStateManager {
@@ -60,7 +67,10 @@ export class RunStateManager {
       deployedUnits: [],
       activeCores: [],
       activeGadgets: [],
-      skills: {}
+      skills: {},
+      shopOffers: [],
+      consumables: GadgetManager.createStock(),
+      dryStreak: 0
     };
   }
 }

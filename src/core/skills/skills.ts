@@ -1,6 +1,7 @@
 import { BALANCE } from '@data/balance';
 import { SkillEffect, SKILLS, SKILLS_BY_ID } from '@data/skills';
 import { EconomyManager } from '../economy/economy';
+import { GadgetManager } from '../gadgets/gadgets';
 import type { RunState } from '../state/RunState';
 import type { CombatSimulationState } from '../combat/combatEngine';
 
@@ -21,9 +22,9 @@ export class SkillManager {
     return sum;
   }
 
-  /** How many robots may stand on the field. */
+  /** How many robots may stand on the field (skill tree and the Master's Kit gadget). */
   public static unitCap(state: RunState): number {
-    return BALANCE.BASE_UNIT_CAP + this.total(state, 'unit_cap');
+    return BALANCE.BASE_UNIT_CAP + this.total(state, 'unit_cap') + GadgetManager.unitCapBonus(state);
   }
 
   public static nextCost(state: RunState, id: string): number | null {

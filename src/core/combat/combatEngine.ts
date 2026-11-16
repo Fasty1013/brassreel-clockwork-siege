@@ -3,6 +3,7 @@ import { UnitInstance } from '../units/unitFactory';
 import { EnemyDefinition } from '@data/schemas/enemySchema';
 import { ENEMIES_DATA } from '@data/enemies';
 import { PRNG } from '../prng/sfc32';
+import type { CombatGadgetMods } from '../gadgets/gadgets';
 
 export interface CombatUnit {
   id: string;
@@ -21,6 +22,8 @@ export interface CombatUnit {
   attackCooldown: number;
   shield: number;
   isDead: boolean;
+  /** temporary copy placed by the Portable Turret gadget for one battle */
+  isTurret?: boolean;
   statuses: {
     burnDps: number;
     burnDuration: number;
@@ -81,6 +84,10 @@ export interface CombatSimulationState {
   boilerHp: number;
   maxBoilerHp: number;
   valveUsed: boolean;
+  /** how many times the valve was pulled this battle */
+  valveUses: number;
+  /** effects of the gadgets owned when the battle started */
+  gadgetMods?: CombatGadgetMods;
   valveSlowRemaining: number;
   allEnemiesSpawned: boolean;
   cogsEarned: number;
@@ -136,6 +143,7 @@ export class CombatEngine {
       boilerHp,
       maxBoilerHp,
       valveUsed: false,
+      valveUses: 0,
       valveSlowRemaining: 0,
       allEnemiesSpawned: false,
       cogsEarned: 0,
@@ -194,6 +202,13 @@ export class CombatEngine {
       }
     };
 
+    // Shock Mine: the first enemies to arrive are stunned
+    const mods = state.gadgetMods;
+    if (mods && mods.stunNextSpawns > 0) {
+      mods.stunNextSpawns--;
+      enemy.statuses.stunDuration = mods.stunSeconds;
+    }
+
     state.enemies.push(enemy);
     return enemy;
   }
@@ -213,6 +228,10 @@ export class CombatEngine {
     state.tickCount++;
     state.elapsedSeconds += dt;
     state.events = [];
+
+    if (state.gadgetMods && state.gadgetMods.surgeSeconds > 0) {
+      state.gadgetMods.surgeSeconds = Math.max(0, state.gadgetMods.surgeSeconds - dt);
+    }
 
     // 1. Update Emergency Valve slow duration
     if (state.valveSlowRemaining > 0) {
@@ -299,7 +318,11 @@ export class CombatEngine {
         // Check for breach at column 0 border (x <= 0)
         if (enemy.x <= 0.1) {
           enemy.isDead = true;
-          const leakDmg = enemy.isBoss ? 3 : 1;
+          let leakDmg = enemy.isBoss ? 3 : 1;
+          if (state.gadgetMods && state.gadgetMods.freeLeaks > 0) {
+            state.gadgetMods.freeLeaks--;
+            leakDmg = 0;
+          }
           state.boilerHp = Math.max(0, state.boilerHp - leakDmg);
           state.events.push({
             type: 'breach',
@@ -341,7 +364,14 @@ export class CombatEngine {
     if (state.valveUsed) {
       return false;
     }
-    state.valveUsed = true;
+    state.valveUses++;
+    // Chrono Gear: the valve is ready again right away
+    const extra = state.gadgetMods?.extraValves ?? 0;
+    if (extra > 0 && state.gadgetMods) {
+      state.gadgetMods.extraValves--;
+    } else {
+      state.valveUsed = true;
+    }
 
     if (choice === 'slow') {
       state.valveSlowRemaining = BALANCE.VALVE_SLOW_DURATION_S;
@@ -359,6 +389,11 @@ export class CombatEngine {
       });
     }
     return true;
+  }
+
+  /** Cogs for a destroyed enemy (plus the Collector's Magnet bonus). */
+  private static bounty(state: CombatSimulationState, enemy: CombatEnemy): number {
+    return (enemy.def.bountyCogs ?? 1) + (state.gadgetMods?.extraBountyCogs ?? 0);
   }
 
   private static updateStatuses(state: CombatSimulationState, dt: number): void {
@@ -383,7 +418,7 @@ export class CombatEngine {
         e.statuses.burnDuration -= dt;
         if (e.hp <= 0) {
           e.isDead = true;
-          state.cogsEarned += e.def.bountyCogs ?? 1;
+          state.cogsEarned += this.bounty(state, e);
         }
       }
       if (e.statuses.shockDuration > 0) e.statuses.shockDuration -= dt;
@@ -452,7 +487,14 @@ export class CombatEngine {
     }
 
     // Check crit chance
-    const critChance = unit.sourceUnit.mods.reduce((acc, m) => acc + (m.statModifiers?.critChancePct ?? 0), 0.05);
+    if (state.gadgetMods && state.gadgetMods.surgeSeconds > 0) {
+      rawDmg *= state.gadgetMods.surgeMultiplier;
+    }
+
+    const critChance = unit.sourceUnit.mods.reduce(
+      (acc, m) => acc + (m.statModifiers?.critChancePct ?? 0),
+      0.05 + (state.gadgetMods?.critChanceBonus ?? 0)
+    );
     if (rng.next() < critChance) {
       const critMult = unit.sourceUnit.mods.reduce((acc, m) => acc + (m.statModifiers?.critDamagePct ?? 0), 2.0);
       rawDmg *= critMult;
@@ -487,7 +529,7 @@ export class CombatEngine {
         target.statuses.burnDuration = 3.0;
       } else if (mod.triggerEffect === 'shock' && mod.triggerParam) {
         target.statuses.shockBonusPct = mod.triggerParam;
-        target.statuses.shockDuration = 4.0;
+        target.statuses.shockDuration = 4.0 + (state.gadgetMods?.shockBonusSeconds ?? 0);
       } else if (mod.triggerEffect === 'stun' && mod.triggerParam) {
         target.statuses.stunDuration = mod.triggerParam;
       } else if (mod.statModifiers?.lifestealPct) {
@@ -510,7 +552,7 @@ export class CombatEngine {
         });
         if (secondary.hp <= 0) {
           secondary.isDead = true;
-          state.cogsEarned += secondary.def.bountyCogs ?? 1;
+          state.cogsEarned += this.bounty(state, secondary);
         }
       }
     }
@@ -522,7 +564,7 @@ export class CombatEngine {
         const chainDmg = Math.max(1, Math.round(netDmg * 0.5));
         secondary.hp -= chainDmg;
         secondary.statuses.shockBonusPct = 0.2;
-        secondary.statuses.shockDuration = 3.0;
+        secondary.statuses.shockDuration = 3.0 + (state.gadgetMods?.shockBonusSeconds ?? 0);
         state.events.push({
           type: 'damage',
           sourceId: unit.id,
@@ -531,14 +573,20 @@ export class CombatEngine {
         });
         if (secondary.hp <= 0) {
           secondary.isDead = true;
-          state.cogsEarned += secondary.def.bountyCogs ?? 1;
+          state.cogsEarned += this.bounty(state, secondary);
         }
       }
     }
 
+    // Recoil Buffer: melee hits push ordinary enemies back
+    const knockback = state.gadgetMods?.knockbackTiles ?? 0;
+    if (knockback > 0 && unit.attackRange <= 2 && !target.isBoss && target.hp > 0) {
+      target.x = Math.min(7.8, target.x + knockback);
+    }
+
     if (target.hp <= 0) {
       target.isDead = true;
-      const bounty = target.def.bountyCogs ?? 1;
+      const bounty = this.bounty(state, target);
       state.cogsEarned += bounty;
       state.events.push({
         type: 'death',
@@ -587,7 +635,7 @@ export class CombatEngine {
       enemy.hp -= reflectDmg;
       if (enemy.hp <= 0) {
         enemy.isDead = true;
-        state.cogsEarned += enemy.def.bountyCogs ?? 1;
+        state.cogsEarned += this.bounty(state, enemy);
       }
     }
 
@@ -605,7 +653,7 @@ export class CombatEngine {
             e.hp -= 120;
             if (e.hp <= 0) {
               e.isDead = true;
-              state.cogsEarned += e.def.bountyCogs ?? 1;
+              state.cogsEarned += this.bounty(state, e);
             }
           }
         }

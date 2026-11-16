@@ -50,7 +50,7 @@ export class WaveController {
    * Ticks wave spawner and updates combat simulation.
    */
   public update(combatState: CombatSimulationState, dt: number, rng: PRNG): void {
-    if (combatState.valveUsed) {
+    if (combatState.valveUses > 0) {
       this.valveWasUsed = true;
     }
 

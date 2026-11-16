@@ -52,6 +52,13 @@ export const BALANCE = {
   COST_GILD_SYMBOL: 25,
   COST_SHOP_REROLL: 5,
 
+  // Workshop gadgets
+  SHOP_GADGET_OFFERS: 3,
+  /** every passive gadget already owned makes the next one this much dearer (+50%) */
+  GADGET_PASSIVE_PRICE_STEP: 0.5,
+  /** consumables get dearer by this much per wave */
+  GADGET_CONSUMABLE_PRICE_PER_WAVE: 0.15,
+
   // Combo Multipliers for Payline Hits
   COMBO_BONUS: {
     1: { statMult: 1.0, bonusXp: 0, bonusCogs: 0 },
@@ -73,9 +80,9 @@ export const BALANCE = {
   ENEMY_SCALE_ANCHORS: [
     { wave: 1, hp: 1, damage: 1 },
     { wave: 10, hp: 12, damage: 4 },
-    { wave: 20, hp: 34, damage: 10 },
-    { wave: 21, hp: 14, damage: 5 },
-    { wave: 30, hp: 18, damage: 6 }
+    { wave: 20, hp: 36, damage: 11 },
+    { wave: 21, hp: 20, damage: 7 },
+    { wave: 30, hp: 30, damage: 10 }
   ] as ReadonlyArray<{ wave: number; hp: number; damage: number }>,
 
   // Emergency Valve

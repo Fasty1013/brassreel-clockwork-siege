@@ -20,6 +20,8 @@ import { SoundManager } from '../audio/SoundManager';
 import { MetaManager } from '@core/meta/metaManager';
 import { SmeltManager } from '@core/smelt/smelt';
 import { SkillManager } from '@core/skills/skills';
+import { GadgetManager } from '@core/gadgets/gadgets';
+import { EconomyManager } from '@core/economy/economy';
 import { SkillTreeModal } from '@ui/SkillTreeModal';
 import { InfoTip } from '@ui/InfoTip';
 import { t } from '@data/i18n';
@@ -556,31 +558,31 @@ export class RunScene extends Phaser.Scene {
     this.shopView.on('buy_symbol', (reelIndex: number, symbol: any) => {
       RunReducer.dispatch(this.state, { type: 'BUY_SYMBOL', reelIndex, symbol }, this.rng, this.eventBus);
       this.refreshHUD();
-      this.shopView.showShop(this.state.economy.cogs, Object.values(GADGETS_DATA).slice(0, 3));
+      this.openShop();
     });
 
     this.shopView.on('gild_symbol', (reelIndex: number, symbolIndex: number) => {
       RunReducer.dispatch(this.state, { type: 'GILD_SYMBOL', reelIndex, symbolIndex }, this.rng, this.eventBus);
       this.refreshHUD();
-      this.shopView.showShop(this.state.economy.cogs, Object.values(GADGETS_DATA).slice(0, 3));
+      this.openShop();
     });
 
     this.shopView.on('remove_symbol', (reelIndex: number, symbolIndex: number) => {
       RunReducer.dispatch(this.state, { type: 'REMOVE_SYMBOL', reelIndex, symbolIndex }, this.rng, this.eventBus);
       this.refreshHUD();
-      this.shopView.showShop(this.state.economy.cogs, Object.values(GADGETS_DATA).slice(0, 3));
+      this.openShop();
     });
 
     this.shopView.on('buy_gadget', (gadgetId: string) => {
       RunReducer.dispatch(this.state, { type: 'BUY_GADGET', gadgetId }, this.rng, this.eventBus);
       this.refreshHUD();
-      this.shopView.showShop(this.state.economy.cogs, Object.values(GADGETS_DATA).slice(0, 3));
+      this.openShop();
     });
 
     this.shopView.on('reroll_shop', () => {
       RunReducer.dispatch(this.state, { type: 'REROLL_SHOP' }, this.rng, this.eventBus);
       this.refreshHUD();
-      this.shopView.showShop(this.state.economy.cogs, Object.values(GADGETS_DATA).slice(3, 6));
+      this.openShop();
     });
 
     this.shopView.on('close_shop', () => {
@@ -615,6 +617,23 @@ export class RunScene extends Phaser.Scene {
         card.refreshLevel();
       }
     });
+  }
+
+  /** Portable Turret: a see-through copy of a robot that fights for one battle. */
+  private spawnTurretCards(): void {
+    const combat = this.state.combatState;
+    if (!combat) return;
+    for (const u of combat.units) {
+      if (!u.isTurret || this.unitCards.has(u.id)) continue;
+      const pos = this.gridView.getSlotWorldPos(u.col, u.row);
+      const copy = { ...u.sourceUnit, instanceId: u.id, deployedSlot: { col: u.col, row: u.row } };
+      const card = new UnitCard(this, pos.x, pos.y, copy, this.tooltip);
+      card.setDeployedMode(true);
+      card.setDraggableEnabled(false);
+      card.setAlpha(0.75);
+      this.unitCards.set(u.id, card);
+      this.showFloatingText(pos.x, pos.y - 60, 'Турель!', '#5ae0d0');
+    }
   }
 
   public deployUnit(unitId: string, col: number, row: number): void {
@@ -692,6 +711,7 @@ export class RunScene extends Phaser.Scene {
     for (const card of this.unitCards.values()) {
       card.setDraggableEnabled(false);
     }
+    this.spawnTurretCards();
 
     // Check boss or inspection
     if (this.state.waveNumber === 10) {
@@ -963,6 +983,7 @@ export class RunScene extends Phaser.Scene {
   }
 
   private handleWaveVictory(): void {
+    this.syncUnitCards(); // drops the one-battle turret copies
     this.bossBarContainer.setVisible(false);
     this.inspectionBanner.setVisible(false);
     this.gridView.setBattleMode(false);
@@ -990,7 +1011,33 @@ export class RunScene extends Phaser.Scene {
   }
 
   public openShop(): void {
-    this.shopView.showShop(this.state.economy.cogs, Object.values(GADGETS_DATA).slice(0, 3));
+    if (this.state.phase === 'RESULT') {
+      RunReducer.dispatch(this.state, { type: 'ADVANCE_TO_SHOP' }, this.rng, this.eventBus);
+    }
+    const st = this.state;
+    const discount = GadgetManager.discount(st);
+    const stock = st.consumables;
+    const pending: string[] = [];
+    if (stock.gaskets > 0) pending.push(`Запасная прокладка ×${stock.gaskets}`);
+    if (stock.spinsNextWave > 0) pending.push(`Прокрутки в следующей волне: +${stock.spinsNextWave}`);
+    if (stock.overcharges > 0) pending.push(`Инжектор нитро ×${stock.overcharges}`);
+    if (stock.turrets > 0) pending.push(`Портативная турель ×${stock.turrets}`);
+    if (stock.grenades > 0) pending.push(`Шоковая мина ×${stock.grenades}`);
+    this.shopView.showShop({
+      cogs: st.economy.cogs,
+      offers: st.shopOffers
+        .map((id) => GADGETS_DATA[id])
+        .filter(Boolean)
+        .map((def) => ({ def, price: GadgetManager.price(st, def.id) })),
+      prices: {
+        symbol: EconomyManager.getAddSymbolCost(discount),
+        gild: EconomyManager.getGildSymbolCost(discount),
+        remove: EconomyManager.getRemoveSymbolCost(st.economy, discount),
+        reroll: EconomyManager.getRerollCost(st.economy, discount)
+      },
+      owned: st.activeGadgets.map((id) => GADGETS_DATA[id]).filter(Boolean).map((g) => t(g.nameKey)),
+      pending
+    });
   }
 
   private startPrepPhase(): void {

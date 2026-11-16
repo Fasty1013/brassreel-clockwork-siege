@@ -10,9 +10,9 @@ import { WaveController } from '../waves/waveController';
 import { CoreEngine } from '../cores/coreEngine';
 import { EconomyManager } from '../economy/economy';
 import { BALANCE } from '@data/balance';
-import { GADGETS_DATA } from '@data/gadgets';
 import { CORES_DATA } from '@data/cores';
 import { EventBus } from '../events/events';
+import { GadgetManager } from '../gadgets/gadgets';
 
 export type RunCommand =
   | { type: 'SPIN' }
@@ -77,9 +77,14 @@ export class RunReducer {
             coreEngine.hasModifier('expand_heat_capacity') ? 0.1 : 0
           );
 
-          if (jamCheck.isJammed) {
+          if (jamCheck.isJammed && state.consumables.gaskets > 0) {
+            // Spare Gasket: the jam is cancelled and the spin goes on
+            state.consumables.gaskets--;
+          } else if (jamCheck.isJammed) {
             const lockedReel = jamCheck.lockedReelIndex ?? 0;
-            state.heldReels[lockedReel] = true;
+            if (!GadgetManager.owns(state, 'gadget_insulated_gloves')) {
+              state.heldReels[lockedReel] = true;
+            }
 
             // Damage random deployed unit if any
             let damagedUnitId: string | undefined;
@@ -164,6 +169,14 @@ export class RunReducer {
             unitDefId: unit.defId,
             isGilded: summon.isGilded
           });
+        }
+
+        if (evalResult.lineHits.length > 0) {
+          state.dryStreak = 0;
+        } else if (GadgetManager.scrapPressTriggers(state)) {
+          const scrap = UnitFactory.createUnit('unit_scrap_bot', rng.loot);
+          state.reserveBench.push(scrap);
+          eventBus?.emit('unit_summoned', { unitInstanceId: scrap.instanceId, unitDefId: scrap.defId, isGilded: false });
         }
 
         return state;
@@ -263,13 +276,22 @@ export class RunReducer {
         const smeltResult = SmeltManager.smelt(target, sacrifice, {
           sacrificeModIndex: command.sacrificeModIndex,
           targetModIndexToReplace: command.targetModIndexToReplace,
-          furnaceBellowsBonus: coreEngine.hasModifier('heat_smelt_bonus') && state.heat.currentHeat > 50,
-          cogWrenchBonus: state.activeGadgets.includes('gadget_cog_wrench')
+          furnaceBellowsBonus: coreEngine.hasModifier('heat_smelt_bonus') && state.heat.currentHeat > 50
         });
 
         if (!smeltResult.merged) {
           // not the same line / level: nothing happens, the UI explains why
           return state;
+        }
+
+        // Forge Wrench: every merge teaches the robot one more mod
+        if (GadgetManager.owns(state, 'gadget_cog_wrench')) {
+          const owned = new Set(target.mods.map((m) => m.id));
+          const [mod] = UnitFactory.rollMods(1, target.isGilded, rng.loot).filter((m) => !owned.has(m.id));
+          if (mod) {
+            target.mods.push(mod);
+            SmeltManager.applyLevelStats(target);
+          }
         }
 
         // Remove sacrifice from bench or deployed
@@ -314,6 +336,7 @@ export class RunReducer {
         state.phase = 'BATTLE';
         state.combatState = CombatEngine.initCombatState(state.deployedUnits, state.boilerHp, state.maxBoilerHp);
         SkillManager.applyCombatBuffs(state, state.combatState);
+        GadgetManager.applyBattleStart(state, state.combatState);
         this.waveController = new WaveController(state.waveNumber);
         this.waveController.initWaveSpawns(rng.combat);
         eventBus?.emit('wave_started', { waveNumber: state.waveNumber, actNumber: state.actNumber });
@@ -354,7 +377,10 @@ export class RunReducer {
           // Engine Core draft offering every 5 waves
           if (state.waveNumber % 5 === 0 && state.activeCores.length < 3) {
             const available = Object.keys(CORES_DATA).filter((id) => !state.activeCores.includes(id));
-            const choices = available.slice(0, 3);
+            const choices: string[] = [];
+            while (choices.length < GadgetManager.coreChoices(state) && available.length > 0) {
+              choices.push(available.splice(rng.shop.nextRange(0, available.length - 1), 1)[0]);
+            }
             if (choices.length > 0) {
               eventBus?.emit('core_draft_ready', { choices });
             }
@@ -378,12 +404,13 @@ export class RunReducer {
       case 'ADVANCE_TO_SHOP': {
         if (state.phase === 'RESULT') {
           state.phase = 'SHOP';
+          GadgetManager.rollOffers(state, rng.shop);
         }
         return state;
       }
 
       case 'BUY_SYMBOL': {
-        const cost = EconomyManager.getAddSymbolCost();
+        const cost = EconomyManager.getAddSymbolCost(GadgetManager.discount(state));
         if (EconomyManager.spendCogs(state.economy, cost) && state.reelStrips[command.reelIndex]) {
           EconomyManager.addSymbolToStrip(state.reelStrips[command.reelIndex], command.symbol, command.isGilded);
         }
@@ -391,7 +418,7 @@ export class RunReducer {
       }
 
       case 'REMOVE_SYMBOL': {
-        const cost = EconomyManager.getRemoveSymbolCost(state.economy);
+        const cost = EconomyManager.getRemoveSymbolCost(state.economy, GadgetManager.discount(state));
         if (EconomyManager.canAfford(state.economy, cost) && state.reelStrips[command.reelIndex]) {
           const removed = EconomyManager.removeSymbolFromStrip(state.reelStrips[command.reelIndex], command.symbolIndex);
           if (removed) {
@@ -403,7 +430,7 @@ export class RunReducer {
       }
 
       case 'GILD_SYMBOL': {
-        const cost = EconomyManager.getGildSymbolCost();
+        const cost = EconomyManager.getGildSymbolCost(GadgetManager.discount(state));
         if (EconomyManager.spendCogs(state.economy, cost) && state.reelStrips[command.reelIndex]) {
           EconomyManager.gildSymbolOnStrip(state.reelStrips[command.reelIndex], command.symbolIndex);
         }
@@ -411,9 +438,7 @@ export class RunReducer {
       }
 
       case 'BUY_GADGET': {
-        const gadget = GADGETS_DATA[command.gadgetId];
-        if (gadget && EconomyManager.spendCogs(state.economy, gadget.cost)) {
-          state.activeGadgets.push(command.gadgetId);
+        if (GadgetManager.buy(state, command.gadgetId, rng.shop)) {
           eventBus?.emit('gadget_bought', { gadgetId: command.gadgetId });
         }
         return state;
@@ -428,9 +453,11 @@ export class RunReducer {
       }
 
       case 'REROLL_SHOP': {
-        const cost = EconomyManager.getRerollCost(state.economy);
+        if (state.phase !== 'SHOP') return state;
+        const cost = EconomyManager.getRerollCost(state.economy, GadgetManager.discount(state));
         if (EconomyManager.spendCogs(state.economy, cost)) {
           state.economy.freeRerollAvailable = false;
+          GadgetManager.rollOffers(state, rng.shop);
         }
         return state;
       }
@@ -446,11 +473,14 @@ export class RunReducer {
             state.actNumber = 1;
           }
           state.phase = 'PREP';
-          state.freeSpinsLeft = BALANCE.FREE_SPINS_PER_WAVE + SkillManager.bonusSpins(state);
+          state.freeSpinsLeft = BALANCE.FREE_SPINS_PER_WAVE + SkillManager.bonusSpins(state) + state.consumables.spinsNextWave;
+          state.consumables.spinsNextWave = 0;
+          state.shopOffers = [];
           state.holdsLeft = BALANCE.BASE_HOLD_CHARGES + SkillManager.bonusHolds(state);
           state.nudgesLeft = BALANCE.BASE_NUDGE_CHARGES + SkillManager.bonusNudges(state);
           state.heldReels = [false, false, false];
           HeatManager.coolDownAtWaveEnd(state.heat);
+          state.heat.currentHeat = Math.max(0, state.heat.currentHeat - GadgetManager.coolingBonus(state));
           EconomyManager.addSteam(state.economy, BALANCE.STEAM_PER_WAVE);
 
           // Restore HP of surviving deployed units

@@ -496,123 +496,123 @@
   "gadget": {
     "brass_knuckles": {
       "name": "Brass Knuckles",
-      "desc": "Cog faction units deal +15% damage."
+      "desc": "Cog line robots deal +20% damage."
     },
     "sharpening_stone": {
       "name": "Precision Scope",
-      "desc": "Spring faction units gain +1 Attack Range."
+      "desc": "Spring line robots shoot 1 tile further."
     },
     "gunpowder_flask": {
       "name": "Black Powder",
-      "desc": "Fuse explosions deal +25% damage."
+      "desc": "Fuse line robots deal +25% damage."
     },
     "copper_coil": {
       "name": "Superconductor",
-      "desc": "Shock effects last 3 seconds longer."
+      "desc": "Shock from robots lasts 3 seconds longer."
     },
     "toolkit": {
       "name": "Master Toolkit",
-      "desc": "Increases battlefield unit capacity by +2."
+      "desc": "+1 robot on the field."
     },
     "oil_can": {
       "name": "Polished Gears",
-      "desc": "All units gain +10% attack speed."
+      "desc": "All robots attack 10% faster."
     },
     "iron_plates": {
       "name": "Barricade Plates",
-      "desc": "Boiler HP maximum increased by +2."
+      "desc": "+2 boiler pressure."
     },
     "steam_gauge": {
       "name": "Heavy Regulator",
-      "desc": "Wave end heat cooldown increased by +20."
+      "desc": "Heat cools down by an extra 20% between waves."
     },
     "magnet_arm": {
       "name": "Scrapper's Magnet",
-      "desc": "Defeated enemies drop +1 bonus Cog."
+      "desc": "+1 cog for every enemy destroyed."
     },
     "lucky_coin": {
       "name": "Tarnished Coin",
-      "desc": "Wild symbol weight increased by +20%."
+      "desc": "Adds a wild symbol to every reel."
     },
     "pressure_spring": {
       "name": "Recoil Buffer",
-      "desc": "Knockback distance increased by +1 tile."
+      "desc": "Melee robot hits push enemies (not bosses) back by a third of a tile."
     },
     "insulated_gloves": {
       "name": "Safety Grip",
-      "desc": "Heat jams do not lock reels."
+      "desc": "Jams no longer lock a reel."
     },
     "cog_wrench": {
       "name": "Forge Wrench",
-      "desc": "Smelt XP from different factions increased to 2."
+      "desc": "Every merge gives the robot +1 random mod."
     },
     "lens_array": {
       "name": "Prismatic Lens",
-      "desc": "All units have +15% Critical Hit Chance."
+      "desc": "+15% critical hit chance for all robots."
     },
     "reinforced_boiler": {
       "name": "Steel Rivets",
-      "desc": "Enemy breaches deal -1 less Boiler HP damage."
+      "desc": "The first breach in every battle costs no boiler pressure."
     },
     "steam_battery": {
       "name": "High-Cap Boiler",
-      "desc": "Steam capacity increased by +3."
+      "desc": "+3 steam capacity."
     },
     "discount_coupon": {
       "name": "Merchant's Mark",
-      "desc": "All shop prices reduced by 20%."
+      "desc": "All workshop prices are 20% lower."
     },
     "golden_key": {
       "name": "Master Key",
-      "desc": "Core draft offers 4 choices instead of 3."
+      "desc": "Engine core drafts offer 4 choices instead of 3."
     },
     "chrono_gear": {
       "name": "Chrono Gear",
-      "desc": "Emergency Valve resets immediately on boss waves."
+      "desc": "The emergency valve can be used twice per battle."
     },
     "scrap_magnet": {
       "name": "Scrap Compactor",
-      "desc": "Every 3rd Scrap Bot summoned spawns at Star 2 rank."
+      "desc": "Every 3rd spin without a win summons a Scrap Bot."
     },
     "spare_gasket": {
       "name": "Spare Gasket",
-      "desc": "Negates the next Mechanical Jam."
+      "desc": "Cancels the next reel jam."
     },
     "steam_flask": {
       "name": "Steam Flask",
-      "desc": "Restores +3 Steam immediately."
+      "desc": "Instantly +3 steam."
     },
     "emergency_coolant": {
       "name": "Dry Ice Canister",
-      "desc": "Reduces Heat to 0 immediately."
+      "desc": "Instantly resets heat to 0."
     },
     "reel_reroll": {
       "name": "Reel Reroll",
-      "desc": "Respins 1 chosen reel for free."
+      "desc": "+1 free spin next wave."
     },
     "overcharge_vial": {
       "name": "Nitro Injector",
-      "desc": "Units deal double damage for 8 seconds in next battle."
+      "desc": "Next battle: robots deal double damage for the first 8 seconds."
     },
     "repair_kit": {
       "name": "Boiler Patch",
-      "desc": "Restores +2 Boiler HP immediately."
+      "desc": "Instantly +2 boiler pressure (up to the maximum)."
     },
     "bribe_token": {
       "name": "Smuggler's Mark",
-      "desc": "Rerolls shop stock with guaranteed Rare gadget."
+      "desc": "Restocks the shelf with permanent upgrades only."
     },
     "sentry_kit": {
       "name": "Portable Turret",
-      "desc": "Spawns a temporary turret on field for 1 wave."
+      "desc": "Next battle: a turret copying your strongest shooter joins the field."
     },
     "shock_grenade": {
       "name": "Stun Mine",
-      "desc": "Stuns first 3 approaching enemies for 4 seconds."
+      "desc": "Next battle: the first 3 enemies are stunned for 4 seconds."
     },
     "golden_ticket": {
       "name": "Gilded Stamp",
-      "desc": "Turns 1 random symbol on Reel 2 into Gilded."
+      "desc": "Gilds a random symbol on the center reel."
     }
   },
   "boss": {

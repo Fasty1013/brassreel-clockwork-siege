@@ -14,7 +14,7 @@ import * as path from 'path';
 import { MetaManager } from '../../src/core/meta/metaManager';
 import { MetaState } from '../../src/core/meta/metaSchema';
 
-export type BotName = 'random' | 'greedy' | 'smart' | 'veteran' | 'veteran-noskills' | 'veteran-noholds' | 'veteran-symbols';
+export type BotName = 'random' | 'greedy' | 'smart' | 'veteran' | 'veteran-noskills' | 'veteran-noholds' | 'veteran-symbols' | 'veteran-nogadgets';
 
 /** A battle that is still running after this many ticks (5 minutes) is counted as stalled. */
 const MAX_BATTLE_TICKS = 6000;
@@ -67,6 +67,8 @@ function getBot(botName: string): BotPolicy {
       return new VeteranBot('VeteranBot (no skill tree)', { skills: false });
     case 'veteran-noholds':
       return new VeteranBot('VeteranBot (no holds)', { holds: false });
+    case 'veteran-nogadgets':
+      return new VeteranBot('VeteranBot (no gadgets)', { gadgets: false });
     case 'veteran-symbols':
       return new VeteranBot('VeteranBot (+symbols)', { symbols: true });
     case 'veteran':
