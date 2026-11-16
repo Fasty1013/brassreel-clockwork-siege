@@ -5,7 +5,7 @@
 
 - **Играть онлайн:** https://fasty1013.github.io/brassreel-clockwork-siege/
 - **На компьютере:** `BRASSREEL.exe` в папке проекта (нужна папка `dist` рядом)
-- **Технологии:** Phaser 3 + TypeScript + Vite, тесты на Vitest, шрифт Tiny5
+- **Технологии:** Phaser 3 + TypeScript + Vite, тесты на Vitest, шрифт Rubik
 
 ---
 

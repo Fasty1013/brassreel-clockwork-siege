@@ -538,7 +538,7 @@ export class RunScene extends Phaser.Scene {
     });
 
     this.waveResultContainer.setVisible(false);
-    this.waveResultContainer.setDepth(700);
+    this.waveResultContainer.setDepth(9000);
   }
 
   private wireEvents(): void {

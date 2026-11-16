@@ -29,7 +29,7 @@ export class ArchiveModal extends Phaser.GameObjects.Container {
       this.hide();
     }, { kind: 'plain', size: 26 });
 
-    this.setDepth(1100);
+    this.setDepth(10400);
     this.setVisible(false);
     scene.add.existing(this);
   }

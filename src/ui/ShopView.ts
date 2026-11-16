@@ -165,7 +165,7 @@ export class ShopView extends Phaser.GameObjects.Container {
     this.hover(closeBtn);
     closeBtn.on('pointerdown', () => this.emit('close_shop'));
 
-    this.setDepth(800);
+    this.setDepth(10000);
     this.setVisible(false);
     scene.add.existing(this);
   }

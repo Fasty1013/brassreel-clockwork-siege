@@ -32,7 +32,7 @@ export class Tooltip extends Phaser.GameObjects.Container {
     this.content = scene.add.container(PAD, PAD);
     this.add(this.content);
 
-    this.setDepth(1000);
+    this.setDepth(12000);
     this.setVisible(false);
     scene.add.existing(this);
   }

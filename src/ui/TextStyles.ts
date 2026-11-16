@@ -8,25 +8,28 @@ import Phaser from 'phaser';
  * for UI_FONT. To switch the whole game to a bundled pixel font, add an
  * @font-face (see main.ts + loadUiFont) — nothing else has to change.
  */
-export const UI_FONT = '"Tiny5", Consolas, "Lucida Console", monospace';
+export const UI_FONT = '"Rubik", "Segoe UI", Arial, sans-serif';
 
 /**
- * Wait for the pixel font (with Cyrillic glyphs) so the first frame already uses it.
- * Tiny5 was chosen over Pixelify Sans: its Ш and Д do not read as W and A.
+ * Wait for both weights (with Cyrillic glyphs) so the first frame already uses the font.
+ * Rubik replaced the pixel fonts: they tear apart when the game is shown smaller
+ * than 1920×1080, and Pixelify's Ш and Д read as W and A.
  */
 export function loadUiFont(): Promise<void> {
   if (typeof document === 'undefined' || !document.fonts) return Promise.resolve();
   const sample = 'Шестерни Держать Gears 0123';
-  return document.fonts
-    .load(`400 20px "Tiny5"`, sample)
+  return Promise.all([
+    document.fonts.load(`500 20px "Rubik"`, sample),
+    document.fonts.load(`700 20px "Rubik"`, sample)
+  ])
     .then(() => undefined)
     .catch(() => undefined);
 }
 
 const GENERIC = new Set(['monospace', 'sans-serif', 'serif', 'Courier', '']);
 
-/** Size multiplier for the pixel font, applied to every UI text. */
-const FONT_SCALE = 1.1;
+/** Size multiplier for the UI font, applied to every UI text. */
+const FONT_SCALE = 1;
 
 /** Smallest font size allowed anywhere in the UI. */
 export const MIN_FONT_PX = 15;
@@ -51,13 +54,13 @@ export function installTextDefaults(): void {
   proto.text = function (this: unknown, x, y, text, style = {}) {
     const family = style.fontFamily ?? '';
     const next: Phaser.Types.GameObjects.Text.TextStyle = GENERIC.has(family) ? { ...style, fontFamily: UI_FONT } : { ...style };
-    // the pixel font has a single weight; a synthetic bold smears its pixels
-    if (next.fontFamily === UI_FONT && next.fontStyle) {
-      next.fontStyle = String(next.fontStyle).replace(/bold/g, '').trim();
+    // Rubik 500 is the regular weight; 'bold' maps to the bundled 700
+    if (next.fontFamily === UI_FONT && !String(next.fontStyle ?? '').includes('bold')) {
+      next.fontStyle = `${next.fontStyle ?? ''} 500`.trim();
     }
     // readability floor: nothing smaller than MIN_FONT_PX, bold by default
     let size = parseInt(String(next.fontSize ?? '16'), 10);
-    // Tiny5 has a lower cap height than the old font: keep the same visual size
+    // one knob to tune the visual size of the whole UI font
     if (!Number.isNaN(size) && next.fontFamily === UI_FONT) size = Math.round(size * FONT_SCALE);
     if (!Number.isNaN(size)) next.fontSize = `${Math.max(MIN_FONT_PX, size)}px`;
     // a stroke closes the small counters of pixel glyphs (С→О, 5→8): thin it out,

@@ -48,7 +48,7 @@ export class SkillTreeModal extends Phaser.GameObjects.Container {
 
     button(this, 0, 420, 320, 62, 'ЗАКРЫТЬ', () => this.hide(), { kind: 'plain', size: 26 });
 
-    this.setDepth(950);
+    this.setDepth(10100);
     this.setVisible(false);
     scene.add.existing(this);
   }

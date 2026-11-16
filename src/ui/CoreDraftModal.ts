@@ -25,7 +25,7 @@ export class CoreDraftModal extends Phaser.GameObjects.Container {
     this.add(this.cardsContainer);
 
     this.setVisible(false);
-    this.setDepth(900);
+    this.setDepth(10300);
     scene.add.existing(this);
   }
 

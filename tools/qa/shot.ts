@@ -34,7 +34,8 @@ async function main(): Promise<void> {
   const browser = await puppeteer.launch({ executablePath: CHROME_PATH, headless: true, args: ['--no-sandbox'] });
   try {
     const page = await browser.newPage();
-    await page.setViewport({ width: 1920, height: 1080 });
+    // SHOT_WIDTH / SHOT_HEIGHT emulate a smaller browser window (the game scales to fit)
+    await page.setViewport({ width: Number(process.env.SHOT_WIDTH ?? 1920), height: Number(process.env.SHOT_HEIGHT ?? 1080) });
     page.on('pageerror', (e: unknown) => console.error('PAGE ERROR:', (e as Error)?.message ?? e));
     await page.goto(`http://127.0.0.1:${PORT}/`, { waitUntil: 'load' });
     await new Promise((r) => setTimeout(r, 1500));

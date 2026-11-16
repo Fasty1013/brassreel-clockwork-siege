@@ -27,7 +27,7 @@ export class EvolutionModal extends Phaser.GameObjects.Container {
     this.add(this.cardA);
     this.add(this.cardB);
 
-    this.setDepth(900);
+    this.setDepth(10300);
     this.setVisible(false);
     scene.add.existing(this);
   }

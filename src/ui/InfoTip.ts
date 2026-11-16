@@ -33,7 +33,7 @@ export class InfoTip {
 
   private constructor(scene: Phaser.Scene) {
     this.scene = scene;
-    this.box = scene.add.container(0, 0).setDepth(3000).setVisible(false);
+    this.box = scene.add.container(0, 0).setDepth(13000).setVisible(false);
     this.bg = scene.add.rectangle(0, 0, W, 80, 0x1d1824, 0.98).setOrigin(0, 0);
     this.bg.setStrokeStyle(2, 0xd4a373);
     this.title = scene.add.text(PAD, PAD - 2, '', { fontSize: '20px', color: UI.GOLD, fontStyle: 'bold', wordWrap: { width: W - PAD * 2 } });
