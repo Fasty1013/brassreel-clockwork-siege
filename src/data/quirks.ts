@@ -41,14 +41,14 @@ export const QUIRKS_DATA: Record<string, QuirkDefinition> = {
     nameKey: 'quirk.iron_plating.name',
     descKey: 'quirk.iron_plating.desc',
     effectType: 'damage_reduction',
-    params: { reductionPct: 0.15 }
+    params: { damageReductionPct: 0.15 }
   },
   quirk_fortress_barricade: {
     id: 'quirk_fortress_barricade',
     nameKey: 'quirk.fortress_barricade.name',
     descKey: 'quirk.fortress_barricade.desc',
     effectType: 'shield_aura',
-    params: { shieldAmount: 250, intervalSeconds: 8 }
+    params: { shieldPctOfHp: 0.25, intervalSeconds: 8, radiusTiles: 1.5 }
   },
   quirk_damage_reflection: {
     id: 'quirk_damage_reflection',
@@ -62,7 +62,7 @@ export const QUIRKS_DATA: Record<string, QuirkDefinition> = {
     nameKey: 'quirk.impact_charge.name',
     descKey: 'quirk.impact_charge.desc',
     effectType: 'stun_charge',
-    params: { stunSeconds: 2.0 }
+    params: { everyNthHit: 3, stunSeconds: 1.5, bossStunSeconds: 0.5 }
   },
   quirk_siege_cleave: {
     id: 'quirk_siege_cleave',
@@ -90,14 +90,14 @@ export const QUIRKS_DATA: Record<string, QuirkDefinition> = {
     nameKey: 'quirk.high_ground_crit.name',
     descKey: 'quirk.high_ground_crit.desc',
     effectType: 'crit_execute',
-    params: { thresholdPct: 0.7, critDmgPct: 2.5 }
+    params: { thresholdPct: 0.7, damageMult: 1.75 }
   },
   quirk_triple_burst: {
     id: 'quirk_triple_burst',
     nameKey: 'quirk.triple_burst.name',
     descKey: 'quirk.triple_burst.desc',
     effectType: 'burst_fire',
-    params: { boltCount: 3, delayBetweenMs: 150 }
+    params: { extraBolts: 2, damagePct: 0.4 }
   },
   quirk_focus_acceleration: {
     id: 'quirk_focus_acceleration',
@@ -111,35 +111,35 @@ export const QUIRKS_DATA: Record<string, QuirkDefinition> = {
     nameKey: 'quirk.death_explosion.name',
     descKey: 'quirk.death_explosion.desc',
     effectType: 'death_explosion',
-    params: { blastDamage: 120, radiusTiles: 1.5 }
+    params: { damageMult: 3, radiusTiles: 1.5 }
   },
   quirk_molten_pool: {
     id: 'quirk_molten_pool',
     nameKey: 'quirk.molten_pool.name',
     descKey: 'quirk.molten_pool.desc',
     effectType: 'molten_pool',
-    params: { dps: 35, durationSeconds: 4 }
+    params: { burnPctOfDamage: 0.4, durationSeconds: 4, radiusTiles: 1 }
   },
   quirk_thermal_vulnerability: {
     id: 'quirk_thermal_vulnerability',
     nameKey: 'quirk.thermal_vulnerability.name',
     descKey: 'quirk.thermal_vulnerability.desc',
     effectType: 'thermal_vuln',
-    params: { bonusDamagePct: 0.25 }
+    params: { bonusDamagePct: 0.25, durationSeconds: 4 }
   },
   quirk_concussive_knockback: {
     id: 'quirk_concussive_knockback',
     nameKey: 'quirk.concussive_knockback.name',
     descKey: 'quirk.concussive_knockback.desc',
     effectType: 'knockback',
-    params: { tiles: 1 }
+    params: { tiles: 0.5 }
   },
   quirk_proximity_mines: {
     id: 'quirk_proximity_mines',
     nameKey: 'quirk.proximity_mines.name',
     descKey: 'quirk.proximity_mines.desc',
     effectType: 'proximity_mines',
-    params: { mineCount: 2, damage: 150 }
+    params: { rangeTiles: 1.5, damageMult: 2 }
   },
   quirk_electric_conduction: {
     id: 'quirk_electric_conduction',
@@ -160,28 +160,28 @@ export const QUIRKS_DATA: Record<string, QuirkDefinition> = {
     nameKey: 'quirk.thunderbolt_strike.name',
     descKey: 'quirk.thunderbolt_strike.desc',
     effectType: 'thunderbolt',
-    params: { hitInterval: 4, damage: 300, stunSeconds: 1.5 }
+    params: { hitInterval: 4, damageMult: 4, stunSeconds: 1.5, bossStunSeconds: 0.5 }
   },
   quirk_kinetic_shield_aura: {
     id: 'quirk_kinetic_shield_aura',
     nameKey: 'quirk.kinetic_shield_aura.name',
     descKey: 'quirk.kinetic_shield_aura.desc',
     effectType: 'shield_aura',
-    params: { shieldAmount: 120, intervalSeconds: 6 }
+    params: { shieldPctOfHp: 0.2, intervalSeconds: 6, radiusTiles: 1.5 }
   },
   quirk_overclock_field: {
     id: 'quirk_overclock_field',
     nameKey: 'quirk.overclock_field.name',
     descKey: 'quirk.overclock_field.desc',
     effectType: 'speed_aura',
-    params: { speedBuffPct: 0.25 }
+    params: { speedBuffPct: 0.25, radiusTiles: 1.5 }
   },
   quirk_steam_aegis: {
     id: 'quirk_steam_aegis',
     nameKey: 'quirk.steam_aegis.name',
     descKey: 'quirk.steam_aegis.desc',
     effectType: 'steam_shroud',
-    params: { damageDebuffPct: 0.2, cleavePct: 0.3 }
+    params: { damageReductionPct: 0.2, reflectPct: 0.2 }
   },
   quirk_solar_beam: {
     id: 'quirk_solar_beam',

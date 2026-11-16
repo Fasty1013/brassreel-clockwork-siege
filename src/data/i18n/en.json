@@ -39,128 +39,128 @@
       "desc": "Fragile clockwork worker. Ideal fodder for the Smelt crucible."
     },
     "cog_knight": {
-      "name": "Cog Knight",
+      "name": "Guard Bot",
       "desc": "Armored melee defender with reinforced iron chassis."
     },
     "cog_bulwark": {
-      "name": "Bulwark",
+      "name": "Bastion Bot",
       "desc": "Heavily plated tank absorbing massive front-line punishment."
     },
     "cog_ramhead": {
-      "name": "Ramhead",
+      "name": "Ram Bot",
       "desc": "Aggressive bruiser charging into enemy vanguards."
     },
     "cog_fortress_golem": {
-      "name": "Fortress Golem",
-      "desc": "Colossal defense engine generating impenetrable barriers."
+      "name": "Fortress Mech",
+      "desc": "A colossal defence machine that shields its neighbours."
     },
     "cog_aegis_bastion": {
-      "name": "Aegis Bastion",
+      "name": "Aegis Mech",
       "desc": "Reflects incoming physical damage back to attackers."
     },
     "cog_steam_juggernaut": {
-      "name": "Steam Juggernaut",
-      "desc": "Heavy steam-powered brawler stunning enemy formations."
+      "name": "Jugger Mech",
+      "desc": "Heavy steam brawler; every third hit stuns."
     },
     "cog_siegebreaker": {
-      "name": "Siegebreaker",
+      "name": "Siege Mech",
       "desc": "Cleaves through entire columns with massive hydraulic hammer."
     },
     "spring_archer": {
-      "name": "Spring Archer",
+      "name": "Arrow Bot",
       "desc": "Rapid marksman firing high-tension copper arrows."
     },
     "spring_sharpshooter": {
-      "name": "Sharpshooter",
+      "name": "Sniper Bot",
       "desc": "Long-range sniper delivering deadly targeted shots."
     },
     "spring_repeater": {
-      "name": "Repeater",
+      "name": "Rapid Bot",
       "desc": "Fires high-velocity bursts at rapid rates."
     },
     "spring_clockwork_ballista": {
-      "name": "Clockwork Ballista",
+      "name": "Ballista Mech",
       "desc": "Siege ballista piercing multiple enemies in a row."
     },
     "spring_eagle_sentinel": {
-      "name": "Eagle Sentinel",
+      "name": "Eagle Mech",
       "desc": "Executes targets with devastating critical strikes."
     },
     "spring_volley_array": {
-      "name": "Volley Array",
-      "desc": "Unleashes torrential 3-arrow volleys."
+      "name": "Volley Mech",
+      "desc": "Every shot comes with two extra bolts."
     },
     "spring_chrono_marksman": {
-      "name": "Chrono Marksman",
-      "desc": "Attacks accelerate with each consecutive hit."
+      "name": "Chrono Mech",
+      "desc": "The longer it fires at one target, the faster it shoots."
     },
     "fuse_sapper": {
-      "name": "Fuse Sapper",
+      "name": "Fuse Bot",
       "desc": "Lobs volatile explosive canisters into enemy clusters."
     },
     "fuse_pyromancer": {
-      "name": "Pyromancer",
-      "desc": "Coats enemies in persistent burning molten slag."
+      "name": "Flame Bot",
+      "desc": "Throws fire capsules and goes out with a bang."
     },
     "fuse_demolitionist": {
-      "name": "Demolitionist",
-      "desc": "Concussive explosives knocking enemies backward."
+      "name": "Blast Bot",
+      "desc": "Heavy charges; explodes when destroyed."
     },
     "fuse_magma_mortar": {
-      "name": "Magma Mortar",
+      "name": "Mortar Mech",
       "desc": "Leaves persistent burning pools across target zones."
     },
     "fuse_hellfire_foundry": {
-      "name": "Hellfire Foundry",
+      "name": "Forge Mech",
       "desc": "Amplifies damage against burning targets."
     },
     "fuse_blast_dynamo": {
-      "name": "Blast Dynamo",
+      "name": "Boom Mech",
       "desc": "Tremendous shockwaves scattering approaching hordes."
     },
     "fuse_doom_barricade": {
-      "name": "Doom Barricade",
-      "desc": "Deploys explosive proximity landmines."
+      "name": "Barrier Mech",
+      "desc": "A wall of charges that hits twice as hard at point-blank range."
     },
     "coil_sparker": {
-      "name": "Coil Sparker",
+      "name": "Spark Bot",
       "desc": "Channels galvanic energy that arcs between enemies."
     },
     "coil_conduit": {
-      "name": "Conduit",
+      "name": "Wire Bot",
       "desc": "Master of chain reactions and electrical conduction."
     },
     "coil_dynamo": {
-      "name": "Dynamo",
-      "desc": "Support caster granting shields and overcharge energy."
+      "name": "Dynamo Bot",
+      "desc": "Support electrician: lightning jumps to a nearby enemy."
     },
     "coil_tesla_titan": {
-      "name": "Tesla Titan",
+      "name": "Tesla Mech",
       "desc": "Arcs continuous high-voltage lightning through 5 targets."
     },
     "coil_storm_conductor": {
-      "name": "Storm Conductor",
-      "desc": "Calls down devastating thunderbolts from the ceiling."
+      "name": "Storm Mech",
+      "desc": "Every fourth hit calls down a thunderbolt."
     },
     "coil_shield_galvanizer": {
-      "name": "Shield Galvanizer",
-      "desc": "Generates pulsating kinetic shields for nearby allies."
+      "name": "Shield Mech",
+      "desc": "Shields itself and its neighbours every few seconds."
     },
     "coil_overload_core": {
-      "name": "Overload Core",
-      "desc": "Supercharges attack speeds of all adjacent defenders."
+      "name": "Overload Mech",
+      "desc": "Speeds up the attacks of neighbouring robots."
     },
     "steam_leviathan": {
-      "name": "Steam Leviathan",
-      "desc": "Legendary colossal dreadnought cleaving wide swathes."
+      "name": "Leviathan Mech",
+      "desc": "Legendary dreadnought: soaks hits and returns part of the damage."
     },
     "solarion_sun_forge": {
-      "name": "Solarion Sun-Forge",
+      "name": "Solarion Mech",
       "desc": "Focuses a concentrated continuous beam melting enemy armor."
     },
     "chrono_warden": {
-      "name": "Chrono Warden",
-      "desc": "Warps battlefield temporal flow, drastically slowing all foes."
+      "name": "Chrono Warden Mech",
+      "desc": "Bends time on the field: every enemy walks slower."
     }
   },
   "enemy": {
@@ -628,87 +628,87 @@
   "quirk": {
     "scrap_plating": {
       "name": "Scrap Plating",
-      "desc": "20% chance to scavenge 1 bonus Cog on hit."
+      "desc": "20% chance to gain +1 cog on hit."
     },
     "iron_plating": {
       "name": "Iron Plating",
-      "desc": "Reduces all incoming physical damage by 15%."
+      "desc": "Takes 15% less damage."
     },
     "fortress_barricade": {
       "name": "Fortress Barricade",
-      "desc": "Generates a 250 HP barrier over nearby allies every 8 seconds."
+      "desc": "Every 8 s shields itself and neighbours for 25% of its health."
     },
     "damage_reflection": {
       "name": "Damage Reflection",
-      "desc": "Reflects 30% of incoming damage back to the attacker."
+      "desc": "Returns 30% of damage taken to the attacker."
     },
     "impact_charge": {
       "name": "Impact Charge",
-      "desc": "Stuns targeted enemy for 2.0 seconds on impact."
+      "desc": "Every 3rd hit stuns the target for 1.5 s (bosses 0.5 s)."
     },
     "siege_cleave": {
       "name": "Siege Cleave",
-      "desc": "Attacks cleave for 40% damage in adjacent lanes."
+      "desc": "Hits also strike enemies in adjacent lanes for 40% damage."
     },
     "recoil_spring": {
       "name": "Recoil Spring",
-      "desc": "20% chance for projectile to ricochet for 60% damage."
+      "desc": "20% chance to ricochet into a second enemy for 60% damage."
     },
     "infinite_pierce": {
-      "name": "Infinite Pierce",
-      "desc": "Bolts pierce through up to 3 enemies in a lane."
+      "name": "Piercing Bolt",
+      "desc": "Shots pierce up to 3 enemies in the lane."
     },
     "high_ground_crit": {
-      "name": "High Ground Crit",
-      "desc": "Deals 250% critical damage when enemy is above 70% HP."
+      "name": "High Ground",
+      "desc": "×1.75 damage to enemies above 70% health."
     },
     "triple_burst": {
       "name": "Triple Burst",
-      "desc": "Fires a rapid 3-shot burst every attack cycle."
+      "desc": "Every shot adds 2 bolts at random enemies for 40% damage each."
     },
     "focus_acceleration": {
       "name": "Focus Acceleration",
-      "desc": "Gains +10% attack speed per hit (stacks up to 10x)."
+      "desc": "+10% attack speed per hit on the same target (up to +100%)."
     },
     "death_explosion": {
-      "name": "Death Explosion",
-      "desc": "Detonates on death dealing 120 AoE damage in a 1.5 tile radius."
+      "name": "Death Detonation",
+      "desc": "Explodes on death for triple its damage within 1.5 tiles."
     },
     "molten_pool": {
       "name": "Molten Pool",
-      "desc": "Leaves a burning pool dealing 35 DPS for 4 seconds."
+      "desc": "Sets the target and enemies around it on fire: 40% damage per second for 4 s."
     },
     "thermal_vulnerability": {
       "name": "Thermal Vulnerability",
-      "desc": "Debuffs target taking +25% bonus explosive damage."
+      "desc": "The target takes 25% more damage from robots for 4 s."
     },
     "concussive_knockback": {
-      "name": "Concussive Knockback",
-      "desc": "Blasts target backward by 1 tile."
+      "name": "Concussive Blast",
+      "desc": "Knocks enemies (not bosses) back half a tile."
     },
     "proximity_mines": {
-      "name": "Proximity Mines",
-      "desc": "Deploys 2 explosive mines dealing 150 damage on contact."
+      "name": "Point-Blank Blast",
+      "desc": "Double damage to enemies closer than 1.5 tiles."
     },
     "electric_conduction": {
-      "name": "Electric Conduction",
-      "desc": "Shock arcs to 1 additional target for 50% damage."
+      "name": "Conduction",
+      "desc": "Lightning jumps to 1 nearby enemy for 50% damage and shock."
     },
     "five_fold_chain": {
       "name": "Five-Fold Chain",
-      "desc": "Chain lightning arcs up to 4 times for 75% damage."
+      "desc": "Lightning jumps to 4 more enemies for 75% damage and shock."
     },
     "thunderbolt_strike": {
-      "name": "Thunderbolt Strike",
-      "desc": "Every 4th hit calls a 300 damage thunderbolt stunning for 1.5s."
+      "name": "Thunderbolt",
+      "desc": "Every 4th hit is a bolt: ×4 damage and a 1.5 s stun (bosses 0.5 s)."
     },
     "kinetic_shield_aura": {
       "name": "Kinetic Shield Aura",
-      "desc": "Shields adjacent defenders for 120 HP every 6 seconds."
+      "desc": "Every 6 s shields itself and neighbours for 20% of its health."
     },
     "overclock_field": {
       "name": "Overclock Field",
-      "desc": "Boosts attack speed of adjacent allies by +25%."
+      "desc": "Neighbouring robots attack 25% faster."
     },
     "steam_shroud": {
       "name": "Steam Shroud",
@@ -716,15 +716,15 @@
     },
     "solar_beam": {
       "name": "Solar Beam",
-      "desc": "Shreds 50% enemy armor and deals +25% bonus damage."
+      "desc": "Ignores half of the enemy's armor, +25% damage."
     },
     "time_dilation": {
       "name": "Time Dilation",
-      "desc": "Drastically slows enemy advance by 40%."
+      "desc": "While alive, all enemies move 40% slower."
     },
     "steam_aegis": {
       "name": "Steam Aegis",
-      "desc": "Reduces incoming damage by 20% and cleaves for 30% damage."
+      "desc": "Takes 20% less damage and returns 20% to the attacker."
     }
   },
   "wave": {

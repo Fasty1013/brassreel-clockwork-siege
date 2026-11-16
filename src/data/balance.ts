@@ -33,6 +33,10 @@ export const BALANCE = {
   XP_FOR_STAR_3: 6,
   // Merge levels: same archetype line + same level -> level + 1
   MAX_UNIT_LEVEL: 5,
+  /** reserve bench slots; a summon into a full bench melts the weakest robot */
+  BENCH_CAP: 10,
+  /** cogs for a melted level-1 robot (doubles per level) */
+  BENCH_MELT_COGS: 3,
   /** robots allowed on the field before skill-tree upgrades */
   BASE_UNIT_CAP: 5,
   /** +50% HP and damage per level above 1 */
@@ -82,10 +86,10 @@ export const BALANCE = {
   // Tuned with tools/sim (VeteranBot): see docs/BALANCE.md.
   ENEMY_SCALE_ANCHORS: [
     { wave: 1, hp: 1, damage: 1 },
-    { wave: 10, hp: 12, damage: 4 },
-    { wave: 20, hp: 36, damage: 11 },
-    { wave: 21, hp: 20, damage: 7 },
-    { wave: 30, hp: 30, damage: 10 }
+    { wave: 10, hp: 14, damage: 5 },
+    { wave: 20, hp: 60, damage: 16 },
+    { wave: 21, hp: 40, damage: 12 },
+    { wave: 30, hp: 62, damage: 18 }
   ] as ReadonlyArray<{ wave: number; hp: number; damage: number }>,
 
   // Emergency Valve

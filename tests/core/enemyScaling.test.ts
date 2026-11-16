@@ -63,6 +63,19 @@ describe('unanswered enemy shooters', () => {
     expect(state.enemies.length === 0 || state.units.length === 0).toBe(true);
   });
 
+  it('keep pressing a robot that only reflects damage back', () => {
+    const rng = PRNG.fromSeed('press3');
+    const tank = UnitFactory.createUnit('unit_cog_aegis_bastion', rng);
+    tank.deployedSlot = { col: 5, row: 2 };
+    const state = CombatEngine.initCombatState([tank], 10);
+    state.units[0].hp = state.units[0].maxHp = 1e6;
+    const drone = CombatEngine.spawnEnemy(state, 'en_shield_drone', 2, 1);
+    drone.hp = drone.maxHp = 1e6;
+    drone.x = 7.8;
+    for (let i = 0; i < 200; i++) CombatEngine.step(state, 0.05, rng);
+    expect(drone.x).toBeLessThan(7);
+  });
+
   it('do not move while they are being hit', () => {
     const rng = PRNG.fromSeed('press2');
     const archer = UnitFactory.createUnit('unit_spring_archer', rng);
@@ -71,7 +84,6 @@ describe('unanswered enemy shooters', () => {
     state.units[0].hp = state.units[0].maxHp = 1e6; // the archer must survive the duel
     const golem = CombatEngine.spawnEnemy(state, 'en_scrap_sniper', 1, 1);
     golem.hp = golem.maxHp = 100000;
-    golem.lastHp = golem.hp;
     golem.x = 6.4; // archer (range 5) and sniper (range 6) see each other
     for (let i = 0; i < 200; i++) CombatEngine.step(state, 0.05, rng);
     expect(golem.x).toBeCloseTo(6.4);

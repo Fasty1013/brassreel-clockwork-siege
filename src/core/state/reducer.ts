@@ -3,7 +3,7 @@ import { SkillManager } from '../skills/skills';
 import { RngStreams } from '../prng/prngManager';
 import { ReelManager, SlotSymbol } from '../reels/reels';
 import { HeatManager } from '../heat/heat';
-import { UnitFactory } from '../units/unitFactory';
+import { UnitFactory, UnitInstance } from '../units/unitFactory';
 import { SmeltManager } from '../smelt/smelt';
 import { CombatEngine } from '../combat/combatEngine';
 import { WaveController } from '../waves/waveController';
@@ -46,6 +46,31 @@ export const BUYABLE_SYMBOLS: readonly SlotSymbol[] = ['cog', 'spring', 'fuse', 
 
 export class RunReducer {
   private static waveController = new WaveController(1);
+
+  /** Rough worth of a robot, used to decide which one leaves a full bench. */
+  public static unitWorth(u: UnitInstance): number {
+    return 2 ** (u.starRank - 1) * 1000 + u.maxHp + u.damage * 10;
+  }
+
+  /**
+   * Puts a new robot on the bench. When the bench is full, the weakest robot
+   * of the bench and the newcomer is melted down for cogs instead.
+   * Returns false when the newcomer itself was melted.
+   */
+  public static addToBench(state: RunState, unit: UnitInstance, eventBus?: EventBus): boolean {
+    if (state.reserveBench.length < BALANCE.BENCH_CAP) {
+      state.reserveBench.push(unit);
+      return true;
+    }
+    const weakest = [...state.reserveBench, unit].sort((a, b) => this.unitWorth(a) - this.unitWorth(b))[0];
+    const cogs = BALANCE.BENCH_MELT_COGS * 2 ** (weakest.starRank - 1);
+    EconomyManager.addCogs(state.economy, cogs);
+    eventBus?.emit('bench_overflow', { unitInstanceId: weakest.instanceId, unitDefId: weakest.defId, cogs });
+    if (weakest === unit) return false;
+    state.reserveBench = state.reserveBench.filter((u) => u !== weakest);
+    state.reserveBench.push(unit);
+    return true;
+  }
 
   /** Robots may be placed, moved and merged in every phase except battle and the end screens. */
   public static canArrange(state: RunState): boolean {
@@ -150,7 +175,7 @@ export class RunReducer {
           });
           // Summon 1st legendary by default or add to bench
           const legendary = UnitFactory.createUnit('unit_legendary_steam_leviathan', rng.loot, { customStarRank: 3 });
-          state.reserveBench.push(legendary);
+          RunReducer.addToBench(state, legendary, eventBus);
         }
 
         // Trigger unit summons to bench
@@ -166,20 +191,22 @@ export class RunReducer {
             isGilded: summon.isGilded,
             comboStatMult: comboMult
           });
-          state.reserveBench.push(unit);
-          eventBus?.emit('unit_summoned', {
-            unitInstanceId: unit.instanceId,
-            unitDefId: unit.defId,
-            isGilded: summon.isGilded
-          });
+          if (RunReducer.addToBench(state, unit, eventBus)) {
+            eventBus?.emit('unit_summoned', {
+              unitInstanceId: unit.instanceId,
+              unitDefId: unit.defId,
+              isGilded: summon.isGilded
+            });
+          }
         }
 
         if (evalResult.lineHits.length > 0) {
           state.dryStreak = 0;
         } else if (GadgetManager.scrapPressTriggers(state)) {
           const scrap = UnitFactory.createUnit('unit_scrap_bot', rng.loot);
-          state.reserveBench.push(scrap);
-          eventBus?.emit('unit_summoned', { unitInstanceId: scrap.instanceId, unitDefId: scrap.defId, isGilded: false });
+          if (RunReducer.addToBench(state, scrap, eventBus)) {
+            eventBus?.emit('unit_summoned', { unitInstanceId: scrap.instanceId, unitDefId: scrap.defId, isGilded: false });
+          }
         }
 
         return state;
@@ -257,6 +284,7 @@ export class RunReducer {
 
       case 'UNDEPLOY_UNIT': {
         if (!RunReducer.canArrange(state)) return state;
+        if (state.reserveBench.length >= BALANCE.BENCH_CAP) return state; // no free bench slot
         const depIdx = state.deployedUnits.findIndex((u) => u.instanceId === command.unitId);
         if (depIdx !== -1) {
           const [unit] = state.deployedUnits.splice(depIdx, 1);
@@ -340,6 +368,7 @@ export class RunReducer {
         state.combatState = CombatEngine.initCombatState(state.deployedUnits, state.boilerHp, state.maxBoilerHp);
         SkillManager.applyCombatBuffs(state, state.combatState);
         GadgetManager.applyBattleStart(state, state.combatState);
+        CombatEngine.applyStartQuirks(state.combatState);
         this.waveController = new WaveController(state.waveNumber);
         this.waveController.initWaveSpawns(rng.combat);
         eventBus?.emit('wave_started', { waveNumber: state.waveNumber, actNumber: state.actNumber });

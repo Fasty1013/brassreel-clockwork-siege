@@ -14,6 +14,7 @@ import { EvolutionModal } from '@ui/EvolutionModal';
 import { CoreDraftModal } from '@ui/CoreDraftModal';
 import { GADGETS_DATA } from '@data/gadgets';
 import { ENEMIES_DATA } from '@data/enemies';
+import { UNITS_DATA } from '@data/units';
 import { BALANCE } from '@data/balance';
 import { ReelManager } from '@core/reels/reels';
 import { SoundManager } from '../audio/SoundManager';
@@ -76,6 +77,7 @@ export class RunScene extends Phaser.Scene {
   private unitCards: Map<string, UnitCard> = new Map();
   private enemyVisuals: Map<string, EnemyVisual> = new Map();
   private benchSlots: { x: number; y: number }[] = [];
+  private benchTitle?: Phaser.GameObjects.Text;
   private battleBg!: Phaser.GameObjects.Image;
 
   // Controls
@@ -358,30 +360,37 @@ export class RunScene extends Phaser.Scene {
   }
 
   private createBenchArea(): void {
-    // Reserve Shelf under Slot Machine
+    // Reserve shelf under the slot machine: two rows of five slots
     const shelfX = 224;
-    const shelfY = 880;
-    const benchBg = this.add.rectangle(shelfX, shelfY, 400, 190, 0x18141f);
+    const shelfY = 888;
+    const benchBg = this.add.rectangle(shelfX, shelfY, 400, 196, 0x18141f);
     benchBg.setStrokeStyle(2, 0x3d3047);
 
-    this.add.text(shelfX, shelfY - 74, '[ РЕЗЕРВ АВТОМАТОНОВ ]', {
-      fontFamily: 'monospace',
-      fontSize: '13px',
-      color: '#ffd166',
-      fontStyle: 'bold'
+    this.benchTitle = this.add.text(shelfX, shelfY - 86, '', {
+      fontSize: '15px',
+      color: '#ffd166'
     }).setOrigin(0.5);
+    InfoTip.of(this).attach(
+      this.benchTitle,
+      'Резерв',
+      `Сюда попадают призванные роботы. Мест: ${BALANCE.BENCH_CAP}.\nЕсли резерв полон, самый слабый робот переплавляется в шестерни (${BALANCE.BENCH_MELT_COGS} за 1★, вдвое больше за каждый уровень).`
+    );
 
-    // 5 Bench slots in a clean row
     this.benchSlots = [];
     const slotStartX = shelfX - 150;
     const slotSpacing = 75;
-    for (let i = 0; i < 5; i++) {
-      const slotX = slotStartX + i * slotSpacing;
-      const slotY = shelfY + 12;
+    for (let i = 0; i < BALANCE.BENCH_CAP; i++) {
+      const slotX = slotStartX + (i % 5) * slotSpacing;
+      const slotY = shelfY - 40 + Math.floor(i / 5) * 86;
       const slotOutline = this.add.rectangle(slotX, slotY, 68, 80, 0x241d2c);
       slotOutline.setStrokeStyle(1, 0x534764, 0.7);
       this.benchSlots.push({ x: slotX, y: slotY });
     }
+    this.refreshBenchTitle();
+  }
+
+  private refreshBenchTitle(): void {
+    this.benchTitle?.setText(`РЕЗЕРВ  ${this.state.reserveBench.length} / ${BALANCE.BENCH_CAP}`);
   }
 
   private createSlotControls(): void {
@@ -608,6 +617,12 @@ export class RunScene extends Phaser.Scene {
     this.coreDraftModal.on('core_selected', (coreId: string) => {
       RunReducer.dispatch(this.state, { type: 'EQUIP_CORE', coreId }, this.rng, this.eventBus);
       this.refreshHUD();
+    });
+
+    // Full bench: the weakest robot was melted down
+    this.eventBus.on('bench_overflow', (data) => {
+      const name = t(UNITS_DATA[data.unitDefId]?.nameKey ?? '') || 'Робот';
+      this.showFloatingText(224, 760, `Резерв полон: ${name} → +${data.cogs} шест.`, '#ffd166');
     });
 
     // Smelt text floater & fusion vortex
@@ -1131,6 +1146,8 @@ export class RunScene extends Phaser.Scene {
       card.setDeployedMode(false);
     }
 
+    this.refreshBenchTitle();
+
     // robots that fought in the last wave were locked for the battle — unlock them for prep
     const canDrag = RunReducer.canArrange(this.state);
     for (const card of this.unitCards.values()) {
@@ -1248,6 +1265,8 @@ export class RunScene extends Phaser.Scene {
         if (benchTarget) {
           // SMELT on bench
           this.tryMerge(benchTarget.instanceId, droppedCard.unit.instanceId);
+        } else if (droppedCard.unit.deployedSlot && this.state.reserveBench.length >= BALANCE.BENCH_CAP) {
+          this.showFloatingText(224, 780, 'Скамейка полна', '#ff8a7a');
         } else if (droppedCard.unit.deployedSlot) {
           // UNDEPLOY
           RunReducer.dispatch(

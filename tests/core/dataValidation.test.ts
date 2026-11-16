@@ -95,7 +95,7 @@ describe('Data Catalog Validation Suite', () => {
   it('checks i18n lookup and interpolation in both EN and RU', () => {
     setLocale('en');
     expect(t('ui.wave', { current: 3, total: 10 })).toBe('Wave 3 / 10');
-    expect(t('unit.cog_knight.name')).toBe('Cog Knight');
+    expect(t('unit.cog_knight.name')).toBe('Guard Bot');
 
     setLocale('ru');
     expect(t('ui.wave', { current: 3, total: 10 })).toBe('Волна 3 / 10');

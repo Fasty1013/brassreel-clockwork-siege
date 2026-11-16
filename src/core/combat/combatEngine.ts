@@ -4,6 +4,7 @@ import { EnemyDefinition } from '@data/schemas/enemySchema';
 import { ENEMIES_DATA } from '@data/enemies';
 import { PRNG } from '../prng/sfc32';
 import type { CombatGadgetMods } from '../gadgets/gadgets';
+import { QUIRKS_DATA, QuirkDefinition } from '@data/quirks';
 
 export interface CombatUnit {
   id: string;
@@ -24,6 +25,13 @@ export interface CombatUnit {
   isDead: boolean;
   /** temporary copy placed by the Portable Turret gadget for one battle */
   isTurret?: boolean;
+  /** attacks made this battle (every-Nth-hit quirks) */
+  hits?: number;
+  /** focus quirk: current target and stacked attack speed */
+  focusTargetId?: string;
+  focusStacks?: number;
+  /** seconds until the next periodic quirk effect (shield auras) */
+  quirkTimer?: number;
   statuses: {
     burnDps: number;
     burnDuration: number;
@@ -55,7 +63,8 @@ export interface CombatEnemy {
   isBoss: boolean;
   bossPhase: number;
   /** hp + shield at the end of the previous tick, to notice incoming damage */
-  lastHp: number;
+  /** a robot's attack reached this enemy during the current tick */
+  answered: boolean;
   /** how long it has been shooting at a defender without being hit back */
   unansweredSeconds: number;
   statuses: {
@@ -66,6 +75,9 @@ export interface CombatEnemy {
     stunDuration: number;
     slowRatio: number;
     slowDuration: number;
+    /** takes this much more damage from robots (thermal vulnerability) */
+    vulnPct?: number;
+    vulnDuration?: number;
   };
 }
 
@@ -189,7 +201,7 @@ export class CombatEngine {
       isDead: false,
       isBoss: def.isBoss ?? false,
       bossPhase: 1,
-      lastHp: Math.round(def.hp * scale.hp),
+      answered: false,
       unansweredSeconds: 0,
       statuses: {
         burnDps: 0,
@@ -245,6 +257,7 @@ export class CombatEngine {
     for (const unit of state.units) {
       if (unit.isDead) continue;
 
+      this.tickPeriodicQuirk(state, unit, dt);
       if (unit.statuses.stunDuration > 0) continue;
 
       unit.attackCooldown -= dt;
@@ -253,15 +266,19 @@ export class CombatEngine {
         const target = this.findBestEnemyTarget(unit, state.enemies);
         if (target) {
           this.executeUnitAttack(unit, target, state, rng);
-          const effectiveAttackSpeed = unit.statuses.slowDuration > 0
+          let effectiveAttackSpeed = unit.statuses.slowDuration > 0
             ? unit.attackSpeed * (1 - unit.statuses.slowRatio)
             : unit.attackSpeed;
+          const focus = this.quirk(unit, 'speed_stack');
+          if (focus) effectiveAttackSpeed *= 1 + (unit.focusStacks ?? 0) * focus.params.speedPerHitPct;
           unit.attackCooldown = 1.0 / Math.max(0.2, effectiveAttackSpeed);
         }
       }
     }
 
     // 4. Enemies action & movement loop
+    const warden = state.units.find((u) => !u.isDead && this.quirk(u, 'time_dilation'));
+    const timeFactor = warden ? 1 - this.quirk(warden, 'time_dilation')!.params.slowPct : 1;
     for (const enemy of state.enemies) {
       if (enemy.isDead) continue;
 
@@ -281,7 +298,7 @@ export class CombatEngine {
         }
       }
 
-      let effectiveMoveSpeed = enemy.moveSpeed;
+      let effectiveMoveSpeed = enemy.moveSpeed * timeFactor;
       if (state.valveSlowRemaining > 0) {
         effectiveMoveSpeed *= (1 - BALANCE.VALVE_SLOW_RATIO);
       } else if (enemy.statuses.slowDuration > 0) {
@@ -303,8 +320,8 @@ export class CombatEngine {
         // A shooter that nobody answers keeps closing in on its target until
         // it is hit or stands in melee reach. Without this a ranged enemy and
         // a defender out of everyone's range would trade shots forever.
-        const hpNow = enemy.hp + enemy.shield;
-        enemy.unansweredSeconds = hpNow < enemy.lastHp ? 0 : enemy.unansweredSeconds + dt;
+        // (reflected damage, burns and explosions do not count as an answer)
+        enemy.unansweredSeconds = enemy.answered ? 0 : enemy.unansweredSeconds + dt;
         if (enemy.unansweredSeconds >= BALANCE.ENEMY_PRESS_AFTER_S) {
           const gap = enemy.x - targetUnit.x - BALANCE.ENEMY_PRESS_MIN_GAP;
           if (gap > 0) enemy.x -= Math.min(gap, effectiveMoveSpeed * dt);
@@ -339,7 +356,7 @@ export class CombatEngine {
     }
 
     for (const enemy of state.enemies) {
-      enemy.lastHp = enemy.hp + enemy.shield;
+      enemy.answered = false;
     }
 
     // 5. Clean up dead entities
@@ -424,6 +441,7 @@ export class CombatEngine {
       if (e.statuses.shockDuration > 0) e.statuses.shockDuration -= dt;
       if (e.statuses.stunDuration > 0) e.statuses.stunDuration -= dt;
       if (e.statuses.slowDuration > 0) e.statuses.slowDuration -= dt;
+      if ((e.statuses.vulnDuration ?? 0) > 0) e.statuses.vulnDuration = (e.statuses.vulnDuration ?? 0) - dt;
     }
   }
 
@@ -466,6 +484,70 @@ export class CombatEngine {
     return null;
   }
 
+  // ------------------------------------------------------------ quirks
+
+  /** The unit's quirk if it has the given effect. */
+  private static quirk(unit: CombatUnit, effect: QuirkDefinition['effectType']): QuirkDefinition | undefined {
+    const q = QUIRKS_DATA[unit.sourceUnit.quirkId];
+    return q && q.effectType === effect ? q : undefined;
+  }
+
+  /** Battle-start auras (speed field). Call once after all stat buffs. */
+  public static applyStartQuirks(state: CombatSimulationState): void {
+    for (const src of state.units) {
+      const q = this.quirk(src, 'speed_aura');
+      if (!q) continue;
+      for (const ally of state.units) {
+        if (ally === src) continue;
+        if (Math.hypot(ally.x - src.x, ally.y - src.y) <= q.params.radiusTiles) {
+          ally.attackSpeed = Math.round(ally.attackSpeed * (1 + q.params.speedBuffPct) * 100) / 100;
+        }
+      }
+    }
+  }
+
+  /** Shield auras: every few seconds allies around get a shield worth part of the caster's health. */
+  private static tickPeriodicQuirk(state: CombatSimulationState, unit: CombatUnit, dt: number): void {
+    const q = QUIRKS_DATA[unit.sourceUnit.quirkId];
+    if (!q || q.effectType !== 'shield_aura') return;
+    unit.quirkTimer = (unit.quirkTimer ?? q.params.intervalSeconds) - dt;
+    if (unit.quirkTimer > 0) return;
+    unit.quirkTimer = q.params.intervalSeconds;
+    const amount = Math.round(unit.maxHp * q.params.shieldPctOfHp);
+    for (const ally of state.units) {
+      if (ally.isDead || Math.hypot(ally.x - unit.x, ally.y - unit.y) > q.params.radiusTiles) continue;
+      ally.shield = Math.max(ally.shield, amount);
+    }
+  }
+
+  /** Damage to an enemy outside the main hit (splash, chains, bolts); handles death and bounty. */
+  private static dealExtra(
+    state: CombatSimulationState,
+    unit: CombatUnit,
+    enemy: CombatEnemy,
+    amount: number,
+    fromAttack = true
+  ): void {
+    if (enemy.isDead) return;
+    if (fromAttack) enemy.answered = true;
+    const dmg = Math.max(1, Math.round(amount));
+    enemy.hp -= dmg;
+    state.events.push({ type: 'damage', sourceId: unit.id, targetId: enemy.id, amount: dmg });
+    if (enemy.hp <= 0) this.killEnemy(state, enemy);
+  }
+
+  private static killEnemy(state: CombatSimulationState, enemy: CombatEnemy): void {
+    if (enemy.isDead) return;
+    enemy.isDead = true;
+    const bounty = this.bounty(state, enemy);
+    state.cogsEarned += bounty;
+    state.events.push({ type: 'death', sourceId: enemy.id, amount: bounty });
+  }
+
+  private static stun(enemy: CombatEnemy, seconds: number, bossSeconds: number): void {
+    enemy.statuses.stunDuration = Math.max(enemy.statuses.stunDuration, enemy.isBoss ? bossSeconds : seconds);
+  }
+
   private static executeUnitAttack(
     unit: CombatUnit,
     target: CombatEnemy,
@@ -477,20 +559,41 @@ export class CombatEngine {
       sourceId: unit.id,
       targetId: target.id
     });
+    unit.hits = (unit.hits ?? 0) + 1;
+    target.answered = true;
+    const quirk = QUIRKS_DATA[unit.sourceUnit.quirkId];
+    const qp = quirk?.params ?? {};
+    const effect = quirk?.effectType;
 
     // Damage calculation: Max(1, Dmg - Armor)
     let rawDmg = unit.damage;
+    let armor = target.armor;
 
     // Check shock on target
     if (target.statuses.shockDuration > 0) {
       rawDmg *= (1 + target.statuses.shockBonusPct);
     }
-
-    // Check crit chance
+    if ((target.statuses.vulnDuration ?? 0) > 0) {
+      rawDmg *= 1 + (target.statuses.vulnPct ?? 0);
+    }
     if (state.gadgetMods && state.gadgetMods.surgeSeconds > 0) {
       rawDmg *= state.gadgetMods.surgeMultiplier;
     }
 
+    // Quirks that change the main hit
+    if (effect === 'crit_execute' && target.hp > target.maxHp * qp.thresholdPct) rawDmg *= qp.damageMult;
+    if (effect === 'proximity_mines' && Math.abs(target.x - unit.x) <= qp.rangeTiles) rawDmg *= qp.damageMult;
+    if (effect === 'solar_beam') {
+      rawDmg *= 1 + qp.bonusDamagePct;
+      armor *= 1 - qp.armorShredPct;
+    }
+    let thunder = false;
+    if (effect === 'thunderbolt' && unit.hits % qp.hitInterval === 0) {
+      rawDmg *= qp.damageMult;
+      thunder = true;
+    }
+
+    // Check crit chance
     const critChance = unit.sourceUnit.mods.reduce(
       (acc, m) => acc + (m.statModifiers?.critChancePct ?? 0),
       0.05 + (state.gadgetMods?.critChanceBonus ?? 0)
@@ -500,7 +603,7 @@ export class CombatEngine {
       rawDmg *= critMult;
     }
 
-    const netDmg = Math.max(1, Math.round(rawDmg - target.armor));
+    const netDmg = Math.max(1, Math.round(rawDmg - armor));
 
     // Apply shield absorption first
     if (target.shield > 0) {
@@ -538,44 +641,84 @@ export class CombatEngine {
       }
     }
 
-    // Quirk: recoil spring (ricochet)
-    if (unit.sourceUnit.quirkId === 'quirk_recoil_spring' && rng.next() < 0.2) {
-      const secondary = state.enemies.find((e) => !e.isDead && e.id !== target.id && Math.abs(e.x - target.x) < 2.0);
-      if (secondary) {
-        const bounceDmg = Math.max(1, Math.round(netDmg * 0.6));
-        secondary.hp -= bounceDmg;
-        state.events.push({
-          type: 'damage',
-          sourceId: unit.id,
-          targetId: secondary.id,
-          amount: bounceDmg
-        });
-        if (secondary.hp <= 0) {
-          secondary.isDead = true;
-          state.cogsEarned += this.bounty(state, secondary);
+    const others = (): CombatEnemy[] => state.enemies.filter((e) => !e.isDead && e.id !== target.id);
+    switch (effect) {
+      case 'scrap_scavenge':
+        if (rng.next() < qp.cogChance) state.cogsEarned += qp.cogs;
+        break;
+      case 'stun_charge':
+        if (unit.hits % qp.everyNthHit === 0) this.stun(target, qp.stunSeconds, qp.bossStunSeconds);
+        break;
+      case 'cleave':
+        for (const e of others()) {
+          if (Math.abs(e.y - target.y) > 0.5 && Math.abs(e.y - target.y) <= 1.1 && Math.abs(e.x - target.x) <= 1) {
+            this.dealExtra(state, unit, e, netDmg * qp.cleavePct);
+          }
         }
-      }
-    }
-
-    // Quirk: chain lightning
-    if (unit.sourceUnit.quirkId === 'quirk_electric_conduction') {
-      const secondary = state.enemies.find((e) => !e.isDead && e.id !== target.id && Math.abs(e.x - target.x) < 2.5);
-      if (secondary) {
-        const chainDmg = Math.max(1, Math.round(netDmg * 0.5));
-        secondary.hp -= chainDmg;
-        secondary.statuses.shockBonusPct = 0.2;
-        secondary.statuses.shockDuration = 3.0 + (state.gadgetMods?.shockBonusSeconds ?? 0);
-        state.events.push({
-          type: 'damage',
-          sourceId: unit.id,
-          targetId: secondary.id,
-          amount: chainDmg
-        });
-        if (secondary.hp <= 0) {
-          secondary.isDead = true;
-          state.cogsEarned += this.bounty(state, secondary);
+        break;
+      case 'ricochet':
+        if (rng.next() < qp.chancePct) {
+          const secondary = others().find((e) => Math.abs(e.x - target.x) < 2.0);
+          if (secondary) this.dealExtra(state, unit, secondary, netDmg * qp.damagePct);
         }
+        break;
+      case 'pierce': {
+        const behind = others()
+          .filter((e) => e.row === target.row && e.x > target.x)
+          .sort((a, b) => a.x - b.x)
+          .slice(0, qp.maxTargets - 1);
+        for (const e of behind) this.dealExtra(state, unit, e, Math.max(1, rawDmg - e.armor));
+        break;
       }
+      case 'burst_fire': {
+        const inRange = others().filter((e) => Math.hypot(e.x - unit.x, e.y - unit.y) <= unit.attackRange);
+        for (let i = 0; i < qp.extraBolts; i++) {
+          const pick = inRange.length > 0 ? rng.pick(inRange) : target;
+          this.dealExtra(state, unit, pick, netDmg * qp.damagePct);
+        }
+        break;
+      }
+      case 'speed_stack':
+        if (unit.focusTargetId === target.id) {
+          unit.focusStacks = Math.min(qp.maxStacks, (unit.focusStacks ?? 0) + 1);
+        } else {
+          unit.focusTargetId = target.id;
+          unit.focusStacks = 0;
+        }
+        break;
+      case 'molten_pool':
+        for (const e of [target, ...others()]) {
+          if (Math.hypot(e.x - target.x, e.y - target.y) > qp.radiusTiles) continue;
+          e.statuses.burnDps = Math.max(e.statuses.burnDps, Math.round(unit.damage * qp.burnPctOfDamage));
+          e.statuses.burnDuration = qp.durationSeconds;
+        }
+        break;
+      case 'thermal_vuln':
+        target.statuses.vulnPct = qp.bonusDamagePct;
+        target.statuses.vulnDuration = qp.durationSeconds;
+        break;
+      case 'knockback':
+        if (!target.isBoss && target.hp > 0) target.x = Math.min(7.8, target.x + qp.tiles);
+        break;
+      case 'chain_lightning': {
+        let from = target;
+        const hit = new Set([target.id]);
+        for (let j = 0; j < qp.maxJumps; j++) {
+          const next = state.enemies.find((e) => !e.isDead && !hit.has(e.id) && Math.abs(e.x - from.x) < 2.5);
+          if (!next) break;
+          hit.add(next.id);
+          next.statuses.shockBonusPct = Math.max(next.statuses.shockBonusPct, 0.2);
+          next.statuses.shockDuration = 3.0 + (state.gadgetMods?.shockBonusSeconds ?? 0);
+          this.dealExtra(state, unit, next, netDmg * qp.damageRatio);
+          from = next;
+        }
+        break;
+      }
+      case 'thunderbolt':
+        if (thunder) this.stun(target, qp.stunSeconds, qp.bossStunSeconds);
+        break;
+      default:
+        break;
     }
 
     // Recoil Buffer: melee hits push ordinary enemies back
@@ -584,16 +727,7 @@ export class CombatEngine {
       target.x = Math.min(7.8, target.x + knockback);
     }
 
-    if (target.hp <= 0) {
-      target.isDead = true;
-      const bounty = this.bounty(state, target);
-      state.cogsEarned += bounty;
-      state.events.push({
-        type: 'death',
-        sourceId: target.id,
-        amount: bounty
-      });
-    }
+    if (target.hp <= 0) this.killEnemy(state, target);
   }
 
   private static executeEnemyAttack(
@@ -608,7 +742,13 @@ export class CombatEngine {
       targetId: target.id
     });
 
-    const netDmg = Math.max(1, Math.round(enemy.damage - target.armor));
+    const quirk = QUIRKS_DATA[target.sourceUnit.quirkId];
+    const qp = quirk?.params ?? {};
+    let incoming = enemy.damage;
+    if (quirk?.effectType === 'damage_reduction' || quirk?.effectType === 'steam_shroud') {
+      incoming *= 1 - qp.damageReductionPct;
+    }
+    const netDmg = Math.max(1, Math.round(incoming - target.armor));
 
     if (target.shield > 0) {
       if (target.shield >= netDmg) {
@@ -629,14 +769,9 @@ export class CombatEngine {
       amount: netDmg
     });
 
-    // Quirk: damage reflection (Aegis Bastion)
-    if (target.sourceUnit.quirkId === 'quirk_damage_reflection') {
-      const reflectDmg = Math.round(netDmg * 0.3);
-      enemy.hp -= reflectDmg;
-      if (enemy.hp <= 0) {
-        enemy.isDead = true;
-        state.cogsEarned += this.bounty(state, enemy);
-      }
+    // Reflection (Aegis Bastion, Steam Leviathan)
+    if (quirk && (quirk.effectType === 'reflect' || quirk.effectType === 'steam_shroud') && !enemy.isDead) {
+      this.dealExtra(state, target, enemy, netDmg * qp.reflectPct, false);
     }
 
     if (target.hp <= 0) {
@@ -646,15 +781,11 @@ export class CombatEngine {
         sourceId: target.id
       });
 
-      // Quirk: death explosion (Fuse Sapper)
-      if (target.sourceUnit.quirkId === 'quirk_death_explosion') {
+      // Death explosion (fuse line)
+      if (quirk?.effectType === 'death_explosion') {
         for (const e of state.enemies) {
-          if (!e.isDead && Math.abs(e.x - target.x) <= 1.5 && Math.abs(e.y - target.y) <= 1.5) {
-            e.hp -= 120;
-            if (e.hp <= 0) {
-              e.isDead = true;
-              state.cogsEarned += this.bounty(state, e);
-            }
+          if (!e.isDead && Math.abs(e.x - target.x) <= qp.radiusTiles && Math.abs(e.y - target.y) <= qp.radiusTiles) {
+            this.dealExtra(state, target, e, target.damage * qp.damageMult, false);
           }
         }
       }
