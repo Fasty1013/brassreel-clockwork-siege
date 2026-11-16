@@ -8,21 +8,25 @@ import Phaser from 'phaser';
  * for UI_FONT. To switch the whole game to a bundled pixel font, add an
  * @font-face (see main.ts + loadUiFont) — nothing else has to change.
  */
-export const UI_FONT = '"Pixelify Sans", Consolas, "Lucida Console", monospace';
+export const UI_FONT = '"Tiny5", Consolas, "Lucida Console", monospace';
 
-/** Wait for both weights (with Cyrillic glyphs) so the first frame already uses the pixel font. */
+/**
+ * Wait for the pixel font (with Cyrillic glyphs) so the first frame already uses it.
+ * Tiny5 was chosen over Pixelify Sans: its Ш and Д do not read as W and A.
+ */
 export function loadUiFont(): Promise<void> {
   if (typeof document === 'undefined' || !document.fonts) return Promise.resolve();
-  const sample = 'Шестерни Gears 0123';
-  return Promise.all([
-    document.fonts.load(`500 20px "Pixelify Sans"`, sample),
-    document.fonts.load(`700 20px "Pixelify Sans"`, sample)
-  ])
+  const sample = 'Шестерни Держать Gears 0123';
+  return document.fonts
+    .load(`400 20px "Tiny5"`, sample)
     .then(() => undefined)
     .catch(() => undefined);
 }
 
 const GENERIC = new Set(['monospace', 'sans-serif', 'serif', 'Courier', '']);
+
+/** Size multiplier for the pixel font, applied to every UI text. */
+const FONT_SCALE = 1.1;
 
 /** Smallest font size allowed anywhere in the UI. */
 export const MIN_FONT_PX = 15;
@@ -47,9 +51,15 @@ export function installTextDefaults(): void {
   proto.text = function (this: unknown, x, y, text, style = {}) {
     const family = style.fontFamily ?? '';
     const next: Phaser.Types.GameObjects.Text.TextStyle = GENERIC.has(family) ? { ...style, fontFamily: UI_FONT } : { ...style };
+    // the pixel font has a single weight; a synthetic bold smears its pixels
+    if (next.fontFamily === UI_FONT && next.fontStyle) {
+      next.fontStyle = String(next.fontStyle).replace(/bold/g, '').trim();
+    }
     // readability floor: nothing smaller than MIN_FONT_PX, bold by default
-    const size = parseInt(String(next.fontSize ?? '16'), 10);
-    if (!Number.isNaN(size) && size < MIN_FONT_PX) next.fontSize = `${MIN_FONT_PX}px`;
+    let size = parseInt(String(next.fontSize ?? '16'), 10);
+    // Tiny5 has a lower cap height than the old font: keep the same visual size
+    if (!Number.isNaN(size) && next.fontFamily === UI_FONT) size = Math.round(size * FONT_SCALE);
+    if (!Number.isNaN(size)) next.fontSize = `${Math.max(MIN_FONT_PX, size)}px`;
     // a stroke closes the small counters of pixel glyphs (С→О, 5→8): thin it out,
     // and give light text a hard drop shadow instead so it reads on any backdrop
     if (next.strokeThickness !== undefined && next.strokeThickness > 2) next.strokeThickness = 2;

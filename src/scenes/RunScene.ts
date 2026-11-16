@@ -341,21 +341,15 @@ export class RunScene extends Phaser.Scene {
   }
 
   private createForemanGuide(x: number, y: number): void {
-    // Arch niche and avatar
-    const nicheBg = this.add.rectangle(x, y, 92, 102, 0x18131e);
-    nicheBg.setStrokeStyle(2, 0x3d3047);
-    const avatar = this.add.image(x, y, 'ui_avatar_cogsworth');
-    avatar.setScale(2.5);
-
-    // Speech bubble
+    // Speech plate (the foreman portrait used to sit under it, fully covered)
     const bubble = this.add.image(x + 195, y, 'ui_speech_bubble');
-    bubble.setScale(2.3);
+    bubble.setScale(3);
     this.speechBubbleText = this.add.text(x + 195, y, 'Потяните рычаг Кузницы (Пробел) или расставьте автоматонов!', {
       fontFamily: 'monospace',
-      fontSize: '13px',
+      fontSize: '16px',
       color: '#ffd166',
       align: 'center',
-      wordWrap: { width: 330 }
+      wordWrap: { width: 440 }
     }).setOrigin(0.5);
   }
 

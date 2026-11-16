@@ -1,6 +1,5 @@
 import Phaser from 'phaser';
-import '@fontsource/pixelify-sans/500.css';
-import '@fontsource/pixelify-sans/700.css';
+import '@fontsource/tiny5/400.css';
 import { installTextDefaults, loadUiFont } from './ui/TextStyles';
 import { BootScene } from './scenes/BootScene';
 import { MenuScene } from './scenes/MenuScene';

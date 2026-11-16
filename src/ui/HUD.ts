@@ -20,7 +20,7 @@ export class HUD extends Phaser.GameObjects.Container {
     // Floating HUD Cartouche Pills spanning x: 480 to 1860 at y: 32
     // 1. Cogs (Gold) Pill
     const cogsPill = scene.add.image(580, 32, 'ui_hud_pill_gold');
-    cogsPill.setScale(2.5);
+    cogsPill.setScale(3);
     this.add(cogsPill);
     this.cogsText = scene.add.text(595, 32, '350', {
       fontFamily: 'monospace',
@@ -32,7 +32,7 @@ export class HUD extends Phaser.GameObjects.Container {
 
     // 2. Boiler HP (Hearts) Pill
     const hpPill = scene.add.image(760, 32, 'ui_hud_pill_boiler');
-    hpPill.setScale(2.5);
+    hpPill.setScale(3);
     this.add(hpPill);
     this.boilerText = scene.add.text(775, 32, '10/10', {
       fontFamily: 'monospace',
@@ -44,7 +44,7 @@ export class HUD extends Phaser.GameObjects.Container {
 
     // 3. Units Deployed Pill
     const unitsPill = scene.add.image(940, 32, 'ui_hud_pill_units');
-    unitsPill.setScale(2.5);
+    unitsPill.setScale(3);
     this.add(unitsPill);
     this.waveText = scene.add.text(955, 32, '3/5', {
       fontFamily: 'monospace',
@@ -56,7 +56,7 @@ export class HUD extends Phaser.GameObjects.Container {
 
     // 4. Steam / Heat Manometer Pill
     const steamPill = scene.add.image(1140, 32, 'ui_hud_pill_steam');
-    steamPill.setScale(2.5);
+    steamPill.setScale(3);
     this.add(steamPill);
     this.steamText = scene.add.text(1125, 32, '3/5', {
       fontFamily: 'monospace',

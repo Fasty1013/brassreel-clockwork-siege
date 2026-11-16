@@ -78,6 +78,8 @@ export interface CombatEnemy {
     /** takes this much more damage from robots (thermal vulnerability) */
     vulnPct?: number;
     vulnDuration?: number;
+    /** bosses shrug off new stuns while this runs */
+    stunImmune?: number;
   };
 }
 
@@ -442,6 +444,7 @@ export class CombatEngine {
       if (e.statuses.stunDuration > 0) e.statuses.stunDuration -= dt;
       if (e.statuses.slowDuration > 0) e.statuses.slowDuration -= dt;
       if ((e.statuses.vulnDuration ?? 0) > 0) e.statuses.vulnDuration = (e.statuses.vulnDuration ?? 0) - dt;
+      if ((e.statuses.stunImmune ?? 0) > 0) e.statuses.stunImmune = (e.statuses.stunImmune ?? 0) - dt;
     }
   }
 
@@ -544,8 +547,15 @@ export class CombatEngine {
     state.events.push({ type: 'death', sourceId: enemy.id, amount: bounty });
   }
 
+  /** Stun an enemy; a boss takes a short stun and then ignores stuns for a while. */
   private static stun(enemy: CombatEnemy, seconds: number, bossSeconds: number): void {
-    enemy.statuses.stunDuration = Math.max(enemy.statuses.stunDuration, enemy.isBoss ? bossSeconds : seconds);
+    if (enemy.isBoss) {
+      if ((enemy.statuses.stunImmune ?? 0) > 0) return;
+      enemy.statuses.stunImmune = BALANCE.BOSS_STUN_IMMUNITY_S;
+      enemy.statuses.stunDuration = Math.max(enemy.statuses.stunDuration, bossSeconds);
+      return;
+    }
+    enemy.statuses.stunDuration = Math.max(enemy.statuses.stunDuration, seconds);
   }
 
   private static executeUnitAttack(
@@ -634,7 +644,7 @@ export class CombatEngine {
         target.statuses.shockBonusPct = mod.triggerParam;
         target.statuses.shockDuration = 4.0 + (state.gadgetMods?.shockBonusSeconds ?? 0);
       } else if (mod.triggerEffect === 'stun' && mod.triggerParam) {
-        target.statuses.stunDuration = mod.triggerParam;
+        this.stun(target, mod.triggerParam, mod.triggerParam / 2);
       } else if (mod.statModifiers?.lifestealPct) {
         const heal = Math.round(netDmg * mod.statModifiers.lifestealPct);
         unit.hp = Math.min(unit.maxHp, unit.hp + heal);

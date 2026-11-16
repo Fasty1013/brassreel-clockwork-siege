@@ -78,6 +78,8 @@ export const BALANCE = {
   // target, stopping at melee distance (in tiles)
   ENEMY_PRESS_AFTER_S: 3,
   ENEMY_PRESS_MIN_GAP: 1,
+  /** after a stun, a boss ignores new stuns for this long (no stun-lock) */
+  BOSS_STUN_IMMUNITY_S: 3,
 
   // Enemy growth. Robots get many times stronger over a run (levels,
   // evolutions, skill tree), so enemy stats are multiplied per wave. The

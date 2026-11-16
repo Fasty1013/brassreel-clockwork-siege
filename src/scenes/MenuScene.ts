@@ -188,14 +188,14 @@ export class MenuScene extends Phaser.Scene {
       width / 2,
       835,
       isRu
-        ? '1. Слот слева крутится за шестерни — совпадение 3 символов в ряд призывает бойца.\n' +
-          '2. Расставляй защитников на зеленом лугу перетаскиванием мыши.\n' +
-          '3. Круглая кнопка с черепом в правом углу или ENTER запускает волну врагов.\n' +
-          '4. Одолей 10 волн врагов в каждом Акте, чтобы победить Парового Барона!'
-        : '1. Spin the slot on the left — matching 3 symbols on a line summons an automaton.\n' +
-          '2. Deploy your defenders onto the green meadow by dragging with the mouse.\n' +
-          '3. Click the round skull valve button at bottom-right or hit ENTER to launch the wave.\n' +
-          '4. Defeat 10 waves per Act to overthrow the Steam Baron!',
+        ? '1. Пробел крутит барабаны: 3 одинаковых символа в линию призывают робота в резерв.\n' +
+          '2. Перетащи роботов на луг; робот на такого же — слияние, уровень +1.\n' +
+          '3. Кнопка с черепом или ENTER запускает волну. T — древо навыков.\n' +
+          '4. Между волнами — мастерская. Выстой 30 волн и одолей трёх боссов!'
+        : '1. Space spins the reels: 3 equal symbols on a line summon a robot to the reserve.\n' +
+          '2. Drag robots onto the meadow; drop one on its twin to merge it, level +1.\n' +
+          '3. The skull button or ENTER starts the wave. T opens the skill tree.\n' +
+          '4. The workshop opens between waves. Survive 30 waves and beat three bosses!',
       {
         fontFamily: 'sans-serif',
         fontSize: '15px',

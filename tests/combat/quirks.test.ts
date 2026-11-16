@@ -102,3 +102,24 @@ describe('robot quirks in battle', () => {
     expect(stunned).toBe(true);
   });
 });
+
+describe('boss stun resistance', () => {
+  it('a boss cannot be kept stunned by constant stuns', () => {
+    const rng = PRNG.fromSeed('boss-stun');
+    const u = UnitFactory.createUnit('unit_coil_storm_conductor', rng);
+    u.deployedSlot = { col: 2, row: 2 };
+    u.mods = [];
+    const state = CombatEngine.initCombatState([u], 10);
+    state.units[0].attackSpeed = 10; // a thunderbolt every 0.4 s
+    state.units[0].hp = state.units[0].maxHp = 1e9;
+    const boss = CombatEngine.spawnEnemy(state, 'boss_steam_baron', 2, 1);
+    boss.hp = boss.maxHp = 1e9;
+    boss.x = 6;
+    let stunnedTicks = 0;
+    for (let i = 0; i < 400; i++) {
+      CombatEngine.step(state, 0.05, rng);
+      if (boss.statuses.stunDuration > 0) stunnedTicks++;
+    }
+    expect(stunnedTicks / 400).toBeLessThan(0.3);
+  });
+});
