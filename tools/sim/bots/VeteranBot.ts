@@ -17,7 +17,7 @@ export interface VeteranOptions {
   skills: boolean;
   /** use reel holds and nudges */
   holds: boolean;
-  /** spend spare cogs on center-reel symbols once the skill list is done */
+  /** focus the reels on the main robot line (cut other lines, add and gild the main one) */
   symbols: boolean;
   /** buy workshop gadgets */
   gadgets: boolean;
@@ -217,10 +217,46 @@ export class VeteranBot implements BotPolicy {
     return candidates[0] ?? null;
   }
 
-  private skillsDone(state: RunState): boolean {
-    const wanted: Record<string, number> = {};
-    for (const id of this.opts.skillOrder) wanted[id] = (wanted[id] ?? 0) + 1;
-    return Object.entries(wanted).every(([id, rank]) => SkillManager.rank(state, id) >= rank);
+  /**
+   * Focus the reels on the line the army is built on: cut symbols of other
+   * lines, then add the main one, then gild it. Keeps the next skill affordable.
+   */
+  private reelEdit(state: RunState): RunCommand | null {
+    const discount = GadgetManager.discount(state);
+    const spare = state.economy.cogs - this.nextSkillCost(state);
+    const counts: Record<string, number> = { cog: 0, spring: 0, fuse: 0, coil: 0 };
+    for (const u of [...state.deployedUnits, ...state.reserveBench]) {
+      if (u.faction in counts) counts[u.faction] += 2 ** (u.starRank - 1);
+    }
+    const main = (Object.keys(counts) as SlotSymbol[]).sort((a, b) => counts[b] - counts[a])[0];
+    const isOff = (sym: SlotSymbol): boolean => sym !== main && sym !== 'wild' && sym !== 'crown';
+
+    if (spare >= EconomyManager.getRemoveSymbolCost(state.economy, discount)) {
+      let best: { reel: number; index: number; off: number } | null = null;
+      state.reelStrips.forEach((strip, reel) => {
+        if (strip.length <= BALANCE.MIN_STRIP_LENGTH) return;
+        const off = strip.filter((x) => isOff(x.symbol)).length;
+        const index = strip.findIndex((x) => isOff(x.symbol));
+        if (index >= 0 && (!best || off > best.off)) best = { reel, index, off };
+      });
+      const pick = best as { reel: number; index: number; off: number } | null;
+      if (pick) return { type: 'REMOVE_SYMBOL', reelIndex: pick.reel, symbolIndex: pick.index };
+    }
+    if (spare >= EconomyManager.getAddSymbolCost(discount)) {
+      const reel = [0, 1, 2]
+        .filter((r) => state.reelStrips[r].length < BALANCE.MAX_STRIP_LENGTH)
+        .sort((a, b) => state.reelStrips[a].length - state.reelStrips[b].length)[0];
+      const mainShare = (r: number): number =>
+        state.reelStrips[r].filter((x) => x.symbol === main).length / state.reelStrips[r].length;
+      if (reel !== undefined && mainShare(reel) < 0.75) return { type: 'BUY_SYMBOL', reelIndex: reel, symbol: main };
+    }
+    if (spare >= EconomyManager.getGildSymbolCost(discount)) {
+      for (let r = 0; r < 3; r++) {
+        const index = state.reelStrips[r].findIndex((x) => x.symbol === main && !x.isGilded);
+        if (index >= 0) return { type: 'GILD_SYMBOL', reelIndex: r, symbolIndex: index };
+      }
+    }
+    return null;
   }
 
   /** Free spins plus paid spins that cannot jam (heat stays at the threshold or below). */
@@ -353,6 +389,10 @@ export class VeteranBot implements BotPolicy {
     if (this.opts.gadgets) {
       const gadget = this.pickGadget(state);
       if (gadget) return [{ type: 'BUY_GADGET', gadgetId: gadget }];
+      if (this.opts.symbols) {
+        const edit = this.reelEdit(state);
+        if (edit) return [edit];
+      }
       // nothing worth buying on the shelf: restock while there are cogs to spare
       const reroll = EconomyManager.getRerollCost(state.economy, GadgetManager.discount(state));
       const passivesLeft = GadgetManager.pool(state, true).length > 0;
@@ -366,14 +406,9 @@ export class VeteranBot implements BotPolicy {
       }
     }
 
-    if (this.opts.symbols && this.skillsDone(state) && state.economy.cogs >= BALANCE.COST_ADD_SYMBOL) {
-      // the workshop only sells symbols for the center reel; feed the line the army is built on
-      const counts: Record<string, number> = { cog: 0, spring: 0, fuse: 0, coil: 0 };
-      for (const u of [...state.deployedUnits, ...state.reserveBench]) {
-        if (u.faction in counts) counts[u.faction] += 2 ** (u.starRank - 1);
-      }
-      const symbol = (Object.keys(counts) as SlotSymbol[]).sort((a, b) => counts[b] - counts[a])[0];
-      return [{ type: 'BUY_SYMBOL', reelIndex: 1, symbol }];
+    if (this.opts.symbols) {
+      const edit = this.reelEdit(state);
+      if (edit) return [edit];
     }
     this.rerollsThisShop = 0;
     return [{ type: 'START_NEXT_WAVE' }];

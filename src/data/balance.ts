@@ -51,6 +51,9 @@ export const BALANCE = {
   COST_REMOVE_SYMBOL_INCREMENT: 5,
   COST_GILD_SYMBOL: 25,
   COST_SHOP_REROLL: 5,
+  /** reel strip length limits for workshop edits */
+  MIN_STRIP_LENGTH: 6,
+  MAX_STRIP_LENGTH: 16,
 
   // Workshop gadgets
   SHOP_GADGET_OFFERS: 3,

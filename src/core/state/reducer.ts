@@ -41,6 +41,9 @@ export type RunCommand =
   | { type: 'REROLL_SHOP' }
   | { type: 'START_NEXT_WAVE' };
 
+/** Symbols the workshop sells. */
+export const BUYABLE_SYMBOLS: readonly SlotSymbol[] = ['cog', 'spring', 'fuse', 'coil'];
+
 export class RunReducer {
   private static waveController = new WaveController(1);
 
@@ -410,29 +413,39 @@ export class RunReducer {
       }
 
       case 'BUY_SYMBOL': {
+        // Reel edits happen in the workshop, within the strip length limits.
+        const strip = state.reelStrips[command.reelIndex];
+        if (state.phase !== 'SHOP' || !strip || strip.length >= BALANCE.MAX_STRIP_LENGTH) return state;
+        if (!BUYABLE_SYMBOLS.includes(command.symbol)) return state;
         const cost = EconomyManager.getAddSymbolCost(GadgetManager.discount(state));
-        if (EconomyManager.spendCogs(state.economy, cost) && state.reelStrips[command.reelIndex]) {
-          EconomyManager.addSymbolToStrip(state.reelStrips[command.reelIndex], command.symbol, command.isGilded);
+        if (EconomyManager.spendCogs(state.economy, cost)) {
+          EconomyManager.addSymbolToStrip(strip, command.symbol, command.isGilded);
         }
         return state;
       }
 
       case 'REMOVE_SYMBOL': {
+        const strip = state.reelStrips[command.reelIndex];
+        if (state.phase !== 'SHOP' || !strip || strip.length <= BALANCE.MIN_STRIP_LENGTH) return state;
+        if (command.symbolIndex < 0 || command.symbolIndex >= strip.length) return state;
         const cost = EconomyManager.getRemoveSymbolCost(state.economy, GadgetManager.discount(state));
-        if (EconomyManager.canAfford(state.economy, cost) && state.reelStrips[command.reelIndex]) {
-          const removed = EconomyManager.removeSymbolFromStrip(state.reelStrips[command.reelIndex], command.symbolIndex);
-          if (removed) {
-            EconomyManager.spendCogs(state.economy, cost);
-            state.economy.removalsCount++;
-          }
+        if (EconomyManager.spendCogs(state.economy, cost)) {
+          strip.splice(command.symbolIndex, 1);
+          state.economy.removalsCount++;
+          // keep the reel's stop position inside the shorter strip
+          const r = command.reelIndex as 0 | 1 | 2;
+          state.reelIndices[r] = state.reelIndices[r] % strip.length;
         }
         return state;
       }
 
       case 'GILD_SYMBOL': {
+        const strip = state.reelStrips[command.reelIndex];
+        const item = strip?.[command.symbolIndex];
+        if (state.phase !== 'SHOP' || !item || item.isGilded) return state;
         const cost = EconomyManager.getGildSymbolCost(GadgetManager.discount(state));
-        if (EconomyManager.spendCogs(state.economy, cost) && state.reelStrips[command.reelIndex]) {
-          EconomyManager.gildSymbolOnStrip(state.reelStrips[command.reelIndex], command.symbolIndex);
+        if (EconomyManager.spendCogs(state.economy, cost)) {
+          item.isGilded = true;
         }
         return state;
       }

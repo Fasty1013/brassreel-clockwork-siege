@@ -557,18 +557,21 @@ export class RunScene extends Phaser.Scene {
     // Shop actions
     this.shopView.on('buy_symbol', (reelIndex: number, symbol: any) => {
       RunReducer.dispatch(this.state, { type: 'BUY_SYMBOL', reelIndex, symbol }, this.rng, this.eventBus);
+      this.reelView.setGrid(ReelManager.extractGrid(this.state.reelStrips, this.state.reelIndices));
       this.refreshHUD();
       this.openShop();
     });
 
     this.shopView.on('gild_symbol', (reelIndex: number, symbolIndex: number) => {
       RunReducer.dispatch(this.state, { type: 'GILD_SYMBOL', reelIndex, symbolIndex }, this.rng, this.eventBus);
+      this.reelView.setGrid(ReelManager.extractGrid(this.state.reelStrips, this.state.reelIndices));
       this.refreshHUD();
       this.openShop();
     });
 
     this.shopView.on('remove_symbol', (reelIndex: number, symbolIndex: number) => {
       RunReducer.dispatch(this.state, { type: 'REMOVE_SYMBOL', reelIndex, symbolIndex }, this.rng, this.eventBus);
+      this.reelView.setGrid(ReelManager.extractGrid(this.state.reelStrips, this.state.reelIndices));
       this.refreshHUD();
       this.openShop();
     });
@@ -1036,7 +1039,10 @@ export class RunScene extends Phaser.Scene {
         reroll: EconomyManager.getRerollCost(st.economy, discount)
       },
       owned: st.activeGadgets.map((id) => GADGETS_DATA[id]).filter(Boolean).map((g) => t(g.nameKey)),
-      pending
+      pending,
+      strips: st.reelStrips,
+      minStrip: BALANCE.MIN_STRIP_LENGTH,
+      maxStrip: BALANCE.MAX_STRIP_LENGTH
     });
   }
 

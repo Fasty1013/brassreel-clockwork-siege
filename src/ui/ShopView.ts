@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import { GadgetDefinition } from '@data/schemas/gadgetSchema';
-import { SlotSymbol } from '@core/reels/reels';
+import { ReelSymbol, SlotSymbol } from '@core/reels/reels';
 import { t } from '@data/i18n';
 import { InfoTip } from './InfoTip';
 
@@ -26,6 +26,10 @@ export interface ShopModel {
   owned: string[];
   /** consumables waiting for the next wave or battle, as short lines */
   pending: string[];
+  /** the three reel strips */
+  strips: ReelSymbol[][];
+  minStrip: number;
+  maxStrip: number;
 }
 
 type PriceKey = keyof ShopPrices;
@@ -59,7 +63,14 @@ export class ShopView extends Phaser.GameObjects.Container {
     tag: Phaser.GameObjects.Container;
     amount: Phaser.GameObjects.Text;
     icon: Phaser.GameObjects.Image;
+    /** the action is not possible right now regardless of cogs */
+    blocked: boolean;
   }> = [];
+  private selectedReel = 1;
+  private selectedIndex = 0;
+  private reelTabs: Array<{ bg: Phaser.GameObjects.Rectangle; label: Phaser.GameObjects.Text }> = [];
+  private stripView: Phaser.GameObjects.Container | null = null;
+  private stripInfo!: Phaser.GameObjects.Text;
   private cogs = 0;
   private gadgetHint!: Phaser.GameObjects.Text;
   private ownedText!: Phaser.GameObjects.Text;
@@ -102,38 +113,55 @@ export class ShopView extends Phaser.GameObjects.Container {
       return lines.join('\n');
     });
 
-    // section: reels
-    this.sectionHeader(30, 'БАРАБАНЫ', 'добавьте символ на центральный барабан');
-    SYMBOLS.forEach((s, i) => {
+    // section: reels — pick a reel, pick a symbol on its strip, then act
+    this.sectionHeader(22, 'БАРАБАНЫ', 'выберите барабан и символ на ленте');
+    for (let r = 0; r < 3; r++) {
+      const x = -455 + r * 160;
+      const bg = scene.add.rectangle(x, 76, 150, 40, 0x1f1a27);
+      bg.setStrokeStyle(2, 0x534764);
+      bg.setInteractive({ useHandCursor: true });
+      this.add(bg);
+      const label = scene.add.text(x, 76, `Барабан ${r + 1}`, { fontSize: '20px', color: CREAM }).setOrigin(0.5);
+      this.add(label);
+      bg.on('pointerdown', () => {
+        this.selectedReel = r;
+        this.selectedIndex = 0;
+        if (this.model) this.showShop(this.model);
+      });
+      this.reelTabs.push({ bg, label });
+    }
+    this.stripInfo = scene.add.text(530, 76, '', { fontSize: '18px', color: MUTED }).setOrigin(1, 0.5);
+    this.add(this.stripInfo);
+
+    SYMBOLS.forEach((sym, i) => {
       const x = -405 + i * 270;
-      const y = 112;
-      const btn = scene.add.rectangle(x, y, 250, 92, 0x1f1a27);
+      const y = 204;
+      const btn = scene.add.rectangle(x, y, 250, 64, 0x1f1a27);
       btn.setStrokeStyle(2, 0xd4a373);
       btn.setInteractive({ useHandCursor: true });
       this.add(btn);
-      this.add(scene.add.image(x - 82, y, `sym_${s.sym}`).setScale(2));
-      const label = scene.add.text(x - 44, y - 16, `+ ${s.name}`, { fontSize: '22px', color: s.color }).setOrigin(0, 0.5);
+      this.add(scene.add.image(x - 82, y, `sym_${sym.sym}`).setScale(2));
+      const label = scene.add.text(x - 44, y - 13, `+ ${sym.name}`, { fontSize: '21px', color: sym.color }).setOrigin(0, 0.5);
       this.add(label);
-      this.registerPrice('symbol', x - 44, y + 18, btn, label);
+      this.registerPrice('symbol', x - 44, y + 15, btn, label);
       this.hover(btn);
-      btn.on('pointerdown', () => this.emit('buy_symbol', 1, s.sym));
+      btn.on('pointerdown', () => this.emit('buy_symbol', this.selectedReel, sym.sym));
     });
 
-    // gild + remove
-    const gild = this.actionButton(-245, 214, 470, 70, 'Позолотить символ', GOLD, 'gild', 0xd4a373, 'sym_crown_gilded');
-    gild.on('pointerdown', () => this.emit('gild_symbol', 1, 0));
-    const remove = this.actionButton(245, 214, 470, 70, 'Убрать символ', '#ff8a7a', 'remove', 0xd90429, null);
-    remove.on('pointerdown', () => this.emit('remove_symbol', 1, 0));
+    const gild = this.actionButton(-245, 272, 470, 56, 'Позолотить выбранный', GOLD, 'gild', 0xd4a373, 'sym_crown_gilded');
+    gild.on('pointerdown', () => this.emit('gild_symbol', this.selectedReel, this.selectedIndex));
+    const remove = this.actionButton(245, 272, 470, 56, 'Убрать выбранный', '#ff8a7a', 'remove', 0xd90429, null);
+    remove.on('pointerdown', () => this.emit('remove_symbol', this.selectedReel, this.selectedIndex));
 
     // footer
-    this.rerollButton = this.actionButton(-205, 330, 330, 66, 'Обновить товары', CREAM, 'reroll', 0x6c757d, null);
+    this.rerollButton = this.actionButton(-205, 344, 330, 60, 'Обновить товары', CREAM, 'reroll', 0x6c757d, null);
     this.rerollButton.on('pointerdown', () => this.emit('reroll_shop'));
 
-    const closeBtn = scene.add.rectangle(205, 330, 390, 74, 0x1f1a27);
+    const closeBtn = scene.add.rectangle(205, 344, 390, 66, 0x1f1a27);
     closeBtn.setStrokeStyle(3, 0xffd166);
     closeBtn.setInteractive({ useHandCursor: true });
     this.add(closeBtn);
-    this.add(scene.add.text(205, 330, 'СЛЕДУЮЩАЯ ВОЛНА  ▶', { fontSize: '28px', color: GOLD }).setOrigin(0.5));
+    this.add(scene.add.text(205, 344, 'СЛЕДУЮЩАЯ ВОЛНА  ▶', { fontSize: '28px', color: GOLD }).setOrigin(0.5));
     this.hover(closeBtn);
     closeBtn.on('pointerdown', () => this.emit('close_shop'));
 
@@ -161,7 +189,7 @@ export class ShopView extends Phaser.GameObjects.Container {
     const icon = s.add.image(amount.width + 16, 0, 'sym_cog').setScale(1);
     tag.add([amount, icon]);
     this.add(tag);
-    this.priced.push({ key, cost: 0, bg, label, tag, amount, icon });
+    this.priced.push({ key, cost: 0, bg, label, tag, amount, icon, blocked: false });
   }
 
   private actionButton(
@@ -190,12 +218,54 @@ export class ShopView extends Phaser.GameObjects.Container {
     btn.on('pointerout', () => btn.setScale(1));
   }
 
-  /** Dim everything the player cannot afford. */
+  /** Dim everything the player cannot afford or cannot do right now. */
   private refreshAffordability(): void {
     for (const p of this.priced) {
-      const ok = this.cogs >= p.cost;
+      const ok = this.cogs >= p.cost && !p.blocked;
       p.label.setAlpha(ok ? 1 : 0.45);
       p.tag.setAlpha(ok ? 1 : 0.45);
+    }
+  }
+
+  /** Tabs, the selected strip and which reel actions are possible. */
+  private renderReels(model: ShopModel): void {
+    const strip = model.strips[this.selectedReel] ?? [];
+    this.selectedIndex = Math.min(this.selectedIndex, Math.max(0, strip.length - 1));
+
+    this.reelTabs.forEach((tab, r) => {
+      const on = r === this.selectedReel;
+      tab.bg.setStrokeStyle(on ? 3 : 2, on ? 0xffd166 : 0x534764);
+      tab.label.setColor(on ? GOLD : MUTED);
+    });
+    this.stripInfo.setText(`символов: ${strip.length} (от ${model.minStrip} до ${model.maxStrip})`);
+
+    this.stripView?.destroy();
+    const view = this.scene.add.container(0, 136);
+    this.add(view);
+    this.stripView = view;
+    const step = 62;
+    const startX = -((strip.length - 1) * step) / 2;
+    strip.forEach((item, i) => {
+      const x = startX + i * step;
+      const selected = i === this.selectedIndex;
+      const cell = this.scene.add.rectangle(x, 0, 56, 56, selected ? 0x3a2f45 : 0x15121b);
+      cell.setStrokeStyle(selected ? 3 : 1, selected ? 0xffd166 : 0x534764);
+      cell.setInteractive({ useHandCursor: true });
+      cell.on('pointerdown', () => {
+        this.selectedIndex = i;
+        this.showShop(model);
+      });
+      view.add(cell);
+      const key = `sym_${item.symbol}${item.isGilded ? '_gilded' : ''}`;
+      if (this.scene.textures.exists(key)) view.add(this.scene.add.image(x, 0, key).setScale(2));
+    });
+
+    const chosen = strip[this.selectedIndex];
+    for (const p of this.priced) {
+      if (p.key === 'symbol') p.blocked = strip.length >= model.maxStrip;
+      else if (p.key === 'gild') p.blocked = !chosen || chosen.isGilded;
+      else if (p.key === 'remove') p.blocked = strip.length <= model.minStrip;
+      else p.blocked = false;
     }
   }
 
@@ -210,6 +280,7 @@ export class ShopView extends Phaser.GameObjects.Container {
       p.amount.setText(`${p.cost}`);
       p.icon.x = p.amount.width + 16;
     }
+    this.renderReels(model);
 
     this.model = model;
     const parts = [];
