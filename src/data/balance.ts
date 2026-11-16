@@ -60,9 +60,44 @@ export const BALANCE = {
     4: { statMult: 1.50, bonusXp: 1, bonusCogs: 10 }
   },
 
+  // Enemy shooters: after this long without being hit they walk towards their
+  // target, stopping at melee distance (in tiles)
+  ENEMY_PRESS_AFTER_S: 3,
+  ENEMY_PRESS_MIN_GAP: 1,
+
+  // Enemy growth. Robots get many times stronger over a run (levels,
+  // evolutions, skill tree), so enemy stats are multiplied per wave. The
+  // multipliers are given for these waves and interpolated in between.
+  // Act 3 enemies already have much higher base stats, hence the drop at 21.
+  // Tuned with tools/sim (VeteranBot): see docs/BALANCE.md.
+  ENEMY_SCALE_ANCHORS: [
+    { wave: 1, hp: 1, damage: 1 },
+    { wave: 10, hp: 12, damage: 4 },
+    { wave: 20, hp: 34, damage: 10 },
+    { wave: 21, hp: 14, damage: 5 },
+    { wave: 30, hp: 18, damage: 6 }
+  ] as ReadonlyArray<{ wave: number; hp: number; damage: number }>,
+
   // Emergency Valve
   VALVE_SLOW_DURATION_S: 5,
   VALVE_SLOW_RATIO: 0.6,
   VALVE_HEAL_BOILER_HP: 3
 } as const;
 
+/** Stat multipliers for enemies spawned on the given wave (1-based). */
+export function enemyWaveScale(waveNumber: number): { hp: number; damage: number } {
+  const anchors = BALANCE.ENEMY_SCALE_ANCHORS;
+  const first = anchors[0];
+  const last = anchors[anchors.length - 1];
+  if (waveNumber <= first.wave) return { hp: first.hp, damage: first.damage };
+  if (waveNumber >= last.wave) return { hp: last.hp, damage: last.damage };
+  for (let i = 1; i < anchors.length; i++) {
+    const a = anchors[i - 1];
+    const b = anchors[i];
+    if (waveNumber <= b.wave) {
+      const t = (waveNumber - a.wave) / (b.wave - a.wave);
+      return { hp: a.hp + (b.hp - a.hp) * t, damage: a.damage + (b.damage - a.damage) * t };
+    }
+  }
+  return { hp: last.hp, damage: last.damage };
+}

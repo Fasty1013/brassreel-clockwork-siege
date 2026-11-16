@@ -955,7 +955,8 @@ export class RunScene extends Phaser.Scene {
       InfoTip.of(this).attach(sprite, t(enemyDef.nameKey), () => {
         const live = this.state.combatState?.enemies.find((e) => e.id === id);
         const hp = live ? `${Math.max(0, Math.ceil(live.hp))}/${live.maxHp}` : `${enemyDef.hp}`;
-        return `${t(enemyDef.descKey)}\nЗдоровье: ${hp} · Урон: ${enemyDef.damage} · Броня: ${enemyDef.armor}`;
+        const dmg = live ? live.damage : enemyDef.damage;
+        return `${t(enemyDef.descKey)}\nЗдоровье: ${hp} · Урон: ${dmg} · Броня: ${enemyDef.armor}`;
       });
     }
     return { container, sprite, hpBarFill, hpW, key, flying, lastX: -1, attackingUntil: 0, bodyH };

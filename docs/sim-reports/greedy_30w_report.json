@@ -1,0 +1,114 @@
+{
+  "botName": "GreedyBot",
+  "totalRuns": 1000,
+  "victories": 0,
+  "defeats": 1000,
+  "winRatePct": 0,
+  "averageWaveReached": 3.69,
+  "deathsByWave": {
+    "1": 0,
+    "2": 0,
+    "3": 45,
+    "4": 367,
+    "5": 449,
+    "6": 132,
+    "7": 7,
+    "8": 0,
+    "9": 0,
+    "10": 0,
+    "11": 0,
+    "12": 0,
+    "13": 0,
+    "14": 0,
+    "15": 0,
+    "16": 0,
+    "17": 0,
+    "18": 0,
+    "19": 0,
+    "20": 0,
+    "21": 0,
+    "22": 0,
+    "23": 0,
+    "24": 0,
+    "25": 0,
+    "26": 0,
+    "27": 0,
+    "28": 0,
+    "29": 0,
+    "30": 0
+  },
+  "totalSpins": 18756,
+  "totalLineHits": 21164,
+  "hitRatePct": 112.84,
+  "jackpotCount": 71,
+  "totalJams": 0,
+  "avgDurationPerWaveS": 22.7,
+  "stalledRuns": 0,
+  "reachedWavePct": {
+    "1": 100,
+    "2": 100,
+    "3": 100,
+    "4": 95.5,
+    "5": 58.8,
+    "6": 13.9,
+    "7": 0.7
+  },
+  "waveAverages": {
+    "1": {
+      "boilerHp": 10,
+      "fieldUnits": 0,
+      "fieldLevels": 0,
+      "benchUnits": 4.03,
+      "cogs": 25,
+      "skillRanks": 0
+    },
+    "2": {
+      "boilerHp": 7,
+      "fieldUnits": 2.8,
+      "fieldLevels": 4.04,
+      "benchUnits": 4.2,
+      "cogs": 28,
+      "skillRanks": 0
+    },
+    "3": {
+      "boilerHp": 5.89,
+      "fieldUnits": 4.52,
+      "fieldLevels": 6.68,
+      "benchUnits": 5.84,
+      "cogs": 41.94,
+      "skillRanks": 0
+    },
+    "4": {
+      "boilerHp": 5.15,
+      "fieldUnits": 4.96,
+      "fieldLevels": 7.69,
+      "benchUnits": 8.52,
+      "cogs": 63.61,
+      "skillRanks": 0
+    },
+    "5": {
+      "boilerHp": 3.32,
+      "fieldUnits": 5,
+      "fieldLevels": 7.9,
+      "benchUnits": 11.37,
+      "cogs": 89.14,
+      "skillRanks": 0
+    },
+    "6": {
+      "boilerHp": 2.48,
+      "fieldUnits": 5,
+      "fieldLevels": 8.29,
+      "benchUnits": 14.07,
+      "cogs": 151.23,
+      "skillRanks": 0
+    },
+    "7": {
+      "boilerHp": 2.43,
+      "fieldUnits": 5,
+      "fieldLevels": 8.71,
+      "benchUnits": 17.86,
+      "cogs": 203.86,
+      "skillRanks": 0
+    }
+  }
+}

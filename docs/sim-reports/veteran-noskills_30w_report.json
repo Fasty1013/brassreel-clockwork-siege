@@ -1,0 +1,204 @@
+{
+  "botName": "VeteranBot (no skill tree)",
+  "totalRuns": 1000,
+  "victories": 0,
+  "defeats": 1000,
+  "winRatePct": 0,
+  "averageWaveReached": 9.06,
+  "deathsByWave": {
+    "1": 0,
+    "2": 0,
+    "3": 0,
+    "4": 4,
+    "5": 1,
+    "6": 6,
+    "7": 79,
+    "8": 102,
+    "9": 373,
+    "10": 121,
+    "11": 65,
+    "12": 11,
+    "13": 147,
+    "14": 60,
+    "15": 30,
+    "16": 0,
+    "17": 1,
+    "18": 0,
+    "19": 0,
+    "20": 0,
+    "21": 0,
+    "22": 0,
+    "23": 0,
+    "24": 0,
+    "25": 0,
+    "26": 0,
+    "27": 0,
+    "28": 0,
+    "29": 0,
+    "30": 0
+  },
+  "totalSpins": 46609,
+  "totalLineHits": 71400,
+  "hitRatePct": 153.19,
+  "jackpotCount": 271,
+  "totalJams": 0,
+  "avgDurationPerWaveS": 26.1,
+  "stalledRuns": 0,
+  "reachedWavePct": {
+    "1": 100,
+    "2": 100,
+    "3": 100,
+    "4": 100,
+    "5": 99.6,
+    "6": 99.5,
+    "7": 98.9,
+    "8": 91,
+    "9": 80.8,
+    "10": 43.5,
+    "11": 31.4,
+    "12": 24.9,
+    "13": 23.8,
+    "14": 9.1,
+    "15": 3.1,
+    "16": 0.1,
+    "17": 0.1
+  },
+  "waveAverages": {
+    "1": {
+      "boilerHp": 10,
+      "fieldUnits": 4.84,
+      "fieldLevels": 7.12,
+      "benchUnits": 0.09,
+      "cogs": 25,
+      "skillRanks": 0
+    },
+    "2": {
+      "boilerHp": 9.96,
+      "fieldUnits": 5,
+      "fieldLevels": 10.32,
+      "benchUnits": 0.73,
+      "cogs": 54.92,
+      "skillRanks": 0
+    },
+    "3": {
+      "boilerHp": 9.94,
+      "fieldUnits": 5,
+      "fieldLevels": 12.87,
+      "benchUnits": 1.75,
+      "cogs": 90.86,
+      "skillRanks": 0
+    },
+    "4": {
+      "boilerHp": 9.91,
+      "fieldUnits": 5,
+      "fieldLevels": 14.53,
+      "benchUnits": 2.48,
+      "cogs": 136.75,
+      "skillRanks": 0
+    },
+    "5": {
+      "boilerHp": 9.09,
+      "fieldUnits": 5,
+      "fieldLevels": 16.19,
+      "benchUnits": 3.11,
+      "cogs": 188.3,
+      "skillRanks": 0
+    },
+    "6": {
+      "boilerHp": 8.97,
+      "fieldUnits": 5,
+      "fieldLevels": 17.56,
+      "benchUnits": 3.66,
+      "cogs": 276.08,
+      "skillRanks": 0
+    },
+    "7": {
+      "boilerHp": 8.79,
+      "fieldUnits": 5,
+      "fieldLevels": 18.91,
+      "benchUnits": 4.4,
+      "cogs": 338.62,
+      "skillRanks": 0
+    },
+    "8": {
+      "boilerHp": 6.99,
+      "fieldUnits": 5,
+      "fieldLevels": 19.96,
+      "benchUnits": 4.88,
+      "cogs": 400.47,
+      "skillRanks": 0
+    },
+    "9": {
+      "boilerHp": 6.77,
+      "fieldUnits": 5,
+      "fieldLevels": 21.02,
+      "benchUnits": 5.47,
+      "cogs": 478.65,
+      "skillRanks": 0
+    },
+    "10": {
+      "boilerHp": 5.31,
+      "fieldUnits": 5,
+      "fieldLevels": 21.96,
+      "benchUnits": 5.98,
+      "cogs": 567.68,
+      "skillRanks": 0
+    },
+    "11": {
+      "boilerHp": 4.33,
+      "fieldUnits": 5,
+      "fieldLevels": 22.68,
+      "benchUnits": 6.6,
+      "cogs": 654.61,
+      "skillRanks": 0
+    },
+    "12": {
+      "boilerHp": 4.45,
+      "fieldUnits": 5,
+      "fieldLevels": 23.26,
+      "benchUnits": 7.07,
+      "cogs": 727.77,
+      "skillRanks": 0
+    },
+    "13": {
+      "boilerHp": 4.51,
+      "fieldUnits": 5,
+      "fieldLevels": 23.77,
+      "benchUnits": 7.52,
+      "cogs": 793.01,
+      "skillRanks": 0
+    },
+    "14": {
+      "boilerHp": 3.15,
+      "fieldUnits": 5,
+      "fieldLevels": 24.04,
+      "benchUnits": 7.82,
+      "cogs": 871.05,
+      "skillRanks": 0
+    },
+    "15": {
+      "boilerHp": 3.65,
+      "fieldUnits": 5,
+      "fieldLevels": 24.39,
+      "benchUnits": 8.58,
+      "cogs": 967.29,
+      "skillRanks": 0
+    },
+    "16": {
+      "boilerHp": 2,
+      "fieldUnits": 5,
+      "fieldLevels": 23,
+      "benchUnits": 11,
+      "cogs": 1128,
+      "skillRanks": 0
+    },
+    "17": {
+      "boilerHp": 2,
+      "fieldUnits": 5,
+      "fieldLevels": 23,
+      "benchUnits": 7,
+      "cogs": 1245,
+      "skillRanks": 0
+    }
+  }
+}

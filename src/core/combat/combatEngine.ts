@@ -51,6 +51,10 @@ export interface CombatEnemy {
   isDead: boolean;
   isBoss: boolean;
   bossPhase: number;
+  /** hp + shield at the end of the previous tick, to notice incoming damage */
+  lastHp: number;
+  /** how long it has been shooting at a defender without being hit back */
+  unansweredSeconds: number;
   statuses: {
     burnDps: number;
     burnDuration: number;
@@ -150,7 +154,8 @@ export class CombatEngine {
     state: CombatSimulationState,
     enemyDefId: string,
     row: number,
-    sequence: number
+    sequence: number,
+    scale: { hp: number; damage: number } = { hp: 1, damage: 1 }
   ): CombatEnemy {
     const def = ENEMIES_DATA[enemyDefId];
     if (!def) {
@@ -164,9 +169,9 @@ export class CombatEngine {
       x: 7.8, // Right edge
       y: row + 0.5,
       row,
-      hp: def.hp,
-      maxHp: def.hp,
-      damage: def.damage,
+      hp: Math.round(def.hp * scale.hp),
+      maxHp: Math.round(def.hp * scale.hp),
+      damage: Math.round(def.damage * scale.damage),
       attackSpeed: def.attackSpeed,
       attackRange: def.attackRange,
       armor: def.armor ?? 0,
@@ -176,6 +181,8 @@ export class CombatEngine {
       isDead: false,
       isBoss: def.isBoss ?? false,
       bossPhase: 1,
+      lastHp: Math.round(def.hp * scale.hp),
+      unansweredSeconds: 0,
       statuses: {
         burnDps: 0,
         burnDuration: 0,
@@ -255,6 +262,13 @@ export class CombatEngine {
         }
       }
 
+      let effectiveMoveSpeed = enemy.moveSpeed;
+      if (state.valveSlowRemaining > 0) {
+        effectiveMoveSpeed *= (1 - BALANCE.VALVE_SLOW_RATIO);
+      } else if (enemy.statuses.slowDuration > 0) {
+        effectiveMoveSpeed *= (1 - enemy.statuses.slowRatio);
+      }
+
       // Check for blockers / targets in range
       const targetUnit = this.findDefenderInRange(enemy, state.units);
       if (targetUnit) {
@@ -266,15 +280,20 @@ export class CombatEngine {
             : enemy.attackSpeed;
           enemy.attackCooldown = 1.0 / Math.max(0.2, effectiveAttackSpeed);
         }
-      } else {
-        // Advance leftward
-        let effectiveMoveSpeed = enemy.moveSpeed;
-        if (state.valveSlowRemaining > 0) {
-          effectiveMoveSpeed *= (1 - BALANCE.VALVE_SLOW_RATIO);
-        } else if (enemy.statuses.slowDuration > 0) {
-          effectiveMoveSpeed *= (1 - enemy.statuses.slowRatio);
-        }
 
+        // A shooter that nobody answers keeps closing in on its target until
+        // it is hit or stands in melee reach. Without this a ranged enemy and
+        // a defender out of everyone's range would trade shots forever.
+        const hpNow = enemy.hp + enemy.shield;
+        enemy.unansweredSeconds = hpNow < enemy.lastHp ? 0 : enemy.unansweredSeconds + dt;
+        if (enemy.unansweredSeconds >= BALANCE.ENEMY_PRESS_AFTER_S) {
+          const gap = enemy.x - targetUnit.x - BALANCE.ENEMY_PRESS_MIN_GAP;
+          if (gap > 0) enemy.x -= Math.min(gap, effectiveMoveSpeed * dt);
+        }
+      } else {
+        enemy.unansweredSeconds = 0;
+
+        // Advance leftward
         enemy.x -= effectiveMoveSpeed * dt;
 
         // Check for breach at column 0 border (x <= 0)
@@ -294,6 +313,10 @@ export class CombatEngine {
           }
         }
       }
+    }
+
+    for (const enemy of state.enemies) {
+      enemy.lastHp = enemy.hp + enemy.shield;
     }
 
     // 5. Clean up dead entities

@@ -1,0 +1,321 @@
+{
+  "botName": "VeteranBot",
+  "totalRuns": 1000,
+  "victories": 589,
+  "defeats": 411,
+  "winRatePct": 58.9,
+  "averageWaveReached": 28.28,
+  "deathsByWave": {
+    "1": 0,
+    "2": 0,
+    "3": 0,
+    "4": 0,
+    "5": 0,
+    "6": 0,
+    "7": 0,
+    "8": 0,
+    "9": 1,
+    "10": 1,
+    "11": 0,
+    "12": 0,
+    "13": 0,
+    "14": 0,
+    "15": 0,
+    "16": 5,
+    "17": 0,
+    "18": 3,
+    "19": 16,
+    "20": 78,
+    "21": 0,
+    "22": 0,
+    "23": 0,
+    "24": 0,
+    "25": 0,
+    "26": 0,
+    "27": 16,
+    "28": 3,
+    "29": 153,
+    "30": 135
+  },
+  "totalSpins": 162447,
+  "totalLineHits": 289854,
+  "hitRatePct": 178.43,
+  "jackpotCount": 1575,
+  "totalJams": 0,
+  "avgDurationPerWaveS": 29.5,
+  "stalledRuns": 0,
+  "reachedWavePct": {
+    "1": 100,
+    "2": 100,
+    "3": 100,
+    "4": 100,
+    "5": 100,
+    "6": 100,
+    "7": 100,
+    "8": 100,
+    "9": 100,
+    "10": 99.9,
+    "11": 99.8,
+    "12": 99.8,
+    "13": 99.8,
+    "14": 99.8,
+    "15": 99.8,
+    "16": 99.8,
+    "17": 99.3,
+    "18": 99.3,
+    "19": 99,
+    "20": 97.4,
+    "21": 89.6,
+    "22": 89.6,
+    "23": 89.6,
+    "24": 89.6,
+    "25": 89.6,
+    "26": 89.6,
+    "27": 89.6,
+    "28": 88,
+    "29": 87.7,
+    "30": 72.4
+  },
+  "waveAverages": {
+    "1": {
+      "boilerHp": 10,
+      "fieldUnits": 5.61,
+      "fieldLevels": 7.37,
+      "benchUnits": 0.01,
+      "cogs": 10,
+      "skillRanks": 1
+    },
+    "2": {
+      "boilerHp": 9.96,
+      "fieldUnits": 6.98,
+      "fieldLevels": 12.12,
+      "benchUnits": 0.06,
+      "cogs": 14.92,
+      "skillRanks": 2
+    },
+    "3": {
+      "boilerHp": 9.96,
+      "fieldUnits": 7,
+      "fieldLevels": 15.46,
+      "benchUnits": 0.35,
+      "cogs": 30.91,
+      "skillRanks": 3
+    },
+    "4": {
+      "boilerHp": 9.95,
+      "fieldUnits": 8,
+      "fieldLevels": 18.87,
+      "benchUnits": 0.31,
+      "cogs": 11.9,
+      "skillRanks": 6
+    },
+    "5": {
+      "boilerHp": 9.86,
+      "fieldUnits": 8,
+      "fieldLevels": 21.01,
+      "benchUnits": 0.62,
+      "cogs": 15.68,
+      "skillRanks": 8
+    },
+    "6": {
+      "boilerHp": 9.85,
+      "fieldUnits": 8,
+      "fieldLevels": 22.85,
+      "benchUnits": 0.98,
+      "cogs": 6.18,
+      "skillRanks": 10.95
+    },
+    "7": {
+      "boilerHp": 9.84,
+      "fieldUnits": 8,
+      "fieldLevels": 24.76,
+      "benchUnits": 1.56,
+      "cogs": 42.29,
+      "skillRanks": 12
+    },
+    "8": {
+      "boilerHp": 9.76,
+      "fieldUnits": 9,
+      "fieldLevels": 27.89,
+      "benchUnits": 1.14,
+      "cogs": 45.01,
+      "skillRanks": 14
+    },
+    "9": {
+      "boilerHp": 9.75,
+      "fieldUnits": 10,
+      "fieldLevels": 31.38,
+      "benchUnits": 0.88,
+      "cogs": 14.75,
+      "skillRanks": 15.98
+    },
+    "10": {
+      "boilerHp": 9.72,
+      "fieldUnits": 10,
+      "fieldLevels": 32.94,
+      "benchUnits": 1.21,
+      "cogs": 15.31,
+      "skillRanks": 17.98
+    },
+    "11": {
+      "boilerHp": 9.64,
+      "fieldUnits": 10,
+      "fieldLevels": 34.67,
+      "benchUnits": 1.63,
+      "cogs": 24.9,
+      "skillRanks": 19.97
+    },
+    "12": {
+      "boilerHp": 9.64,
+      "fieldUnits": 10,
+      "fieldLevels": 36.13,
+      "benchUnits": 1.97,
+      "cogs": 25.57,
+      "skillRanks": 21.97
+    },
+    "13": {
+      "boilerHp": 15.54,
+      "fieldUnits": 10,
+      "fieldLevels": 38.06,
+      "benchUnits": 2.41,
+      "cogs": 4.12,
+      "skillRanks": 24.83
+    },
+    "14": {
+      "boilerHp": 15.63,
+      "fieldUnits": 10,
+      "fieldLevels": 40.12,
+      "benchUnits": 3.05,
+      "cogs": 31.25,
+      "skillRanks": 26.99
+    },
+    "15": {
+      "boilerHp": 15.63,
+      "fieldUnits": 10,
+      "fieldLevels": 42.39,
+      "benchUnits": 3.94,
+      "cogs": 38.16,
+      "skillRanks": 30
+    },
+    "16": {
+      "boilerHp": 15,
+      "fieldUnits": 10,
+      "fieldLevels": 44.2,
+      "benchUnits": 4.76,
+      "cogs": 209.66,
+      "skillRanks": 30
+    },
+    "17": {
+      "boilerHp": 14.91,
+      "fieldUnits": 10,
+      "fieldLevels": 45.83,
+      "benchUnits": 5.59,
+      "cogs": 341.32,
+      "skillRanks": 30
+    },
+    "18": {
+      "boilerHp": 14.88,
+      "fieldUnits": 10,
+      "fieldLevels": 46.9,
+      "benchUnits": 6.31,
+      "cogs": 467.22,
+      "skillRanks": 30
+    },
+    "19": {
+      "boilerHp": 14.72,
+      "fieldUnits": 10,
+      "fieldLevels": 47.85,
+      "benchUnits": 7.28,
+      "cogs": 605.59,
+      "skillRanks": 30
+    },
+    "20": {
+      "boilerHp": 14.48,
+      "fieldUnits": 10,
+      "fieldLevels": 48.4,
+      "benchUnits": 7.99,
+      "cogs": 750.74,
+      "skillRanks": 30
+    },
+    "21": {
+      "boilerHp": 8.61,
+      "fieldUnits": 10,
+      "fieldLevels": 48.73,
+      "benchUnits": 8.87,
+      "cogs": 898.38,
+      "skillRanks": 30
+    },
+    "22": {
+      "boilerHp": 8.61,
+      "fieldUnits": 10,
+      "fieldLevels": 48.83,
+      "benchUnits": 9.69,
+      "cogs": 1037.38,
+      "skillRanks": 30
+    },
+    "23": {
+      "boilerHp": 8.61,
+      "fieldUnits": 10,
+      "fieldLevels": 48.83,
+      "benchUnits": 10.51,
+      "cogs": 1171.38,
+      "skillRanks": 30
+    },
+    "24": {
+      "boilerHp": 8.61,
+      "fieldUnits": 10,
+      "fieldLevels": 48.8,
+      "benchUnits": 11.35,
+      "cogs": 1330.38,
+      "skillRanks": 30
+    },
+    "25": {
+      "boilerHp": 8.61,
+      "fieldUnits": 10,
+      "fieldLevels": 48.77,
+      "benchUnits": 12.12,
+      "cogs": 1502.36,
+      "skillRanks": 30
+    },
+    "26": {
+      "boilerHp": 8.59,
+      "fieldUnits": 10,
+      "fieldLevels": 48.76,
+      "benchUnits": 12.96,
+      "cogs": 1767.99,
+      "skillRanks": 30
+    },
+    "27": {
+      "boilerHp": 8.59,
+      "fieldUnits": 10,
+      "fieldLevels": 48.75,
+      "benchUnits": 13.72,
+      "cogs": 1956.99,
+      "skillRanks": 30
+    },
+    "28": {
+      "boilerHp": 8.54,
+      "fieldUnits": 10,
+      "fieldLevels": 48.73,
+      "benchUnits": 14.55,
+      "cogs": 2151.51,
+      "skillRanks": 30
+    },
+    "29": {
+      "boilerHp": 8.54,
+      "fieldUnits": 10,
+      "fieldLevels": 48.72,
+      "benchUnits": 15.43,
+      "cogs": 2376.52,
+      "skillRanks": 30
+    },
+    "30": {
+      "boilerHp": 8.01,
+      "fieldUnits": 10,
+      "fieldLevels": 48.7,
+      "benchUnits": 16.11,
+      "cogs": 2637.48,
+      "skillRanks": 30
+    }
+  }
+}

@@ -1,3 +1,17 @@
+/** State of a run right before a battle starts. */
+export interface WaveSnapshot {
+  wave: number;
+  boilerHp: number;
+  fieldUnits: number;
+  /** sum of the levels of the robots on the field */
+  fieldLevels: number;
+  benchUnits: number;
+  cogs: number;
+  skillRanks: number;
+}
+
+export type WaveAverages = Omit<WaveSnapshot, 'wave'>;
+
 export interface SimulationRunMetrics {
   runId: number;
   seed: string;
@@ -9,7 +23,11 @@ export interface SimulationRunMetrics {
   totalLineHits: number;
   totalJackpots: number;
   totalJams: number;
+  /** mean length of one battle in this run */
   averageBattleSeconds: number;
+  /** a battle did not finish within the tick limit */
+  stalled?: boolean;
+  snapshots?: WaveSnapshot[];
 }
 
 export interface SimulationBatchSummary {
@@ -26,6 +44,11 @@ export interface SimulationBatchSummary {
   jackpotCount: number;
   totalJams: number;
   avgDurationPerWaveS: number;
+  stalledRuns: number;
+  /** share of runs that started the given wave */
+  reachedWavePct: Record<number, number>;
+  /** averages over the runs that started the given wave */
+  waveAverages: Record<number, WaveAverages>;
 }
 
 export class TelemetryAggregator {
@@ -51,7 +74,10 @@ export class TelemetryAggregator {
         hitRatePct: 0,
         jackpotCount: 0,
         totalJams: 0,
-        avgDurationPerWaveS: 0
+        avgDurationPerWaveS: 0,
+        stalledRuns: 0,
+        reachedWavePct: {},
+        waveAverages: {}
       };
     }
 
@@ -85,6 +111,38 @@ export class TelemetryAggregator {
       }
     }
 
+    const reached: Record<number, number> = {};
+    const sums: Record<number, WaveAverages> = {};
+    for (const r of this.runs) {
+      for (const snap of r.snapshots ?? []) {
+        reached[snap.wave] = (reached[snap.wave] ?? 0) + 1;
+        const acc = (sums[snap.wave] ??= { boilerHp: 0, fieldUnits: 0, fieldLevels: 0, benchUnits: 0, cogs: 0, skillRanks: 0 });
+        acc.boilerHp += snap.boilerHp;
+        acc.fieldUnits += snap.fieldUnits;
+        acc.fieldLevels += snap.fieldLevels;
+        acc.benchUnits += snap.benchUnits;
+        acc.cogs += snap.cogs;
+        acc.skillRanks += snap.skillRanks;
+      }
+    }
+    const reachedWavePct: Record<number, number> = {};
+    const waveAverages: Record<number, WaveAverages> = {};
+    for (const [waveKey, count] of Object.entries(reached)) {
+      const w = Number(waveKey);
+      reachedWavePct[w] = Number(((count / totalRuns) * 100).toFixed(1));
+      const acc = sums[w];
+      const avg = (v: number): number => Number((v / count).toFixed(2));
+      waveAverages[w] = {
+        boilerHp: avg(acc.boilerHp),
+        fieldUnits: avg(acc.fieldUnits),
+        fieldLevels: avg(acc.fieldLevels),
+        benchUnits: avg(acc.benchUnits),
+        cogs: avg(acc.cogs),
+        skillRanks: avg(acc.skillRanks)
+      };
+    }
+    const stalledRuns = this.runs.filter((r) => r.stalled).length;
+
     const averageWaveReached = Number((sumWaves / totalRuns).toFixed(2));
     const hitRatePct = sumSpins > 0 ? Number(((sumLineHits / sumSpins) * 100).toFixed(2)) : 0;
     const avgDurationPerWaveS = Number((sumBattleSeconds / totalRuns).toFixed(1));
@@ -102,7 +160,10 @@ export class TelemetryAggregator {
       hitRatePct,
       jackpotCount: sumJackpots,
       totalJams: sumJams,
-      avgDurationPerWaveS
+      avgDurationPerWaveS,
+      stalledRuns,
+      reachedWavePct,
+      waveAverages
     };
   }
 }

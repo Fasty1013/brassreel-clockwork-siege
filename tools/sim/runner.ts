@@ -6,17 +6,25 @@ import { BotPolicy } from './bots/BotPolicy';
 import { RandomBot } from './bots/RandomBot';
 import { GreedyBot } from './bots/GreedyBot';
 import { SmartBot } from './bots/SmartBot';
-import { TelemetryAggregator, SimulationRunMetrics } from './telemetry';
+import { VeteranBot } from './bots/VeteranBot';
+import { TelemetryAggregator, SimulationRunMetrics, WaveSnapshot } from './telemetry';
 import * as fs from 'fs';
 import * as path from 'path';
 
 import { MetaManager } from '../../src/core/meta/metaManager';
 import { MetaState } from '../../src/core/meta/metaSchema';
 
-function parseArgs(): { runs: number; botName: 'random' | 'greedy' | 'smart'; seed: string; output?: string; waves: number; metaLevel: 'none' | 'mid' | 'max' } {
+export type BotName = 'random' | 'greedy' | 'smart' | 'veteran' | 'veteran-noskills' | 'veteran-noholds' | 'veteran-symbols';
+
+/** A battle that is still running after this many ticks (5 minutes) is counted as stalled. */
+const MAX_BATTLE_TICKS = 6000;
+/** Safety net for interactive bots that never stop issuing commands. */
+const MAX_BOT_ROUNDS = 400;
+
+function parseArgs(): { runs: number; botName: BotName; seed: string; output?: string; waves: number; metaLevel: 'none' | 'mid' | 'max' } {
   const args = process.argv.slice(2);
   let runs = 1000;
-  let botName: 'random' | 'greedy' | 'smart' = 'smart';
+  let botName: BotName = 'veteran';
   let seed = 'BRASS_SIM_SEED';
   let output: string | undefined;
   let waves = 10;
@@ -54,8 +62,16 @@ function getBot(botName: string): BotPolicy {
     case 'greedy':
       return new GreedyBot();
     case 'smart':
-    default:
       return new SmartBot();
+    case 'veteran-noskills':
+      return new VeteranBot('VeteranBot (no skill tree)', { skills: false });
+    case 'veteran-noholds':
+      return new VeteranBot('VeteranBot (no holds)', { holds: false });
+    case 'veteran-symbols':
+      return new VeteranBot('VeteranBot (+symbols)', { symbols: true });
+    case 'veteran':
+    default:
+      return new VeteranBot();
   }
 }
 
@@ -99,28 +115,55 @@ export function runSimulationRun(
   let totalJackpots = 0;
   let totalJams = 0;
   let totalBattleSeconds = 0;
+  let battlesFought = 0;
 
   bus.on('spin_start', () => totalSpins++);
   bus.on('line_hit', () => totalLineHits++);
   bus.on('jackpot', () => totalJackpots++);
   bus.on('jam_triggered', () => totalJams++);
 
+  bus.on('core_draft_ready', (data) => {
+    const coreId = bot.chooseCore?.(data.choices, state);
+    if (coreId) RunReducer.dispatch(state, { type: 'EQUIP_CORE', coreId }, rng, bus);
+  });
+
+  const snapshots: WaveSnapshot[] = [];
+  let stalled = false;
+  // the reducer mutates the state, so the phase has to be re-read without narrowing
+  const phaseOf = (): string => state.phase;
+
   // Waves 1 to maxWaves
   for (let wave = 1; wave <= maxWaves; wave++) {
-    if (state.phase === 'GAME_OVER') break;
+    if (state.phase !== 'PREP') break;
 
     // 1. PREP Phase
-    const prepCommands = bot.decidePrepActions(state, rng);
-    for (const cmd of prepCommands) {
-      RunReducer.dispatch(state, cmd, rng, bus);
+    if (bot.interactive) {
+      for (let round = 0; round < MAX_BOT_ROUNDS; round++) {
+        const commands = bot.decidePrepActions(state, rng);
+        if (commands.length === 0) break;
+        for (const cmd of commands) RunReducer.dispatch(state, cmd, rng, bus);
+      }
+    } else {
+      for (const cmd of bot.decidePrepActions(state, rng)) {
+        RunReducer.dispatch(state, cmd, rng, bus);
+      }
     }
+
+    snapshots.push({
+      wave: state.waveNumber,
+      boilerHp: state.boilerHp,
+      fieldUnits: state.deployedUnits.length,
+      fieldLevels: state.deployedUnits.reduce((sum, u) => sum + u.starRank, 0),
+      benchUnits: state.reserveBench.length,
+      cogs: state.economy.cogs,
+      skillRanks: Object.values(state.skills).reduce((sum, r) => sum + r, 0)
+    });
 
     // 2. BATTLE Phase
     RunReducer.dispatch(state, { type: 'START_BATTLE' }, rng, bus);
 
     let waveTicks = 0;
-    while (state.phase === 'BATTLE' && waveTicks < 1200) {
-      // 1200 ticks = 60s max per wave
+    while (phaseOf() === 'BATTLE' && waveTicks < MAX_BATTLE_TICKS) {
       const battleCommands = bot.decideBattleActions(state, rng);
       for (const cmd of battleCommands) {
         RunReducer.dispatch(state, cmd, rng, bus);
@@ -130,25 +173,34 @@ export function runSimulationRun(
     }
 
     totalBattleSeconds += waveTicks * 0.05;
+    battlesFought++;
+
+    if (phaseOf() === 'BATTLE') {
+      stalled = true;
+      break;
+    }
 
     // 3. RESULT & SHOP
-    if (state.phase === 'RESULT') {
+    if (phaseOf() === 'RESULT') {
       RunReducer.dispatch(state, { type: 'ADVANCE_TO_SHOP' }, rng, bus);
-      const shopCommands = bot.decideShopActions(state, rng);
-      for (const cmd of shopCommands) {
-        RunReducer.dispatch(state, cmd, rng, bus);
+      if (bot.interactive) {
+        for (let round = 0; round < MAX_BOT_ROUNDS && phaseOf() === 'SHOP'; round++) {
+          for (const cmd of bot.decideShopActions(state, rng)) RunReducer.dispatch(state, cmd, rng, bus);
+        }
+      } else {
+        for (const cmd of bot.decideShopActions(state, rng)) {
+          RunReducer.dispatch(state, cmd, rng, bus);
+        }
       }
-    } else if ((state.phase as any) === 'VICTORY') {
-      break;
-    } else if ((state.phase as any) === 'GAME_OVER') {
-      break;
     }
   }
 
+  const phase = phaseOf();
   const clearedFinalWave =
-    (state.phase as any) === 'VICTORY' ||
-    state.waveNumber > maxWaves ||
-    (state.waveNumber === maxWaves && state.boilerHp > 0 && (state.phase as any) !== 'GAME_OVER');
+    !stalled &&
+    (phase === 'VICTORY' ||
+      state.waveNumber > maxWaves ||
+      (state.waveNumber === maxWaves && state.boilerHp > 0 && phase !== 'GAME_OVER'));
   const wavesCleared = clearedFinalWave ? maxWaves : Math.max(0, state.waveNumber - 1);
 
   return {
@@ -162,13 +214,15 @@ export function runSimulationRun(
     totalLineHits,
     totalJackpots,
     totalJams,
-    averageBattleSeconds: Number(totalBattleSeconds.toFixed(1))
+    averageBattleSeconds: battlesFought > 0 ? Number((totalBattleSeconds / battlesFought).toFixed(1)) : 0,
+    stalled,
+    snapshots
   };
 }
 
 export function runHeadlessBatch(
   runs: number,
-  botName: 'random' | 'greedy' | 'smart',
+  botName: BotName,
   masterSeed: string,
   maxWaves = 10,
   metaLevel: 'none' | 'mid' | 'max' = 'none'
@@ -198,13 +252,17 @@ export function runHeadlessBatch(
   console.log(`Jackpots:            ${summary.jackpotCount}`);
   console.log(`Jams Triggered:      ${summary.totalJams}`);
   console.log(`Avg Wave Duration:   ${summary.avgDurationPerWaveS}s`);
-  console.log('Death Distribution By Wave:');
+  console.log(`Stalled Battles:     ${summary.stalledRuns}`);
+  console.log(`Reached Act 2 / 3:   ${summary.reachedWavePct[11] ?? 0}% / ${summary.reachedWavePct[21] ?? 0}%`);
+  console.log('Wave | reached | died here | boiler | field | lvl sum | bench | cogs | skills');
   for (let w = 1; w <= maxWaves; w++) {
     const deaths = summary.deathsByWave[w] ?? 0;
-    if (deaths > 0 || w <= 10) {
-      const pct = ((deaths / summary.totalRuns) * 100).toFixed(1);
-      console.log(`  Wave ${w.toString().padStart(2)}: ${deaths.toString().padStart(4)} deaths (${pct}%)`);
-    }
+    const avg = summary.waveAverages[w];
+    const cell = (v: number | undefined, width: number): string => (v === undefined ? '-' : v.toFixed(1)).padStart(width);
+    console.log(
+      `${w.toString().padStart(4)} | ${`${summary.reachedWavePct[w] ?? 0}%`.padStart(7)} | ${`${((deaths / summary.totalRuns) * 100).toFixed(1)}%`.padStart(9)} | ` +
+        `${cell(avg?.boilerHp, 6)} | ${cell(avg?.fieldUnits, 5)} | ${cell(avg?.fieldLevels, 7)} | ${cell(avg?.benchUnits, 5)} | ${cell(avg?.cogs, 4)} | ${cell(avg?.skillRanks, 6)}`
+    );
   }
   console.log('----------------------------------------------------');
 

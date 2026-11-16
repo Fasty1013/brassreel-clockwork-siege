@@ -9,7 +9,7 @@ import http from 'http';
 import fs from 'fs';
 import path from 'path';
 
-const CHROME_PATH = 'C:/Program Files/Google/Chrome/Application/chrome.exe';
+const CHROME_PATH = process.env.CHROME_PATH ?? 'C:/Program Files/Google/Chrome/Application/chrome.exe';
 const PORT = 39998;
 const MIME: Record<string, string> = {
   '.html': 'text/html', '.js': 'application/javascript', '.css': 'text/css', '.json': 'application/json',
@@ -36,7 +36,7 @@ async function main(): Promise<void> {
     const page = await browser.newPage();
     await page.setViewport({ width: 1920, height: 1080 });
     page.on('pageerror', (e: unknown) => console.error('PAGE ERROR:', (e as Error)?.message ?? e));
-    await page.goto(`http://127.0.0.1:${PORT}/`, { waitUntil: 'networkidle0' });
+    await page.goto(`http://127.0.0.1:${PORT}/`, { waitUntil: 'load' });
     await new Promise((r) => setTimeout(r, 1500));
     const result = await page.evaluate(`(async () => {
       const game = window.game;

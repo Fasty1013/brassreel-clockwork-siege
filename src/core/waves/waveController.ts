@@ -1,4 +1,5 @@
 import { WAVES_DATA } from '@data/waves';
+import { enemyWaveScale } from '@data/balance';
 import { WaveDefinition } from '@data/schemas/waveSchema';
 import { CombatEngine, CombatSimulationState } from '../combat/combatEngine';
 import { PRNG } from '../prng/sfc32';
@@ -57,7 +58,7 @@ export class WaveController {
     for (let i = this.pendingSpawns.length - 1; i >= 0; i--) {
       const spawn = this.pendingSpawns[i];
       if (combatState.elapsedSeconds >= spawn.spawnTime) {
-        CombatEngine.spawnEnemy(combatState, spawn.enemyId, spawn.row, this.spawnSequence++);
+        CombatEngine.spawnEnemy(combatState, spawn.enemyId, spawn.row, this.spawnSequence++, enemyWaveScale(this.waveIndex + 1));
         this.pendingSpawns.splice(i, 1);
       }
     }

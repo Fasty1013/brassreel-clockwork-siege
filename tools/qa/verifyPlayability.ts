@@ -3,7 +3,7 @@ import http from 'http';
 import fs from 'fs';
 import path from 'path';
 
-const CHROME_PATH = 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe';
+const CHROME_PATH = process.env.CHROME_PATH ?? 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe';
 const PORT = 39999;
 
 function createServer(): http.Server {
@@ -51,7 +51,7 @@ async function main() {
   page.on('pageerror', (err: any) => console.error('PAGE ERROR:', err?.message || err));
 
   console.log('Navigating to game...');
-  await page.goto(`http://127.0.0.1:${PORT}/`, { waitUntil: 'networkidle0' });
+  await page.goto(`http://127.0.0.1:${PORT}/`, { waitUntil: 'load' });
   await new Promise(r => setTimeout(r, 1000));
 
   // Take screenshot of MenuScene
