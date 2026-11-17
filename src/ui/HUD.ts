@@ -13,6 +13,7 @@ export class HUD extends Phaser.GameObjects.Container {
   private soundButton: Phaser.GameObjects.Rectangle;
   private soundText: Phaser.GameObjects.Text;
   private skillsButton: Phaser.GameObjects.Rectangle;
+  private menuButton: Phaser.GameObjects.Rectangle;
 
   constructor(scene: Phaser.Scene) {
     super(scene, 0, 0);
@@ -101,6 +102,14 @@ export class HUD extends Phaser.GameObjects.Container {
     this.add(scene.add.text(1330, 32, 'ДРЕВО (T)', { fontSize: '16px', color: '#ffd166', fontStyle: 'bold' }).setOrigin(0.5));
     this.skillsButton.on('pointerdown', () => this.emit('open_skills'));
 
+    // 5c. Back to the main menu (the run is kept and can be continued)
+    this.menuButton = scene.add.rectangle(1714, 32, 128, 36, 0x2b221a);
+    this.menuButton.setStrokeStyle(2, 0xd4a373);
+    this.menuButton.setInteractive({ useHandCursor: true });
+    this.add(this.menuButton);
+    this.add(scene.add.text(1714, 32, 'МЕНЮ (Esc)', { fontSize: '15px', color: '#ffd166', fontStyle: 'bold' }).setOrigin(0.5));
+    this.menuButton.on('pointerdown', () => this.emit('open_menu'));
+
     // 6. Sound Toggle Button
     this.soundButton = scene.add.rectangle(1820, 32, 44, 36, 0x241d2c);
     this.soundButton.setStrokeStyle(1, 0x8c5836);
@@ -175,6 +184,7 @@ export class HUD extends Phaser.GameObjects.Container {
     tip.zone(1140, 32, 150, 40, 'Жар', 'Растёт от платных прокруток, остывает между волнами. Чем горячее, тем чаще выпадают джокеры и короны, но выше 60% барабаны могут заклинить.');
     tip.attach(this.skillsButton, 'Древо навыков', 'Постоянные улучшения на весь забег за шестерни: больше роботов на поле, здоровье, урон, прокрутки. Клавиша T.');
     tip.attach(this.valveButton, 'Аварийный клапан', 'Один раз за бой: замедляет всех врагов на 60% на 5 секунд. Клавиша V.');
+    tip.attach(this.menuButton, 'Главное меню', 'Выйти в меню. Забег не пропадает: бой встаёт на паузу, в меню можно нажать «Продолжить забег». Клавиша Esc.');
     tip.attach(this.soundButton, 'Звук', 'Включить или выключить звук. Клавиша M.');
   }
 

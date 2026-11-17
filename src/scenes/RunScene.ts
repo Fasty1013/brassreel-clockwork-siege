@@ -23,6 +23,9 @@ import { SkillManager } from '@core/skills/skills';
 import { SkillTreeModal } from '@ui/SkillTreeModal';
 import { InfoTip } from '@ui/InfoTip';
 import { t } from '@data/i18n';
+import { CampaignMapModal } from '@ui/CampaignMapModal';
+import { ACTS, WAVES_PER_ACT } from '@data/acts';
+import { WAVES_DATA } from '@data/waves';
 import { AnimationFX } from '../fx/AnimationFX';
 import { SteampunkAtmosphere } from '../fx/SteampunkAtmosphere';
 import { ParticleKit } from '../presentation/ParticleKit';
@@ -88,7 +91,11 @@ export class RunScene extends Phaser.Scene {
   private waveInfoText!: Phaser.GameObjects.Text;
 
   // Slotbound Presentation Elements
-  private waveRibbonTexts: Phaser.GameObjects.Text[] = [];
+  /** campaign ribbon: act label, one pip per wave of the act, wave counter */
+  private campaignActText!: Phaser.GameObjects.Text;
+  private campaignWaveText!: Phaser.GameObjects.Text;
+  private campaignPips: { box: Phaser.GameObjects.Rectangle; mark: Phaser.GameObjects.Text }[] = [];
+  private campaignMap!: CampaignMapModal;
   private speechBubbleText!: Phaser.GameObjects.Text;
   private skullBtnPulseTween: Phaser.Tweens.Tween | null = null;
 
@@ -156,8 +163,8 @@ export class RunScene extends Phaser.Scene {
     const windowFrame = this.add.image(winX, winY, 'ui_window_frame');
     windowFrame.setDisplaySize(winW, winH);
 
-    // Top Wave Ribbon Banner
-    this.createWaveRibbon(winX, 114);
+    // Top ribbon: where the run is in the campaign (click → campaign map)
+    this.createWaveRibbon(winX + 125, 114);
 
     // Foreman Cogsworth in arch niche
     this.createForemanGuide(540, 138);
@@ -201,6 +208,7 @@ export class RunScene extends Phaser.Scene {
     this.syncUnitCards();
 
     this.setupSkillTree();
+    this.setupCampaignAndMenu();
     this.setupInfoTips();
 
     // pixel-art 9-slice skin for every framed panel/button in the scene
@@ -321,20 +329,68 @@ export class RunScene extends Phaser.Scene {
     this.refreshHUD();
   }
 
+  /** Campaign ribbon: «АКТ 1» · ten pips for the act's waves (★ boss, ⚙ inspection) · «ВОЛНА 3/30». */
   private createWaveRibbon(x: number, y: number): void {
-    const ribbonBg = this.add.rectangle(x, y, 280, 42, 0x231d2c);
+    const W = 560;
+    const ribbonBg = this.add.rectangle(x, y, W, 46, 0x231d2c);
     ribbonBg.setStrokeStyle(2, 0x3d3047);
-    this.waveRibbonTexts = [];
-    const offsets = [-75, -25, 25, 75];
-    for (let i = 0; i < 4; i++) {
-      const txt = this.add.text(x + offsets[i], y, `${i + 1}`, {
-        fontFamily: 'monospace',
-        fontSize: i === 0 ? '22px' : '15px',
-        color: i === 0 ? '#ffd166' : '#534764',
-        fontStyle: 'bold'
-      }).setOrigin(0.5);
-      this.waveRibbonTexts.push(txt);
+    ribbonBg.setInteractive({ useHandCursor: true });
+    ribbonBg.on('pointerover', () => ribbonBg.setStrokeStyle(2, 0xd4a373));
+    ribbonBg.on('pointerout', () => ribbonBg.setStrokeStyle(2, 0x3d3047));
+    ribbonBg.on('pointerdown', () => this.openCampaignMap());
+
+    this.campaignActText = this.add.text(x - W / 2 + 14, y, 'АКТ 1', {
+      fontSize: '18px', color: '#ffd166', fontStyle: 'bold'
+    }).setOrigin(0, 0.5);
+    this.campaignWaveText = this.add.text(x + W / 2 - 14, y, 'ВОЛНА 1/30', {
+      fontSize: '18px', color: '#f4ecd8', fontStyle: 'bold'
+    }).setOrigin(1, 0.5);
+
+    this.campaignPips = [];
+    const step = 28;
+    const startX = x - ((WAVES_PER_ACT - 1) * step) / 2 - 6;
+    for (let i = 0; i < WAVES_PER_ACT; i++) {
+      const box = this.add.rectangle(startX + i * step, y, 22, 22, 0x15121b);
+      box.setStrokeStyle(2, 0x534764);
+      const mark = this.add.text(startX + i * step, y, '', { fontSize: '15px', color: '#f4ecd8', fontStyle: 'bold' }).setOrigin(0.5);
+      this.campaignPips.push({ box, mark });
     }
+
+    InfoTip.of(this).attach(ribbonBg, 'Кампания', () => {
+      const wave = this.state.waveNumber;
+      const act = ACTS[Math.ceil(wave / WAVES_PER_ACT) - 1] ?? ACTS[ACTS.length - 1];
+      const def = WAVES_DATA[wave - 1];
+      return `Акт ${act.act} из ${ACTS.length}: ${act.name}. Волна ${wave} из ${WAVES_DATA.length}` +
+        (def ? ` — «${t(def.titleKey)}».` : '.') +
+        `\nКвадраты — волны этого акта: ★ босс, ⚙ инспекция ОТК.\nНажмите, чтобы открыть карту всей кампании (клавиша K).`;
+    });
+  }
+
+  /** Paints the campaign ribbon for the current wave. */
+  private refreshCampaignRibbon(): void {
+    if (!this.campaignActText) return;
+    const wave = this.state.waveNumber;
+    const actIdx = Math.min(ACTS.length, Math.ceil(wave / WAVES_PER_ACT)) - 1;
+    const act = ACTS[actIdx];
+    this.campaignActText.setText(`АКТ ${act.act}/${ACTS.length}`).setColor(act.color);
+    this.campaignWaveText.setText(`ВОЛНА ${wave}/${WAVES_DATA.length}`);
+    this.campaignPips.forEach(({ box, mark }, i) => {
+      const w = actIdx * WAVES_PER_ACT + i + 1;
+      const def = WAVES_DATA[w - 1];
+      const done = w < wave;
+      const here = w === wave;
+      box.setFillStyle(done ? 0x3a5a40 : here ? 0xffd166 : def?.isBoss ? 0x7a1f2b : def?.isInspection ? 0x1f6f6b : 0x15121b);
+      box.setStrokeStyle(2, here ? 0xffffff : 0x534764);
+      box.setScale(here ? 1.25 : 1);
+      mark.setText(done ? '✓' : def?.isBoss ? '★' : def?.isInspection ? '⚙' : '');
+      mark.setColor(here ? '#1f1610' : done ? '#8fe39a' : '#f4ecd8');
+    });
+  }
+
+  private openCampaignMap(): void {
+    if (!this.campaignMap) return;
+    this.tooltip?.hide();
+    this.campaignMap.open(this.state.waveNumber);
   }
 
   private createForemanGuide(x: number, y: number): void {
@@ -1147,6 +1203,42 @@ export class RunScene extends Phaser.Scene {
     }
   }
 
+  /** Campaign map (ribbon click / K) and the «МЕНЮ» button (Esc). */
+  private setupCampaignAndMenu(): void {
+    this.campaignMap = new CampaignMapModal(this);
+    this.input.keyboard?.on('keydown-K', () => {
+      if (this.campaignMap.visible) this.campaignMap.hide();
+      else this.openCampaignMap();
+    });
+    this.hud.on('open_menu', () => this.exitToMenu());
+    this.input.keyboard?.on('keydown-ESC', () => {
+      if (this.campaignMap.visible) this.campaignMap.hide();
+      else if (this.skillTreeModal?.visible) this.skillTreeModal.hide();
+      else this.exitToMenu();
+    });
+    // back from the menu: the run goes on exactly where it was
+    const onWake = (): void => {
+      this.cameras.main.fadeIn(250, 20, 16, 12);
+      this.refreshHUD();
+    };
+    this.events.on(Phaser.Scenes.Events.WAKE, onWake);
+    // scene events outlive a restart (new run): don't stack the handler
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => this.events.off(Phaser.Scenes.Events.WAKE, onWake));
+  }
+
+  /**
+   * Leaves for the main menu without losing the run: the scene is put to sleep
+   * (a battle freezes mid-fight) and the menu offers «Продолжить забег».
+   */
+  private exitToMenu(): void {
+    if (this.state.phase === 'GAME_OVER' || this.state.phase === 'VICTORY') return;
+    SoundManager.getInstance().playButtonClick();
+    this.tooltip?.hide();
+    this.campaignMap.hide();
+    this.scene.sleep();
+    this.scene.run('MenuScene');
+  }
+
   /** Skill tree window + its HUD button and hotkey. */
   private setupSkillTree(): void {
     this.skillTreeModal = new SkillTreeModal(this);
@@ -1303,19 +1395,8 @@ export class RunScene extends Phaser.Scene {
       );
     }
 
-    // Update Wave Ribbon
-    if (this.waveRibbonTexts && this.waveRibbonTexts.length === 4) {
-      const activeIdx = (this.state.waveNumber - 1) % 4;
-      for (let i = 0; i < 4; i++) {
-        if (i === activeIdx) {
-          this.waveRibbonTexts[i].setFontSize('22px');
-          this.waveRibbonTexts[i].setColor('#ffd166');
-        } else {
-          this.waveRibbonTexts[i].setFontSize('15px');
-          this.waveRibbonTexts[i].setColor('#534764');
-        }
-      }
-    }
+    // Campaign ribbon: act and wave
+    this.refreshCampaignRibbon();
 
     // Update Steampunk atmosphere & slot heat aura
     if (this.atmosphere) {

@@ -3,6 +3,9 @@ import { UISkin } from '../art/ui/UISkin';
 import { setLocale, getLocale } from '@data/i18n';
 import { SoundManager } from '../audio/SoundManager';
 import { ArchiveModal } from '../ui/ArchiveModal';
+import type { RunState } from '@core/state/RunState';
+import { ACTS, WAVES_PER_ACT } from '@data/acts';
+import { WAVES_DATA } from '@data/waves';
 
 export class MenuScene extends Phaser.Scene {
   private startBtnText!: Phaser.GameObjects.Text;
@@ -81,12 +84,33 @@ export class MenuScene extends Phaser.Scene {
       }
     ).setOrigin(0.5);
 
-    // Start Game Button
-    const startBtn = this.add.rectangle(width / 2, 540, 380, 72, 0xd4a373);
+    // A run left through the «МЕНЮ» button sleeps in RunScene: offer to continue it.
+    const canResume = this.scene.isSleeping('RunScene');
+
+    // Start Game Button (wider when it reads «ПРОДОЛЖИТЬ ЗАБЕГ»)
+    const startBtn = this.add.rectangle(width / 2, 540, canResume ? 480 : 380, 72, 0xd4a373);
     startBtn.setStrokeStyle(4, 0xffd166);
     startBtn.setInteractive({ useHandCursor: true });
+    const startLabel = (ru: boolean): string =>
+      canResume
+        ? ru ? 'ПРОДОЛЖИТЬ ЗАБЕГ [ПРОБЕЛ] ▶' : 'CONTINUE RUN [SPACE] ▶'
+        : ru ? 'В БОЙ [ПРОБЕЛ] ⚔' : 'START DEFENSE [SPACE] ⚔';
 
-    this.startBtnText = this.add.text(width / 2, 540, isRu ? 'В БОЙ [ПРОБЕЛ] ⚔' : 'START DEFENSE [SPACE] ⚔', {
+    if (canResume) {
+      const run = (this.scene.get('RunScene') as Phaser.Scene & { state?: RunState }).state;
+      if (run) {
+        const act = ACTS[Math.min(ACTS.length, Math.ceil(run.waveNumber / WAVES_PER_ACT)) - 1];
+        this.add.text(
+          width / 2, 470,
+          isRu
+            ? `Забег на паузе: акт ${act.act} «${act.name}» · волна ${run.waveNumber} из ${WAVES_DATA.length} · котёл ${run.boilerHp}/${run.maxBoilerHp}`
+            : `Run paused: act ${act.act} · wave ${run.waveNumber} of ${WAVES_DATA.length} · boiler ${run.boilerHp}/${run.maxBoilerHp}`,
+          { fontSize: '20px', color: '#ffd166', fontStyle: 'bold' }
+        ).setOrigin(0.5);
+      }
+    }
+
+    this.startBtnText = this.add.text(width / 2, 540, startLabel(isRu), {
       fontFamily: 'monospace',
       fontSize: '22px',
       color: '#1f1610',
@@ -113,18 +137,55 @@ export class MenuScene extends Phaser.Scene {
       });
     });
 
-    const startGame = () => {
+    let leaving = false;
+    const newRun = () => {
+      if (leaving) return;
+      leaving = true;
       SoundManager.getInstance().init();
       SoundManager.getInstance().playButtonClick();
       this.cameras.main.fade(300, 20, 16, 12);
       this.time.delayedCall(300, () => {
+        // a sleeping run is shut down and replaced by a fresh one
         this.scene.start('RunScene');
       });
     };
+    const resumeRun = () => {
+      if (leaving) return;
+      leaving = true;
+      SoundManager.getInstance().playButtonClick();
+      this.cameras.main.fade(200, 20, 16, 12);
+      this.time.delayedCall(200, () => {
+        this.scene.wake('RunScene');
+        this.scene.stop();
+      });
+    };
+    const startGame = canResume ? resumeRun : newRun;
 
     startBtn.on('pointerdown', startGame);
     this.input.keyboard?.on('keydown-SPACE', startGame);
     this.input.keyboard?.on('keydown-ENTER', startGame);
+    this.input.keyboard?.on('keydown-ESC', () => { if (canResume) resumeRun(); });
+
+    // New run while one is paused: the second click within 3 s confirms (the paused run is lost)
+    if (canResume) {
+      const newBtn = this.add.rectangle(width / 2, 700, 380, 44, 0x2b221a);
+      newBtn.setStrokeStyle(2, 0xd90429);
+      newBtn.setInteractive({ useHandCursor: true });
+      const idle = isRu ? 'НОВЫЙ ЗАБЕГ (текущий пропадёт)' : 'NEW RUN (current one is lost)';
+      const sure = isRu ? 'ТОЧНО? НАЖМИТЕ ЕЩЁ РАЗ' : 'SURE? CLICK AGAIN';
+      const newTxt = this.add.text(width / 2, 700, idle, { fontSize: '16px', color: '#ff8a7a', fontStyle: 'bold' }).setOrigin(0.5);
+      let armedUntil = 0;
+      newBtn.on('pointerdown', () => {
+        if (this.time.now < armedUntil) {
+          newRun();
+          return;
+        }
+        armedUntil = this.time.now + 3000;
+        newTxt.setText(sure);
+        SoundManager.getInstance().playButtonClick();
+        this.time.delayedCall(3000, () => { if (newTxt.active) newTxt.setText(idle); });
+      });
+    }
 
     // Mount Archive Modal
     this.archiveModal = new ArchiveModal(this);
@@ -165,7 +226,7 @@ export class MenuScene extends Phaser.Scene {
       const nextLang = getLocale() === 'ru' ? 'en' : 'ru';
       setLocale(nextLang);
       this.langBtnText.setText(`ЯЗЫК / LANG: ${nextLang.toUpperCase()}`);
-      this.startBtnText.setText(nextLang === 'ru' ? 'В БОЙ [ПРОБЕЛ] ⚔' : 'START DEFENSE [SPACE] ⚔');
+      this.startBtnText.setText(startLabel(nextLang === 'ru'));
       loreText.setText(
         nextLang === 'ru'
           ? 'Кузница-Казино Нью-Брассхольма осаждена автоматонами барона.\nКрути барабаны 3×3, призывай паровых бойцов и защити Котёл!'
