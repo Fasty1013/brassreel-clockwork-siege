@@ -267,7 +267,7 @@ export class MenuScene extends Phaser.Scene {
     ).setOrigin(0.5);
 
     // Footer info
-    this.add.text(width / 2, height - 30, 'BRASSREEL v0.3.0 • случайное зерно каждый забег (?seed=… повторяет забег) • TypeScript + Phaser 3', {
+    this.add.text(width / 2, height - 30, 'BRASSREEL v0.4.0 • случайное зерно каждый забег (?seed=… повторяет забег) • TypeScript + Phaser 3', {
       fontFamily: 'monospace',
       fontSize: '13px',
       color: '#6c757d'
