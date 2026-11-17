@@ -84,18 +84,25 @@ export const BALANCE = {
   THREAT_REWARD_STEP: 0.5,
   /** after a stun, a boss ignores new stuns for this long (no stun-lock) */
   BOSS_STUN_IMMUNITY_S: 3,
+  /**
+   * Robots with no enemy in their attack range walk toward the nearest one (at their own
+   * moveSpeed) until it is in range: shooters stop at their range, melee robots step in front of it.
+   * While walking they keep at least this many tiles from each other.
+   */
+  UNIT_SEPARATION: 0.6,
 
   // Enemy growth. Robots get many times stronger over a run (levels,
   // evolutions, skill tree), so enemy stats are multiplied per wave. The
   // multipliers are given for these waves and interpolated in between.
   // Act 3 enemies already have much higher base stats, hence the drop at 21.
-  // Tuned with tools/sim (VeteranBot): see docs/BALANCE.md.
+  // Tuned with tools/sim (VeteranBot): see docs/BALANCE.md. Raised ×1.25 hp / ×1.12 damage
+  // when robots started walking to enemies out of reach (the run got far easier: 65% → 97% wins).
   ENEMY_SCALE_ANCHORS: [
     { wave: 1, hp: 1, damage: 1 },
-    { wave: 10, hp: 14, damage: 5 },
-    { wave: 20, hp: 60, damage: 16 },
-    { wave: 21, hp: 40, damage: 12 },
-    { wave: 30, hp: 62, damage: 18 }
+    { wave: 10, hp: 17.5, damage: 5.6 },
+    { wave: 20, hp: 75, damage: 17.9 },
+    { wave: 21, hp: 50, damage: 13.4 },
+    { wave: 30, hp: 77.5, damage: 20.1 }
   ] as ReadonlyArray<{ wave: number; hp: number; damage: number }>,
 
   // Emergency Valve

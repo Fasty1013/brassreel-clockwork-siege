@@ -26,6 +26,18 @@ export class DialogueModal extends Phaser.GameObjects.Container {
   private keyHandler: (e: KeyboardEvent) => void;
   private keyboardWasEnabled = true;
   private finished = false;
+  /** dialogues on screen right now, and when the last one was closed (performance.now) */
+  private static openCount = 0;
+  private static closedAt = -Infinity;
+
+  /**
+   * True while a dialogue is open or was closed a moment ago. The key that closes a
+   * dialogue (Esc, Space, Enter) still reaches the scene's own keys on the next frame,
+   * so scene hotkeys check this to ignore that same press.
+   */
+  public static isBusy(graceMs = 250): boolean {
+    return DialogueModal.openCount > 0 || performance.now() - DialogueModal.closedAt < graceMs;
+  }
 
   /** Show a story scene; `onDone` runs after the last line or a skip. */
   public static play(scene: Phaser.Scene, story: StoryScene, onDone: () => void = () => undefined): DialogueModal {
@@ -80,6 +92,7 @@ export class DialogueModal extends Phaser.GameObjects.Container {
       this.keyboardWasEnabled = kb.enabled;
       kb.enabled = false;
     }
+    DialogueModal.openCount++;
     this.keyHandler = (e: KeyboardEvent) => {
       if (e.code === 'Escape') this.finish();
       else if (e.code === 'Space' || e.code === 'Enter' || e.code === 'NumpadEnter') this.advance();
@@ -144,6 +157,8 @@ export class DialogueModal extends Phaser.GameObjects.Container {
   private finish(): void {
     if (this.finished) return;
     this.finished = true;
+    DialogueModal.openCount = Math.max(0, DialogueModal.openCount - 1);
+    DialogueModal.closedAt = performance.now();
     this.typing?.remove();
     const kb = this.scene.input.keyboard;
     if (kb) kb.enabled = this.keyboardWasEnabled;

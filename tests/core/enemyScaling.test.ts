@@ -69,6 +69,8 @@ describe('unanswered enemy shooters', () => {
     tank.deployedSlot = { col: 5, row: 2 };
     const state = CombatEngine.initCombatState([tank], 10);
     state.units[0].hp = state.units[0].maxHp = 1e6;
+    // robots walk to enemies out of reach; this one is rooted so the drone has to press
+    state.units[0].moveSpeed = 0;
     const drone = CombatEngine.spawnEnemy(state, 'en_shield_drone', 2, 1);
     drone.hp = drone.maxHp = 1e6;
     drone.x = 7.8;

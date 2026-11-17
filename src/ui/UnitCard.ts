@@ -191,12 +191,65 @@ export class UnitCard extends Phaser.GameObjects.Container {
 
   /** Sets whether unit is deployed on the meadow or resting on the bench shelf. */
   public setDeployedMode(deployed: boolean): void {
+    this.endCombatWalk();
     this.isDeployed = deployed;
     this.bg.setVisible(!deployed);
     this.shadow.setVisible(deployed);
     this.applyLayout();
     // y-sort by feet so taller units in lower rows overlap correctly
     this.setDepth(Math.floor(this.y + (deployed ? FIELD_FOOT_Y : 0)));
+  }
+
+  /** last battle position given to followCombatPosition (NaN outside a battle) */
+  private combatX = NaN;
+  private combatY = NaN;
+  private walking = false;
+  private lastWalkAt = -Infinity;
+
+  /**
+   * In battle: moves the robot to where the combat engine has walked it. A robot that
+   * stands still keeps its spot untouched, so attack and hit tweens play as before.
+   */
+  public followCombatPosition(x: number, y: number): void {
+    const now = this.scene.time.now;
+    const first = Number.isNaN(this.combatX);
+    const dx = x - this.combatX;
+    const moved = first || Math.abs(dx) > 0.25 || Math.abs(y - this.combatY) > 0.25;
+
+    if (moved) {
+      this.combatX = x;
+      this.combatY = y;
+      // a lunge or hit-shake tween would snap the card back to its old spot
+      this.scene.tweens.killTweensOf(this);
+      this.setPosition(Math.round(x), Math.round(y));
+      this.setDepth(Math.floor(this.y + FIELD_FOOT_Y));
+      if (!first) {
+        this.lastWalkAt = now;
+        if (Math.abs(dx) > 0.25) this.sprite.setFlipX(dx < 0);
+      }
+    }
+
+    // slow walkers move less than the threshold some frames: keep the walk going a moment
+    const walking = now - this.lastWalkAt < 200;
+    if (walking) {
+      if (!this.walking && this.animated) playLoop(this.sprite, this.spriteKey, 'walk');
+    } else if (this.walking) {
+      this.sprite.setFlipX(false);
+      if (this.animated) playLoop(this.sprite, this.spriteKey, 'idle');
+    }
+    this.walking = walking;
+  }
+
+  /** Battle over: forget the battle position and stand facing the enemy again. */
+  private endCombatWalk(): void {
+    this.combatX = NaN;
+    this.combatY = NaN;
+    this.lastWalkAt = -Infinity;
+    if (this.walking) {
+      this.walking = false;
+      this.sprite.setFlipX(false);
+      if (this.animated) playLoop(this.sprite, this.spriteKey, 'idle');
+    }
   }
 
   public startIdleBobbing(): void {
