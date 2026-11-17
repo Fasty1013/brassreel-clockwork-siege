@@ -78,6 +78,10 @@ export const BALANCE = {
   // target, stopping at melee distance (in tiles)
   ENEMY_PRESS_AFTER_S: 3,
   ENEMY_PRESS_MIN_GAP: 1,
+  /** campaign threat level: enemy hp and damage +30% per level */
+  THREAT_ENEMY_STEP: 0.3,
+  /** campaign threat level: refined cogs +50% per level */
+  THREAT_REWARD_STEP: 0.5,
   /** after a stun, a boss ignores new stuns for this long (no stun-lock) */
   BOSS_STUN_IMMUNITY_S: 3,
 

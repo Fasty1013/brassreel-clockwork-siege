@@ -27,6 +27,7 @@
 | `src/core/combat/combatEngine.ts` | бой: атаки, черты роботов, статусы, клапан |
 | `src/core/gadgets/gadgets.ts` | гаджеты: витрина, цены, эффекты |
 | `src/core/skills/skills.ts` | древо навыков и лимит поля |
+| `src/core/campaign/campaign.ts` | кампания: части Регулятора, сцены, угрозы (данные в `src/data/story.ts`) |
 | `src/data/` | числа: `balance.ts` (в т.ч. рост врагов `ENEMY_SCALE_ANCHORS`), роботы, враги, черты, тексты `i18n` |
 | `src/art/forge/` | генератор пиксельных фигурок и значков |
 | `src/art/ui/` | рамки и панели интерфейса (`UISkin.ts`, `frames.ts`) |

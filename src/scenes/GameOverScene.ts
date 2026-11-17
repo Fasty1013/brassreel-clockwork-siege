@@ -3,6 +3,8 @@ import { UISkin } from '../art/ui/UISkin';
 import { MetaManager } from '@core/meta/metaManager';
 import { SoundManager } from '../audio/SoundManager';
 import { ArchiveModal } from '../ui/ArchiveModal';
+import { CampaignManager } from '@core/campaign/campaign';
+import { CHAPTERS, THREAT_LEVELS, chapterForWave } from '@data/story';
 
 export interface GameOverData {
   victory: boolean;
@@ -10,7 +12,18 @@ export interface GameOverData {
   boilerHp: number;
   cogs: number;
   seed: number;
+  /** campaign threat level of the run */
+  threat?: number;
+  /** Regulator parts recovered during the run */
+  partsThisRun?: string[];
 }
+
+/** What the foreman says when the boiler blows, by chapter. */
+const DEFEAT_LINES = [
+  'Шестерёнкин: «Луг потерян… Но Маховик всё ещё у Барона. Соберись — и снова в бой.»',
+  'Шестерёнкин: «Топи взяли своё. Архив кузницы поможет начать сильнее.»',
+  'Шестерёнкин: «Мы были у самых ворот Колосса. В следующий раз Сердце будет нашим.»'
+];
 
 export class GameOverScene extends Phaser.Scene {
   private archiveModal!: ArchiveModal;
@@ -25,7 +38,9 @@ export class GameOverScene extends Phaser.Scene {
 
     // Record meta progress
     const meta = MetaManager.load();
-    const earnedRefined = data.wave + (data.victory ? (data.wave >= 30 ? 50 : 20) : 0);
+    const threat = data.threat ?? 0;
+    const campaign = CampaignManager.recordRunEnd(meta, threat, data.wave, data.victory);
+    const earnedRefined = Math.round((data.wave + (data.victory ? 50 : 0)) * campaign.rewardMult);
     meta.refinedCogs += earnedRefined;
     meta.lifetimeCogsEarned += earnedRefined;
     meta.totalRuns++;
@@ -62,8 +77,8 @@ export class GameOverScene extends Phaser.Scene {
     }).setOrigin(0.5);
 
     const sub = data.victory
-      ? 'Вражеские орды рассеяны! Заводской город Новый Брассхольм выстоял.'
-      : 'Давление в котле упало до нуля. Осаждающие прорвали линию обороны.';
+      ? 'Великий Регулятор собран — часы Нью-Брассхольма снова идут!'
+      : `Давление в котле упало до нуля. ${chapterForWave(data.wave).title}, волна ${data.wave}.`;
 
     this.add.text(width / 2, 290, sub, {
       fontFamily: 'sans-serif',
@@ -72,10 +87,10 @@ export class GameOverScene extends Phaser.Scene {
     }).setOrigin(0.5);
 
     // Statistics summary box
-    const statsBox = this.add.rectangle(width / 2, 470, 620, 220, 0x14100c);
+    const statsBox = this.add.rectangle(width / 2, 475, 620, 250, 0x14100c);
     statsBox.setStrokeStyle(2, 0x8c5836);
 
-    this.add.text(width / 2, 395, 'ИТОГИ ОБОРОНЫ:', {
+    this.add.text(width / 2, 372, 'ИТОГИ ОБОРОНЫ:', {
       fontFamily: 'monospace',
       fontSize: '18px',
       color: '#ffd166',
@@ -83,13 +98,14 @@ export class GameOverScene extends Phaser.Scene {
     }).setOrigin(0.5);
 
     const statsInfo =
+      `Угроза: ${THREAT_LEVELS[threat]?.name ?? threat}\n` +
       `Пройдено волн: ${data.wave} / 30\n` +
       `Остаток давления котла: ${Math.max(0, data.boilerHp)} HP\n` +
       `Собрано шестерней в бою: ${data.cogs}\n` +
       `Награда архива: +${earnedRefined} Очищенных Шестерней ⚙️\n` +
       `Баланс в Архиве: ${meta.refinedCogs} ⚙️`;
 
-    this.add.text(width / 2, 480, statsInfo, {
+    this.add.text(width / 2, 490, statsInfo, {
       fontFamily: 'monospace',
       fontSize: '16px',
       color: '#ced4da',
@@ -97,12 +113,33 @@ export class GameOverScene extends Phaser.Scene {
       align: 'center'
     }).setOrigin(0.5);
 
+    // Campaign progress: Regulator parts
+    const campBox = this.add.rectangle(width / 2, 690, 900, 150, 0x14100c);
+    campBox.setStrokeStyle(2, 0xd4a373);
+    this.add.text(width / 2, 635, 'ВЕЛИКИЙ РЕГУЛЯТОР', { fontSize: '18px', color: '#ffd166', fontStyle: 'bold' }).setOrigin(0.5);
+    const got = data.partsThisRun ?? [];
+    CHAPTERS.forEach((c, i) => {
+      const x = width / 2 - 260 + i * 260;
+      const inRun = got.includes(c.part.id);
+      const ever = CampaignManager.hasPart(meta, c.part.id);
+      this.add.image(x - 70, 680, c.part.icon).setScale(2).setAlpha(inRun ? 1 : ever ? 0.6 : 0.2);
+      this.add.text(x - 40, 680, `${c.part.name}\n${inRun ? 'добыт в этом забеге' : ever ? 'добыт раньше' : 'у врага'}`, {
+        fontSize: '16px',
+        color: inRun ? '#ffd166' : '#9a93ad'
+      }).setOrigin(0, 0.5);
+    });
+    let note = data.victory ? 'Кампания пройдена на этой угрозе.' : DEFEAT_LINES[Math.min(2, Math.ceil(data.wave / 10) - 1)];
+    if (campaign.unlockedThreat !== null) {
+      note = `Открыта новая угроза: «${THREAT_LEVELS[campaign.unlockedThreat].name}» — выберите её в меню «Кампания».`;
+    }
+    this.add.text(width / 2, 740, note, { fontSize: '16px', color: '#ced4da', align: 'center', wordWrap: { width: 860 } }).setOrigin(0.5);
+
     // New Run Button
-    const restartBtn = this.add.rectangle(width / 2 - 240, 680, 210, 56, 0xd4a373);
+    const restartBtn = this.add.rectangle(width / 2 - 240, 840, 210, 56, 0xd4a373);
     restartBtn.setStrokeStyle(3, 0xffd166);
     restartBtn.setInteractive({ useHandCursor: true });
 
-    this.add.text(width / 2 - 240, 680, 'НОВЫЙ ЗАБЕГ ▶', {
+    this.add.text(width / 2 - 240, 840, 'НОВЫЙ ЗАБЕГ ▶', {
       fontFamily: 'monospace',
       fontSize: '16px',
       color: '#1f1610',
@@ -115,11 +152,11 @@ export class GameOverScene extends Phaser.Scene {
     });
 
     // Archive Button
-    const archiveBtn = this.add.rectangle(width / 2, 680, 220, 56, 0x2b221a);
+    const archiveBtn = this.add.rectangle(width / 2, 840, 220, 56, 0x2b221a);
     archiveBtn.setStrokeStyle(2, 0xffd166);
     archiveBtn.setInteractive({ useHandCursor: true });
 
-    this.add.text(width / 2, 680, 'АРХИВ КУЗНИЦЫ ⚙️', {
+    this.add.text(width / 2, 840, 'АРХИВ КУЗНИЦЫ ⚙️', {
       fontFamily: 'monospace',
       fontSize: '15px',
       color: '#ffd166',
@@ -132,11 +169,11 @@ export class GameOverScene extends Phaser.Scene {
     });
 
     // Main Menu Button
-    const menuBtn = this.add.rectangle(width / 2 + 240, 680, 210, 56, 0x2b221a);
+    const menuBtn = this.add.rectangle(width / 2 + 240, 840, 210, 56, 0x2b221a);
     menuBtn.setStrokeStyle(2, 0x8c5836);
     menuBtn.setInteractive({ useHandCursor: true });
 
-    this.add.text(width / 2 + 240, 680, 'ГЛАВНОЕ МЕНЮ', {
+    this.add.text(width / 2 + 240, 840, 'ГЛАВНОЕ МЕНЮ', {
       fontFamily: 'monospace',
       fontSize: '16px',
       color: '#ced4da',

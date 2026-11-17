@@ -1,5 +1,5 @@
 import { WAVES_DATA } from '@data/waves';
-import { enemyWaveScale } from '@data/balance';
+import { BALANCE, enemyWaveScale } from '@data/balance';
 import { WaveDefinition } from '@data/schemas/waveSchema';
 import { CombatEngine, CombatSimulationState } from '../combat/combatEngine';
 import { PRNG } from '../prng/sfc32';
@@ -17,8 +17,18 @@ export class WaveController {
   private valveWasUsed = false;
   private minEnemyXReached = 8.0;
 
-  constructor(waveNumber = 1) {
+  private threat: number;
+
+  constructor(waveNumber = 1, threat = 0) {
     this.waveIndex = waveNumber - 1;
+    this.threat = threat;
+  }
+
+  /** Enemy stat multipliers for this wave and campaign threat level. */
+  public scale(): { hp: number; damage: number } {
+    const base = enemyWaveScale(this.waveIndex + 1);
+    const k = 1 + BALANCE.THREAT_ENEMY_STEP * this.threat;
+    return { hp: base.hp * k, damage: base.damage * k };
   }
 
   public getCurrentWaveDef(): WaveDefinition {
@@ -58,7 +68,7 @@ export class WaveController {
     for (let i = this.pendingSpawns.length - 1; i >= 0; i--) {
       const spawn = this.pendingSpawns[i];
       if (combatState.elapsedSeconds >= spawn.spawnTime) {
-        CombatEngine.spawnEnemy(combatState, spawn.enemyId, spawn.row, this.spawnSequence++, enemyWaveScale(this.waveIndex + 1));
+        CombatEngine.spawnEnemy(combatState, spawn.enemyId, spawn.row, this.spawnSequence++, this.scale());
         this.pendingSpawns.splice(i, 1);
       }
     }

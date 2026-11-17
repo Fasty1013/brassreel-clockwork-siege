@@ -3,12 +3,17 @@ import { UISkin } from '../art/ui/UISkin';
 import { setLocale, getLocale } from '@data/i18n';
 import { SoundManager } from '../audio/SoundManager';
 import { ArchiveModal } from '../ui/ArchiveModal';
+import { CampaignModal } from '../ui/CampaignModal';
+import { MetaManager } from '@core/meta/metaManager';
+import { CampaignManager } from '@core/campaign/campaign';
+import { CHAPTERS, THREAT_LEVELS } from '@data/story';
 
 export class MenuScene extends Phaser.Scene {
   private startBtnText!: Phaser.GameObjects.Text;
   private langBtnText!: Phaser.GameObjects.Text;
   private gears: Phaser.GameObjects.Sprite[] = [];
   private archiveModal!: ArchiveModal;
+  private campaignModal!: CampaignModal;
 
   constructor() {
     super('MenuScene');
@@ -123,8 +128,33 @@ export class MenuScene extends Phaser.Scene {
     };
 
     startBtn.on('pointerdown', startGame);
-    this.input.keyboard?.on('keydown-SPACE', startGame);
-    this.input.keyboard?.on('keydown-ENTER', startGame);
+    const startFromKeys = () => {
+      if (!this.campaignModal?.visible && !this.archiveModal?.visible) startGame();
+    };
+    this.input.keyboard?.on('keydown-SPACE', startFromKeys);
+    this.input.keyboard?.on('keydown-ENTER', startFromKeys);
+
+    // Campaign: goal, chapters, threat level, chronicle
+    this.campaignModal = new CampaignModal(this, startGame);
+    const meta = MetaManager.load();
+    const threat = CampaignManager.activeThreat(meta);
+    const campBtn = this.add.rectangle(width / 2, 690, 380, 52, 0x2b221a);
+    campBtn.setStrokeStyle(3, 0xffd166);
+    campBtn.setInteractive({ useHandCursor: true });
+    this.add.text(width / 2, 690,
+      isRu ? `📖 Кампания · Регулятор ${CampaignManager.partsFound(meta)}/${CHAPTERS.length}` : `📖 Campaign · Regulator ${CampaignManager.partsFound(meta)}/${CHAPTERS.length}`, {
+      fontSize: '18px',
+      color: '#ffd166',
+      fontStyle: 'bold'
+    }).setOrigin(0.5);
+    if (threat > 0) {
+      this.add.text(width / 2, 478, `Угроза: ${THREAT_LEVELS[threat].name}`, { fontSize: '16px', color: '#ff8a7a' }).setOrigin(0.5);
+    }
+    campBtn.on('pointerdown', () => {
+      SoundManager.getInstance().init();
+      SoundManager.getInstance().playButtonClick();
+      this.campaignModal.open();
+    });
 
     // Mount Archive Modal
     this.archiveModal = new ArchiveModal(this);

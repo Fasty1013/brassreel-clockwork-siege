@@ -38,6 +38,8 @@ export interface RunState {
   consumables: ConsumableStock;
   /** spins in a row without a winning line (scrap press) */
   dryStreak: number;
+  /** campaign threat level (0 = normal); enemies get stronger per level */
+  threat: number;
 }
 
 export class RunStateManager {
@@ -70,7 +72,8 @@ export class RunStateManager {
       skills: {},
       shopOffers: [],
       consumables: GadgetManager.createStock(),
-      dryStreak: 0
+      dryStreak: 0,
+      threat: 0
     };
   }
 }

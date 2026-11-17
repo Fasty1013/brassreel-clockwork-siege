@@ -14,6 +14,14 @@ export class MetaManager {
       totalVictories: 0,
       highestWaveReached: 0,
       unlockedUpgrades: {},
+      campaign: {
+        parts: [],
+        scenesSeen: [],
+        threatUnlocked: 0,
+        selectedThreat: 0,
+        bestThreatCleared: -1,
+        bestWaveByThreat: {}
+      },
       codex: {
         seenUnits: [],
         seenMods: [],

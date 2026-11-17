@@ -369,7 +369,7 @@ export class RunReducer {
         SkillManager.applyCombatBuffs(state, state.combatState);
         GadgetManager.applyBattleStart(state, state.combatState);
         CombatEngine.applyStartQuirks(state.combatState);
-        this.waveController = new WaveController(state.waveNumber);
+        this.waveController = new WaveController(state.waveNumber, state.threat ?? 0);
         this.waveController.initWaveSpawns(rng.combat);
         eventBus?.emit('wave_started', { waveNumber: state.waveNumber, actNumber: state.actNumber });
         return state;

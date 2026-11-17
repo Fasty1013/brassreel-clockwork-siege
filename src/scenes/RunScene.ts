@@ -22,6 +22,9 @@ import { MetaManager } from '@core/meta/metaManager';
 import { SmeltManager } from '@core/smelt/smelt';
 import { SkillManager } from '@core/skills/skills';
 import { GadgetManager } from '@core/gadgets/gadgets';
+import { CampaignManager } from '@core/campaign/campaign';
+import { CHAPTERS, STORY_SCENES, WAVE_LINES, chapterForWave } from '@data/story';
+import { DialogueModal } from '@ui/DialogueModal';
 import { EconomyManager } from '@core/economy/economy';
 import { SkillTreeModal } from '@ui/SkillTreeModal';
 import { InfoTip } from '@ui/InfoTip';
@@ -78,6 +81,10 @@ export class RunScene extends Phaser.Scene {
   private enemyVisuals: Map<string, EnemyVisual> = new Map();
   private benchSlots: { x: number; y: number }[] = [];
   private benchTitle?: Phaser.GameObjects.Text;
+  /** Regulator parts recovered during this run (lit in the top-left gauge) */
+  private partsThisRun: string[] = [];
+  private partIcons: Phaser.GameObjects.Image[] = [];
+  private lastWaveReward = 0;
   private battleBg!: Phaser.GameObjects.Image;
 
   // Controls
@@ -124,6 +131,8 @@ export class RunScene extends Phaser.Scene {
     this.state = RunStateManager.createInitialState(seed);
     const meta = MetaManager.load();
     MetaManager.applyMetaToRun(this.state, meta);
+    this.state.threat = CampaignManager.activeThreat(meta);
+    this.partsThisRun = [];
     this.rng = PrngManager.createStreams(seed);
     this.eventBus = new EventBus();
 
@@ -206,8 +215,82 @@ export class RunScene extends Phaser.Scene {
     this.setupSkillTree();
     this.setupInfoTips();
 
+    this.createRegulatorGauge();
+
     // pixel-art 9-slice skin for every framed panel/button in the scene
     UISkin.install(this);
+
+    this.refreshStoryPlate();
+    this.playStory(CHAPTERS[0].intro);
+  }
+
+  // ------------------------------------------------------------ campaign
+
+  /**
+   * Plays a story scene the first time it comes up on this profile
+   * (later it can be re-read in the campaign chronicle).
+   */
+  private playStory(sceneId: string, onDone: () => void = () => undefined): void {
+    const story = STORY_SCENES[sceneId];
+    const meta = MetaManager.load();
+    if (!story || CampaignManager.seen(meta, sceneId)) {
+      onDone();
+      return;
+    }
+    CampaignManager.markSeen(meta, sceneId);
+    MetaManager.save(meta);
+    DialogueModal.play(this, story, onDone);
+  }
+
+  /** Speech plate: chapter, wave and a radio line for this wave. */
+  private refreshStoryPlate(): void {
+    const wave = this.state.waveNumber;
+    const chapter = chapterForWave(wave);
+    this.speechBubbleText?.setText(`${chapter.title} · волна ${wave}/30\n${WAVE_LINES[wave - 1] ?? ''}`);
+  }
+
+  /** Top-left gauge: the three parts of the Great Regulator, lit when recovered in this run. */
+  private createRegulatorGauge(): void {
+    const x0 = 40;
+    const y = 30;
+    const label = this.add.text(x0, y, 'РЕГУЛЯТОР', { fontSize: '17px', color: '#ffd166' }).setOrigin(0, 0.5);
+    this.partIcons = CHAPTERS.map((c, i) => {
+      const img = this.add.image(x0 + label.width + 30 + i * 44, y, c.part.icon).setScale(1.5);
+      return img;
+    });
+    const tipZone = this.add.zone(x0 + 120, y, 260, 44).setOrigin(0.5);
+    InfoTip.of(this).attach(tipZone, 'Великий Регулятор', () => {
+      const lines = CHAPTERS.map((c) => {
+        const got = this.partsThisRun.includes(c.part.id);
+        return `${got ? '■' : '□'} ${c.part.name} — ${c.boss} (${c.place})`;
+      });
+      return `Цель кампании: вернуть три части Регулятора и запустить часы города.\n\n${lines.join('\n')}`;
+    });
+    this.refreshRegulatorGauge();
+  }
+
+  private refreshRegulatorGauge(): void {
+    CHAPTERS.forEach((c, i) => {
+      const got = this.partsThisRun.includes(c.part.id);
+      this.partIcons[i]?.setAlpha(got ? 1 : 0.28);
+    });
+  }
+
+  /** A chapter boss fell: light the part, save it to the campaign, show the outro. */
+  private onBossDefeated(act: number, onDone: () => void = () => undefined): void {
+    const meta = MetaManager.load();
+    const result = CampaignManager.recordBossDefeat(meta, act);
+    MetaManager.save(meta);
+    if (!this.partsThisRun.includes(result.chapter.part.id)) this.partsThisRun.push(result.chapter.part.id);
+    this.refreshRegulatorGauge();
+
+    const icon = this.partIcons[act - 1];
+    if (icon) {
+      this.tweens.add({ targets: icon, scale: 2.4, duration: 260, yoyo: true, ease: 'Back.easeOut' });
+    }
+    const reward = result.firstTime ? `  (впервые: +${result.reward} очищ. шестерней)` : '';
+    this.showFloatingText(960, 360, `★ ${result.chapter.part.name} возвращён в Регулятор!${reward}`, '#ffd166');
+    this.playStory(result.chapter.outro, onDone);
   }
 
   private setupKeyboardShortcuts(): void {
@@ -614,6 +697,10 @@ export class RunScene extends Phaser.Scene {
     });
 
     // Full bench: the weakest robot was melted down
+    this.eventBus.on('wave_completed', (data) => {
+      this.lastWaveReward = data.rewardCogs;
+    });
+
     this.eventBus.on('bench_overflow', (data) => {
       const name = t(UNITS_DATA[data.unitDefId]?.nameKey ?? '') || 'Робот';
       this.showFloatingText(224, 760, `Резерв полон: ${name} → +${data.cogs} шест.`, '#ffd166');
@@ -1017,9 +1104,12 @@ export class RunScene extends Phaser.Scene {
     // robots can be rearranged right after the wave
     this.syncUnitCards();
 
-    const earned = 25; // Base reward
-    this.waveResultText.setText(`Награда за волну: +${earned} Шестерней\nОборона позиции успешна!`);
+    this.waveResultText.setText(`Награда за волну: +${this.lastWaveReward} Шестерней\nОборона позиции успешна!`);
     this.waveResultContainer.setVisible(true);
+
+    if (this.state.waveNumber % 10 === 0) {
+      this.onBossDefeated(this.state.actNumber);
+    }
   }
 
   public openShop(): void {
@@ -1068,13 +1158,15 @@ export class RunScene extends Phaser.Scene {
     }
     this.waveInfoText.setText(`Волна ${currentWave} / 30 [АКТ ${act}]\nПодготовьте позиции и крутите горн-слот!`);
 
-    // Act transition announcements
-    if (currentWave === 11) {
-      this.showFloatingText(960, 400, '★ АКТ 2: РЖАВЫЕ ТОПИ ★', '#2ec4b6');
+    // Chapter transitions and boss speeches
+    this.refreshStoryPlate();
+    const chapter = chapterForWave(currentWave);
+    if (currentWave === 11 || currentWave === 21) {
+      this.showFloatingText(960, 400, `★ ${chapter.title.toUpperCase()} ★`, currentWave === 11 ? '#2ec4b6' : '#ffbe0b');
       SoundManager.getInstance().playBossAlarm();
-    } else if (currentWave === 21) {
-      this.showFloatingText(960, 400, '★ АКТ 3: ЦИТАДЕЛЬ БАРОНА ★', '#ffbe0b');
-      SoundManager.getInstance().playBossAlarm();
+      this.playStory(chapter.intro);
+    } else if (currentWave % 10 === 0) {
+      this.playStory(chapter.bossTaunt);
     }
 
     this.refreshHUD();
@@ -1082,13 +1174,19 @@ export class RunScene extends Phaser.Scene {
   }
 
   private handleGameOver(victory: boolean): void {
-    this.scene.start('GameOverScene', {
-      victory,
-      wave: this.state.waveNumber,
-      boilerHp: this.state.boilerHp,
-      cogs: this.state.economy.cogs,
-      seed: Number(this.state.seed)
-    });
+    const go = (): void => {
+      this.scene.start('GameOverScene', {
+        victory,
+        wave: this.state.waveNumber,
+        boilerHp: this.state.boilerHp,
+        cogs: this.state.economy.cogs,
+        seed: Number(this.state.seed),
+        threat: this.state.threat,
+        partsThisRun: [...this.partsThisRun]
+      });
+    };
+    if (victory) this.onBossDefeated(3, go);
+    else go();
   }
 
   private syncUnitCards(): void {
