@@ -12,19 +12,30 @@
 
 ## ⚙️ About The Game
 
-**BRASSREEL: Clockwork Siege** is a dark brass and clockwork steampunk defense roguelite. You are the engineer-operator of a casino-mechanized forge defending **The Boiler of New Brassholm** (10 pressure HP) against relentless hordes of rust automatons and scrap marauders.
+**BRASSREEL: Clockwork Siege** is a steampunk defense roguelite. You are the Mechanic of the last working
+forge-casino of **New Brassholm**: spin a 3×3 slot machine to summon robots, place them on an 8×5 field
+and hold **The Boiler** against 30 waves.
 
-Instead of traditional tower placement, your defenders are stamped and summoned through a **customizable 3×3 slot machine forge**:
-- **3 customizable reel strips:** Add faction symbols, remove weak symbols (*Reel Thinning*), and gild symbols (*Gilded +50% stats*).
-- **8 paylines (3 rows, 3 columns, 2 diagonals):**
-  - **3 of a kind** summons Tier 1 faction defenders (Cog Tanks, Spring Archers, Fuse Sappers, Coil Sparkers).
-  - **2 of a kind** summons Tier 0 Scrap Bots (fuel for the Smelt crucible).
-  - **3 Crowns** triggers **JACKPOT**: choice of 1 of 3 legendary *Grand Automatons*!
-- **Skill over pure RNG:** `HOLD` lock reels for the next spin; `NUDGE` bump reels up or down.
-- **Push-Your-Luck Heat Gauge:** Extra spins increase furnace Heat (0–100%) and Crown/Wild weights, but risk **Jam** malfunctions.
-- **Smelt Crucible (Fusion & Evolution):** Drag defenders onto each other to absorb and evolve (★1 → ★2 at 3 XP, ★2 → ★3 at 6 XP) with 2 branching archetypes per tier (4 final forms per faction), plus inheritance of rolled modifiers.
-- **Real-Time Auto-Battle (8×5 discrete grid):** 1×/2×/4× battle speed, projectile trajectories, status effects (Burn, Shock, Stun, Slow, Barrier), and **Emergency Valve** slow-motion release.
-- **Act 1 Boss:** *The Steam Baron* with a Phase 2 Overheat transformation.
+### Campaign «The Great Regulator»
+The Steam Baron stole the city's Great Regulator and split it into three parts. Each act's boss keeps one:
+**Flywheel** (Steam Baron, Brass Meadow), **Spiral** (Corrosion Empress, Rust Swamps) and **Heart**
+(the Baron inside the Iron Colossus, Baron's Citadel). Story scenes with portraits, a radio line before every
+wave, first-clear rewards, a chronicle to re-read scenes and four **threat levels** that unlock one by one.
+Full script: [`docs/STORY.md`](docs/STORY.md).
+
+### Core loop
+- **Slot forge:** 8 paylines (3 rows, 3 columns, 2 diagonals); only **3 in a line** pays and summons a robot.
+  `HOLD` keeps a reel, `NUDGE` shifts it. Paid spins add heat; above 60% the reels may jam.
+- **Robots:** 4 lines × 7 robots + Scrap Bot + 3 legendaries. Merge two of the same line and level → level +1
+  (up to ★5, +50% stats per level), evolution choice at ★3 and ★5. Every robot has a working combat quirk
+  (shield auras, chain lightning, piercing bolts, stuns, time dilation…).
+- **Field & reserve:** 5 robots on the field (skill tree and a gadget raise it), 10 reserve slots.
+- **Auto-battle:** enemies grow stronger every wave; bosses have two phases; Emergency Valve slows the horde.
+- **Workshop between waves:** 3 random gadgets (30 in total: permanent upgrades and consumables) with rising
+  prices, a reel editor (pick a reel and a symbol: add, gild, remove) and the in-run **skill tree** (T).
+- **Meta:** Forge Archive upgrades bought with refined cogs; campaign progress kept in the browser.
+
+Rules in detail (Russian): [`docs/GAME_INFO.md`](docs/GAME_INFO.md).
 
 ---
 
@@ -113,11 +124,17 @@ npm run dev
 # Run TypeScript strict typecheck
 npm run typecheck
 
-# Run Vitest test suite (74/74 unit & integration tests)
+# Run Vitest test suite (141 tests)
 npm test
 
-# Run test coverage report (90.66% line coverage)
+# Run test coverage report
 npm run test:coverage
+
+# Balance: 1000 headless runs with the bot that plays by the current rules
+npm run sim -- --runs 1000 --bot veteran --waves 30
+
+# Rebuild docs/STORY.md from src/data/story.ts
+npx tsx tools/docs/storyToMarkdown.ts
 ```
 
 ### Production Build & Desktop Wrappers
@@ -138,35 +155,38 @@ npm run preview
 ## 🗺️ Project Structure
 
 ```
-├── .agent/               # Agent team governance, rules, and workflows
-├── docs/                 # Game Design Document (GDD), Architecture, Balance model
-│   ├── ARCHITECTURE.md   # Core design patterns, state management, PRNG
-│   ├── GDD.md            # Complete game design document
-│   ├── BALANCE.md        # Mathematical balance, odds, and bot targets
-│   ├── HANDOFF.md        # Inter-agent task board and handoff log
-│   └── screenshots/      # High-resolution gameplay screenshots
+├── docs/
+│   ├── GAME_INFO.md      # current rules, robots, workshop, campaign (Russian)
+│   ├── STORY.md          # full campaign script (generated from src/data/story.ts)
+│   ├── BALANCE.md        # balance model and simulator results (section 7 = current)
+│   ├── WORK_LOG.md       # what was changed and why, open items
+│   ├── claude_code.md    # notes for coding agents
+│   └── GDD.md, ARCHITECTURE.md …  # original design documents (partly outdated)
 ├── src/
-│   ├── core/             # Pure deterministic engine (PRNG, reels, combat, state)
-│   ├── data/             # Data-driven tables (units, mods, cores, gadgets, enemies)
-│   │   ├── i18n/         # Localization dictionaries (en.json, ru.json)
-│   │   └── schemas/      # Zod validation schemas
-│   ├── fx/               # Procedural pixel-art Canvas asset generator
-│   ├── scenes/           # Phaser 3 scenes (Boot, Menu, Run, GameOver)
-│   └── ui/               # Interactive UI components (HUD, ReelView, GridView, ShopView)
-├── tests/                # Vitest unit & integration tests, E2E Puppeteer scripts
-└── tools/sim/            # Node.js headless simulator and autonomous bot policies
+│   ├── core/             # deterministic game logic: reels, combat, smelt, skills, gadgets, campaign
+│   ├── data/             # balance, robots, enemies, quirks, gadgets, story, i18n texts
+│   ├── art/              # procedural pixel-art forge and UI frames
+│   ├── ui/               # HUD, slot, shop, skill tree, dialogue and campaign windows
+│   └── scenes/           # Phaser scenes: Boot, Menu, Run, GameOver
+├── tests/                # Vitest tests
+└── tools/
+    ├── sim/              # headless simulator and bots (VeteranBot)
+    ├── qa/               # screenshots, sprite sheets, playability check
+    └── docs/             # docs generators
 ```
 
 ---
 
 ## 📜 Milestones & Roadmap
 
-- [x] **M0: Planning & Architectural Foundations** — GDD, Balance model, governance rules.
-- [x] **M1: Pure Engine & Headless Simulator** — 90.99% coverage, 58/58 tests, 1,000 runs in 1.82s.
-- [x] **M2: Playable Vertical Slice (Phaser 3)** — Full 10-wave playable loop, procedural Canvas art, 3×3 slot forge, E2E browser verification.
-- [x] **M3: Meta-Progression, Audio & Polish** — Procedural WebAudio SFX engine, Foundry Archives (`localStorage` meta-progression), full 3-Act content expansion (30 waves, 3 bosses, 23 enemies), 65/65 tests.
-- [x] **M4: QA Hardening & Balance Tuning** — 10,000 headless runs (16.95% winrate), failure heatmap, 100% i18n audit (368 keys), 74/74 tests (90.66% coverage).
-- [x] **M5: Steam / Tauri Release Packaging** — Tauri 2 & Electron desktop wrappers, offline packaging, modular vendor chunking, full keyboard shortcuts suite, production release manual.
+- [x] **M0–M5:** engine, simulator, playable slice, 30 waves with 3 bosses, meta-progression, release wrappers.
+- [x] **Visual overhaul:** procedural robots and enemies, act backdrops, brass UI, readable Rubik font.
+- [x] **Rules rework:** merge levels ★1–★5, field limit, skill tree, place robots anywhere outside battle.
+- [x] **Balance pass:** endless-battle fixes, enemy growth per wave, VeteranBot simulator.
+- [x] **Workshop:** 30 working gadgets, random shelf, reel editor; all robot quirks work in battle.
+- [x] **Campaign «The Great Regulator»:** story scenes, goal, threat levels.
+- [ ] Jackpot choice between the three legendaries.
+- [ ] English campaign script.
 
 ---
 
@@ -178,5 +198,8 @@ Original project and procedural assets. MIT License.
 ## Играть онлайн
 
 https://fasty1013.github.io/brassreel-clockwork-siege/
+
+Документация на русском: правила — `docs/GAME_INFO.md`, сюжет — `docs/STORY.md`,
+баланс — `docs/BALANCE.md`, журнал работ — `docs/WORK_LOG.md`.
 
 Сайт обновляется автоматически при каждой отправке в ветку `main` (см. `.github/workflows/pages.yml`).
