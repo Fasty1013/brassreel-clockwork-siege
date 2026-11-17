@@ -916,11 +916,15 @@ export class RunScene extends Phaser.Scene {
   private syncCombatEntities(): void {
     if (!this.state.combatState) return;
 
-    // 1. Sync defender unit HP
+    // 1. Sync defender unit HP and position (robots walk to enemies out of their reach)
     for (const u of this.state.combatState.units) {
       const card = this.unitCards.get(u.id);
       if (card) {
         card.updateHealth(u.hp, u.maxHp);
+        card.followCombatPosition(
+          this.gridView.x + u.x * this.gridView.tileWidth,
+          this.gridView.y + u.y * this.gridView.tileHeight
+        );
       }
     }
 

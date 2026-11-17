@@ -19,6 +19,29 @@ import {
   onUnitDeath
 } from './quirkEffects';
 
+/** robots with an attack range up to this many tiles fight in melee */
+const MELEE_RANGE_MAX = 1.5;
+
+/** heading changes (radians) a walking robot tries, in order, to get around another robot */
+const SIDESTEP_TURNS = [0, 0.6, -0.6, 1.2, -1.2];
+
+/**
+ * Spots around an enemy a melee robot can stand at, all within 1 tile of it.
+ * `penalty` (in tiles of extra walking) makes the front, on the boiler side, the favourite.
+ */
+const MELEE_SPOTS = [
+  { dx: -0.8, dy: 0, penalty: 0 },
+  { dx: -0.5, dy: -0.75, penalty: 0.3 },
+  { dx: -0.5, dy: 0.75, penalty: 0.3 },
+  { dx: 0.5, dy: -0.75, penalty: 0.6 },
+  { dx: 0.5, dy: 0.75, penalty: 0.6 },
+  { dx: 0.8, dy: 0, penalty: 1 }
+];
+
+/** robot centres stay half a tile inside the field */
+const clampFieldX = (x: number): number => Math.max(0.5, Math.min(BALANCE.GRID_COLS - 0.5, x));
+const clampFieldY = (y: number): number => Math.max(0.5, Math.min(BALANCE.GRID_ROWS - 0.5, y));
+
 export interface CombatUnit {
   id: string;
   sourceUnit: UnitInstance;
@@ -247,6 +270,11 @@ export class CombatEngine {
       tickUnitQuirk(unit, state, dt);
       if (unit.statuses.stunDuration > 0) continue;
 
+      // Nobody to hit from here: walk toward the nearest enemy until one is in range.
+      if (!this.findBestEnemyTarget(unit, state.enemies)) {
+        this.advanceUnit(unit, state, dt);
+      }
+
       unit.attackCooldown -= dt;
       if (unit.attackCooldown <= 0) {
         // Target selection
@@ -436,6 +464,93 @@ export class CombatEngine {
     }
 
     return closestEnemy;
+  }
+
+  /**
+   * Moves a robot that has no enemy in range one step toward the most pressing enemy.
+   * Shooters walk straight at it and stop as soon as it is in range; melee robots head
+   * for a free spot next to it, preferably in front (on the boiler side), so they also
+   * block its lane. Robots stay inside the field and never walk into each other: if the
+   * straight path is taken they sidestep, and if every way forward is taken they wait.
+   */
+  private static advanceUnit(unit: CombatUnit, state: CombatSimulationState, dt: number): void {
+    const enemy = this.findApproachTarget(unit, state.enemies);
+    if (!enemy) return;
+
+    const goal = unit.attackRange <= MELEE_RANGE_MAX
+      ? this.meleeApproachPoint(unit, enemy, state.units)
+      : { x: enemy.x, y: enemy.y };
+
+    const distGoal = Math.hypot(goal.x - unit.x, goal.y - unit.y);
+    if (distGoal < 1e-3) return;
+
+    let speed = unit.moveSpeed;
+    if (unit.statuses.slowDuration > 0) speed *= 1 - unit.statuses.slowRatio;
+    const stepLen = Math.min(speed * dt, distGoal);
+    if (stepLen <= 0) return;
+
+    const heading = Math.atan2(goal.y - unit.y, goal.x - unit.x);
+    for (const turn of SIDESTEP_TURNS) {
+      const nx = clampFieldX(unit.x + Math.cos(heading + turn) * stepLen);
+      const ny = clampFieldY(unit.y + Math.sin(heading + turn) * stepLen);
+      // every step must bring the robot closer, so it never wanders back and forth
+      if (Math.hypot(goal.x - nx, goal.y - ny) >= distGoal - 1e-6) continue;
+      if (this.crowdsAnotherUnit(unit, nx, ny, state.units)) continue;
+      unit.x = nx;
+      unit.y = ny;
+      unit.col = Math.min(BALANCE.GRID_COLS - 1, Math.floor(nx));
+      unit.row = Math.min(BALANCE.GRID_ROWS - 1, Math.floor(ny));
+      return;
+    }
+  }
+
+  /** The enemy a robot walks to: the closest one, with a lean toward those nearer the boiler. */
+  private static findApproachTarget(unit: CombatUnit, enemies: CombatEnemy[]): CombatEnemy | null {
+    let best: CombatEnemy | null = null;
+    let bestScore = Infinity;
+    for (const enemy of enemies) {
+      if (enemy.isDead) continue;
+      const score = Math.hypot(enemy.x - unit.x, enemy.y - unit.y) + enemy.x * 0.2;
+      if (score < bestScore) {
+        bestScore = score;
+        best = enemy;
+      }
+    }
+    return best;
+  }
+
+  /** The closest free spot next to the enemy for a melee robot (front first, then flanks, then behind). */
+  private static meleeApproachPoint(unit: CombatUnit, enemy: CombatEnemy, units: CombatUnit[]): { x: number; y: number } {
+    let best: { x: number; y: number } | null = null;
+    let bestScore = Infinity;
+    for (const spot of MELEE_SPOTS) {
+      const x = clampFieldX(enemy.x + spot.dx);
+      const y = clampFieldY(enemy.y + spot.dy);
+      // the field edge can squeeze a spot out of reach
+      if (Math.hypot(enemy.x - x, enemy.y - y) > unit.attackRange) continue;
+      const taken = units.some(
+        (o) => o !== unit && !o.isDead && Math.hypot(o.x - x, o.y - y) < BALANCE.UNIT_SEPARATION
+      );
+      if (taken) continue;
+      const score = Math.hypot(x - unit.x, y - unit.y) + spot.penalty;
+      if (score < bestScore) {
+        bestScore = score;
+        best = { x, y };
+      }
+    }
+    return best ?? { x: enemy.x, y: enemy.y };
+  }
+
+  /** True if standing at (x, y) would push the robot closer than allowed to another robot. */
+  private static crowdsAnotherUnit(unit: CombatUnit, x: number, y: number, units: CombatUnit[]): boolean {
+    for (const o of units) {
+      if (o === unit || o.isDead) continue;
+      const after = Math.hypot(o.x - x, o.y - y);
+      if (after >= BALANCE.UNIT_SEPARATION) continue;
+      // already too close (e.g. pushed by knockback): allowed only to move apart
+      if (after < Math.hypot(o.x - unit.x, o.y - unit.y)) return true;
+    }
+    return false;
   }
 
   /** The nearest robot in the enemy's lane that it can reach: the front line shields the back line. */

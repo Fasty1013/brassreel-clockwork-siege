@@ -79,8 +79,11 @@ describe('Shooters close in while firing', () => {
     expect(afterTenSeconds).toBeLessThan(7.0);
 
     for (let i = 0; i < 20 * 60; i++) CombatEngine.step(state, 0.05, rng);
-    // ends up exactly one tile from the knight, where melee can reach it
-    expect(sniper.x).toBeCloseTo(state.units[0].x + 1, 5);
+    // they meet: the knight walks out to it, the sniper stops next to the knight, in melee reach
+    const k = state.units[0];
+    expect(k.x).toBeGreaterThan(2.5);
+    expect(sniper.x).toBeGreaterThan(k.x);
+    expect(Math.hypot(sniper.x - k.x, sniper.y - k.y)).toBeLessThanOrEqual(k.attackRange);
     expect(state.boilerHp).toBe(10);
   });
 

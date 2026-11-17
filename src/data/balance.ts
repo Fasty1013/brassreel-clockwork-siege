@@ -80,6 +80,12 @@ export const BALANCE = {
   MIN_DAMAGE_RATIO: 0.25,
   /** shooters keep walking at this share of their speed while they fire, until they stand next to their target */
   RANGED_ADVANCE_RATIO: 0.4,
+  /**
+   * Robots with no enemy in their attack range walk toward the nearest one (at their own
+   * moveSpeed) until it is in range: shooters stop at their range, melee robots step in front of it.
+   * While walking they keep at least this many tiles from each other.
+   */
+  UNIT_SEPARATION: 0.6,
 
   // Emergency Valve
   VALVE_SLOW_DURATION_S: 5,
