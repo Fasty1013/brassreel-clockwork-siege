@@ -1,73 +1,47 @@
-# BRASSREEL: Inter-Agent Task Board & Handoff Log
+# BRASSREEL: доска задач и передача работы
 
-Owner: Lead Architect  
-Purpose: Coordinates cross-discipline requests, dependencies, and PR acceptance between specialized agents.
+Состояние проекта и открытые задачи для следующего, кто сядет за код (человек или агент).
+Обновлено: 17.11.2026.
 
 ---
 
-## Milestone Progress Summary
+## Где мы
 
-| Milestone | Description | Status | Verification & Artifacts |
+| Этап | Что | Состояние |
+|---|---|---|
+| M0–M5 | план, логика без графики, первый играбельный забег, 3 акта, звук, архив, симулятор 10 000 забегов, упаковка | готово (ноябрь 2026, ранние правила) |
+| Визуальная переделка | процедурные фигурки, фоны актов, пиксельный интерфейс, шрифт Rubik | готово, `WORK_LOG.md` §1–5, 16 |
+| Новые правила | только тройки, слияние до 5★, лимит поля, древо навыков, расстановка в любую клетку | готово, `WORK_LOG.md` §6 |
+| Баланс 30 волн | рост врагов, конец вечных боёв, `VeteranBot` | готово, `BALANCE.md` §7 |
+| Мастерская | 30 рабочих гаджетов, случайная витрина, редактор барабанов | готово, `WORK_LOG.md` §13–14 |
+| Черты роботов | все черты работают в бою, резерв на 10 | готово, `WORK_LOG.md` §15 |
+| Кампания «Великий Регулятор» | сюжет, сцены, угрозы, хроника | готово, `WORK_LOG.md` §17 |
+| v0.4.0 | роботы идут к врагам, меню с паузой забега, лента и карта кампании | выпущено из ветки `visual-overhaul`; в `main` перенесено коммитом `d904d09` |
+| Ядра и жар | все 20 ядер двигателя работают, жар даёт больше джокеров и корон, рост врагов подстроен (63.6% побед у бота) | готово, `WORK_LOG.md` §18 |
+
+Проверки на 17.11.2026: 169 тестов в 24 файлах проходят. Сайт обновляется из `main`.
+
+## Расхождение веток
+
+Выпуск v0.4.0 собран из `visual-overhaul`. Слияние `6f244c8` оставило дерево `main`, поэтому часть правил
+выпуска в `main` нет: прокрутки за шестерни, навык «Смазанный механизм», порог брони 25%, видимый шанс
+заклинивания, 60 с на проверке 25-й волны. Документы `GDD.md`, `ARCHITECTURE.md`, `BALANCE.md` §1–6
+описывают `main`. Решить: переносить эти правила в `main` или оставить.
+
+## Открытые задачи
+
+| ID | Что | Где | Подробно |
 |---|---|---|---|
-| **M0** | Planning, Rules, Architecture, GDD, Balance, Governance | **COMPLETED & APPROVED** | `/docs/ARCHITECTURE.md`, `/docs/GDD.md`, `/docs/BALANCE.md`, `m0_master_plan.md` |
-| **M1** | Pure Deterministic Engine, Schemas, i18n, Headless Simulator | **COMPLETED & APPROVED** | 58/58 Vitest tests (90.99% coverage), 1,000 runs in 1.82s, `m1_core_simulator_report.md` |
-| **M2** | Playable Vertical Slice in Phaser 3 (1920x1080) | **COMPLETED & APPROVED** | E2E Browser Playtest via Puppeteer (6 screenshots in `docs/screenshots/`), `m2_vertical_slice_report.md` |
-| **M3** | Full Content, Audio (WebAudio SFX), Meta-Progression, Polish | **COMPLETED & APPROVED** | 65/65 tests, 7 screenshots, 30 waves, 3 bosses, `m3_full_content_audio_report.md` |
-| **M4** | QA Hardening, 10,000 Headless Runs, Balance Tuning, Localization | **COMPLETED & APPROVED** | 10,000 headless runs (16.95% winrate), 100% i18n parity, 74/74 tests (90.66% coverage), `m4_qa_balance_report.md` |
-| **M5** | Final Polish, Production Build, Release Documentation, Desktop Wrapper | **COMPLETED & APPROVED** | Modular vendor chunks, Tauri 2 & Electron wrappers, `m5_release_readiness_report.md` |
+| T-01 | резонансы тегов ядер (2 ядра с общим тегом) считаются, но ничего не дают | `src/core/cores` | `GDD.md` §7.3 |
+| T-03 | Джекпот всегда даёт Левиафана, выбора из трёх нет | `reducer.ts` (`SPIN`) | BUG-007 |
+| T-04 | Без древа навыков забег не пройти (0% у бота) — сказать игроку или смягчить | `BALANCE.md` §7 | — |
+| T-05 | Английская версия: русские строки в коде окон, сюжет и навыки только на русском | `src/ui`, `src/scenes`, `story.ts`, `skills.ts` | BUG-008 |
+| T-06 | Акты 2–3 и боссы не пройдены целиком в живой игре | — | — |
+| T-07 | Улучшение архива «Горячий тигель» про опыт слияния, которого больше нет | `src/core/meta/metaUpgrades.ts` | BUG-009 |
+| T-08 | Скриншоты в `docs/screenshots/` — до визуальной переделки | `docs/screenshots` | — |
+| T-09 | Tauri-обёртка без Rust-части, Electron без сборщика | `src-tauri`, `electron` | `RELEASE.md` |
 
----
+## Журнал передачи
 
-## Current State & Next Steps (Handoff for Tomorrow)
-
-### Exactly where we stopped:
-- **Milestone M2 is 100% complete:**
-  - All scenes implemented: `BootScene`, `MenuScene`, `RunScene`, `GameOverScene`.
-  - 100% procedural Canvas pixel-art generated (symbols, units, enemies, boss, projectiles, particles).
-  - 3x3 Slot with sequential spin animation, mechanical clunk-bounce, payline combo vectors, Hold, Nudge.
-  - Heat gauge (0-100%) and Jam mechanics.
-  - 8x5 grid battle with real-time autochess simulation (`dt = 0.05`), speed toggle (1x/2x/4x), Emergency Valve.
-  - Drag-and-drop deployment and Smelt crucible with star evolution branching (★2 / ★3) and modal choice.
-  - Foundry Workshop (Shop modal) for deck editing (add, remove, gild symbol) and gadgets.
-  - Wave 5 Inspection and Wave 10 Boss (*The Steam Baron* with 2 phases).
-  - Full E2E browser playtest executed in Chromium via Puppeteer, 6 screenshots captured and verified in `docs/screenshots/` and artifact folder.
-  - Zero TypeScript errors (`tsc --noEmit`), 58/58 unit & integration tests passing.
-
-### What to execute tomorrow (Milestone M3):
-1. **Procedural WebAudio SFX Engine (`/src/audio/`):**
-   - Click/spin ratchets for 3x3 reels.
-   - Heavy mechanical clunk on reel stops.
-   - Coin/cog chime on payline wins.
-   - Steam release hiss on Emergency Valve.
-   - Combat sound effects (laser sparks, arrow shots, bomb explosions, metal clashing).
-   - Atmospheric steampunk factory hum / ambient loop.
-2. **Meta-Progression System (Foundry Archives):**
-   - Persistent `localStorage` save system for unlocks and run history.
-   - Meta-currency ("Refined Cogs") earned at end of runs.
-   - Unlocking starting Engine Cores, additional starting Steam, and expanded reel strips.
-3. **Acts 2 & 3 Expansion:**
-   - Act 2: Rust Swamps (Waves 11–20) + Act 2 Boss (*Corrosion Empress*).
-   - Act 3: Baron's Citadel (Waves 21–30) + Final Boss (*The Iron Colossus*).
-4. **Enhanced Particle VFX:**
-   - Steam puffs on boiler breach, spark sprays on critical hits, electric arc lightning chains.
-5. **Headless Simulator 10,000 runs balance pass.**
-
----
-
-## Agent Handoff Log
-
-| ID | From | To | Description | Status | Resolution / Artifact |
-|---|---|---|---|---|---|
-| **HO-001** | Lead Architect | Game Designer | Draft complete GDD with 4 factions, 32 units, 40 mods, 20 cores, 30 gadgets, 12 enemies, Boss, and slot mechanics | **COMPLETED** | `/docs/GDD.md` |
-| **HO-002** | Lead Architect | Balance Analyst | Draft statistical model, odds calculations, bot targets, and wave progression table | **COMPLETED** | `/docs/BALANCE.md` |
-| **HO-003** | Lead Architect | Content Dev | Create Zod schemas, data files, and i18n dictionaries for EN and RU | **COMPLETED** | `/src/data/**` |
-| **HO-004** | Lead Architect | Core Engine Dev | Implement deterministic PRNG, ReelStrip, Payline evaluator, Smelt crucible, Heat/Jam | **COMPLETED** | `/src/core/**` |
-| **HO-005** | Lead Architect | Combat & AI Dev | Implement discrete 8x5 grid battle engine, targeting, and Boss AI | **COMPLETED** | `/src/core/combat/**` |
-| **HO-006** | Lead Architect | Balance Analyst | Build Node.js CLI Headless Simulator with Random, Greedy, and Smart bots | **COMPLETED** | `/tools/sim/**` |
-| **HO-007** | Core Engine Dev | UI/UX Dev | Implement Phaser 3 UI, scenes, slot view, grid view, drag-and-drop, shop, boss bar | **COMPLETED** | `/src/scenes/**`, `/src/ui/**` |
-| **HO-008** | QA Agent | All | Build automated E2E browser playtest in Chrome via Puppeteer, capture all 6 screenshots | **COMPLETED** | `/tests/e2e/**`, `/docs/screenshots/**` |
-| **HO-009** | Lead Architect | Audio Dev | Build procedural WebAudio SFX synthesis engine | **COMPLETED** | `/src/audio/SoundManager.ts`, `tests/audio/` |
-| **HO-010** | Lead Architect | Systems Dev | Implement persistent localStorage meta-progression (Foundry Archives) | **COMPLETED** | `/src/core/meta/**`, `/src/ui/ArchiveModal.ts` |
-| **HO-011** | Content Dev | Core Engine Dev | Expand to 3 Acts (30 waves, 3 bosses, 23 enemies), procedural sprites, and VFX | **COMPLETED** | `/src/data/enemies.ts`, `/src/data/waves.ts`, `m3_full_content_audio_report.md` |
-| **HO-012** | QA Agent | Balance Analyst | 10,000 Headless runs, bot evaluation, and winrate curve calibration | **COMPLETED** | `/tools/sim/runner.ts`, `docs/simulation_10k_report.json`, `m4_qa_balance_report.md` |
-| **HO-013** | Release Engineer | Lead Architect | Milestone M5 Desktop packaging, final production build, and distribution readiness | **COMPLETED** | `src-tauri/`, `electron/`, `dist/`, `docs/RELEASE.md`, `docs/CONTROLS.md`, `m5_release_readiness_report.md` |
+Ранний журнал HO-001…HO-013 (этапы M0–M5) закрыт. Дальнейшая работа записана в `WORK_LOG.md`
+и в истории git; новые задачи — в таблицу выше.

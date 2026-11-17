@@ -7,6 +7,11 @@
 **Animation Viewer Artifact:** [`docs/audit/benchmark_animation_viewer.png`](audit/benchmark_animation_viewer.png)  
 **Static Scene Artifact:** [`docs/audit/benchmark_reference_scene.png`](audit/benchmark_reference_scene.png)
 
+> **Состояние на ноябрь 2026.** Это архивная оценка этапа P1. Эталонные фигурки из раздела 3
+> (`src/art/characters/cogKnight.ts` и др.) и сцены `ReferenceScene`, `AnimationViewerScene` остались только
+> для отладки (`?debug=anim`). В игре фигурки делает генератор `src/art/forge/`, проверка всех фигурок —
+> `?debug=gallery`. Шрифт сменился на Rubik.
+
 ---
 
 ## 1. 15-Point Reference Match Inspection Scorecard

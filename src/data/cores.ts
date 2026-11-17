@@ -89,7 +89,7 @@ export const CORES_DATA: Record<string, EngineCoreDefinition> = {
     tags: ['heat', 'smelt'],
     actTier: 1,
     ruleModifier: 'heat_smelt_bonus',
-    params: { heatThreshold: 50, bonusXp: 1 }
+    params: { heatThreshold: 50, bonusMods: 1 }
   },
   core_chain_cam: {
     id: 'core_chain_cam',
@@ -116,7 +116,7 @@ export const CORES_DATA: Record<string, EngineCoreDefinition> = {
     tags: ['combo', 'overclock'],
     actTier: 2,
     ruleModifier: 'combo_cdr',
-    params: { cdrPerLinePct: 0.1 }
+    params: { cdrPerLinePct: 0.1, maxSpins: 3 }
   },
   core_overdrive_clutch: {
     id: 'core_overdrive_clutch',
@@ -125,7 +125,7 @@ export const CORES_DATA: Record<string, EngineCoreDefinition> = {
     tags: ['heat', 'skill'],
     actTier: 2,
     ruleModifier: 'safe_jam',
-    params: { noUnitDamage: 1 }
+    params: { noUnitDamage: 1, noReelLock: 1 }
   },
   core_cog_catalyst: {
     id: 'core_cog_catalyst',
@@ -143,7 +143,7 @@ export const CORES_DATA: Record<string, EngineCoreDefinition> = {
     tags: ['faction', 'reel'],
     actTier: 2,
     ruleModifier: 'duplicate_spring_summon',
-    params: { duplicateChance: 0.5 }
+    params: { extraUnits: 1 }
   },
   core_fuse_initiator: {
     id: 'core_fuse_initiator',

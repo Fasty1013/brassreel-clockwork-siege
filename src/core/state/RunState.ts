@@ -38,6 +38,8 @@ export interface RunState {
   consumables: ConsumableStock;
   /** spins in a row without a winning line (scrap press) */
   dryStreak: number;
+  /** spins of this wave that hit 2+ lines (Clockwork Relay core) */
+  comboSpinsThisWave?: number;
   /** campaign threat level (0 = normal); enemies get stronger per level */
   threat: number;
 }

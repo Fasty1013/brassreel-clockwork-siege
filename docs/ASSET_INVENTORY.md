@@ -5,6 +5,16 @@
 **Resolution Standard:** Native 640×360 canvas with integer ×3 nearest-neighbor scaling to 1920×1080.  
 **Core Rule:** Zero primitive geometric placeholders (rectangles, circles, solid fills) in final delivery. Every entity is authentic 2D pixel art with frame-by-frame animation (8–12 FPS).
 
+> **Состояние на ноябрь 2026.** Столбец «Current Placeholder» описывает игру до переделки. Сделано:
+> - все 32 робота, 20 врагов и 3 босса — пиксельные фигурки из `src/art/forge` (покой, ходьба, атака);
+> - 6 значков символов (`symbolIcons.ts`), позолота — золотая обводка;
+> - корпус слот-машины с манометром, рычаг, плашки HUD, рамки и панели (`src/art/ui/frames.ts`, `UISkin.ts`);
+> - фоны трёх актов (`actBackdrops.ts`);
+> - лента волн над полем и карта кампании (K); портрет Мастера Шестерёнкина в сценах кампании.
+>
+> Не сделано: цепи и замки удержания, книга выплат, кадры попадания/смерти/появления в листах спрайтов,
+> отдельная анимация джекпота с выбором из трёх легендарных роботов.
+
 ---
 
 ## 1. Placeholder Audit & Replacement Matrix

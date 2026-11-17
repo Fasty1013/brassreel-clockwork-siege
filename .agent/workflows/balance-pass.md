@@ -1,40 +1,30 @@
-# Workflow: /balance-pass
+# Порядок: /balance-pass
 
-Use this workflow to measure, audit, and adjust game balance against defined statistical targets.
+Замер и подстройка баланса по целям из `docs/BALANCE.md` §6.
 
-## Target Metrics (Baseline)
+## Цели
 
-- **Line Hit Rate**: $\ge 55\%$ of spins yield at least one unit summon (including Scrap Bot pairs).
-- **Faction 3-of-a-Kind**: $15\% - 20\%$ of spins hit a pure 3-symbol payline.
-- **Jackpot (3 Crowns)**: $\approx 1.5\%$ base chance; scales up to $\approx 4.0\%$ during high Heat (Overdrive).
-- **Act 1 Winrates**:
-  - `Random Bot`: $< 10\%$
-  - `Greedy Bot`: $\approx 30\%$
-  - `Smart Bot`: $50\% - 60\%$
-- **Wave Pacing**: Average Battle phase duration $25 - 60\text{ s}$ at $1\times$ speed.
-- **Faction Equity**: Faction win rates must be within $\pm 10$ percentage points of each other.
-- **Synergy Dominance Cap**: No single Core + Unit combination may exceed $> 75\%$ win rate in isolation.
+| Что | Цель |
+|---|---|
+| `VeteranBot` проходит 30 волн | 50–70% |
+| без удержаний (`veteran-noholds`) | заметно хуже обычного |
+| без гаджетов (`veteran-nogadgets`), без древа (`veteran-noskills`) | хуже, но не ноль |
+| зависших боёв на 1000 забегов | 0 |
+| средняя длина боя | 20–60 с |
+| хотя бы одна тройка за прокрутку на стартовых лентах | ≈ 60% |
 
-## Execution Steps
+## Шаги
 
-1. **Run Multi-Bot Batch Simulation (Balance Analyst)**
-   ```powershell
-   npm run sim -- --runs 5000 --bot random --output docs/sim-reports/random_report.json
-   npm run sim -- --runs 5000 --bot greedy --output docs/sim-reports/greedy_report.json
-   npm run sim -- --runs 5000 --bot smart  --output docs/sim-reports/smart_report.json
+1. **Замер** (по 1000 забегов, отчёты в `docs/sim-reports/`):
+   ```bash
+   npm run sim -- --runs 1000 --bot veteran --waves 30
+   npm run sim -- --runs 1000 --bot veteran-noholds --waves 30
+   npm run sim -- --runs 1000 --bot veteran-nogadgets --waves 30
+   npm run sim -- --runs 1000 --bot veteran-noskills --waves 30
    ```
-
-2. **Metric Analysis**
-   - Extract winrates per Act and per Wave.
-   - Analyze payline frequencies (P0 = Scrap pairs, P1 = 3-in-a-row, P2 = multi-line combos, P_jackpot = Crown jackpot).
-   - Check Heat distribution, Jam occurrence rate, and Boiler HP leak points.
-   - Identify underperforming and overperforming Cores, Units, and Gadgets.
-
-3. **Data-Only Adjustments**
-   - Apply numerical tweaks exclusively in `/src/data/balance.ts` or individual unit baseline stats.
-   - NEVER alter game rules or core engine mechanics to fix numbers.
-
-4. **Iterative Verification**
-   - Re-run batch simulation with 2,000 runs to verify shift in curves.
-   - Commit updated summary into `/docs/BALANCE.md`.
-
+2. **Разбор.** Таблица по волнам: где гибнут, прочность Котла, роботы на поле, сумма уровней, шестерни, навыки,
+   зависшие бои.
+3. **Правка чисел** — только в `src/data/balance.ts` (`ENEMY_SCALE_ANCHORS` и др.) или в базовых числах
+   роботов и врагов. Правила игры ради чисел не меняются.
+4. **Повторный замер** тем же набором.
+5. **Запись** итога в `docs/BALANCE.md` §7 и тест `tests/core/enemyScaling.test.ts`, если менялся рост врагов.

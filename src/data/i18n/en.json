@@ -414,83 +414,83 @@
   "core": {
     "mirror_piston": {
       "name": "Mirror Piston",
-      "desc": "Horizontal paylines are counted twice."
+      "desc": "Horizontal lines count twice: each one brings two robots."
     },
     "lucky_cam": {
       "name": "Lucky Cam",
-      "desc": "Crown symbol weight is multiplied by 2x on the central reel."
+      "desc": "Crowns land twice as often on the middle reel."
     },
     "recycler": {
       "name": "Recycler",
-      "desc": "Each Smelt action restores +1 Steam."
+      "desc": "Every merge restores +1 Steam."
     },
     "pressure_valve": {
       "name": "Pressure Valve",
-      "desc": "Max Heat increased to 120; Jam chance reduced by 10%."
+      "desc": "Heat goes up to 120 instead of 100; jam chance is 10% lower."
     },
     "diagonal_dynamo": {
       "name": "Diagonal Dynamo",
-      "desc": "Diagonal paylines summon units 1 Tier higher."
+      "desc": "Robots from diagonal lines arrive at level 2★."
     },
     "hollow_spring": {
       "name": "Hollow Spring",
-      "desc": "Pairs have a 25% chance to summon a Tier 1 unit instead of Scrap."
+      "desc": "If a spin hits no 3-in-a-row, a pair on a line has a 25% chance to summon a robot of its line."
     },
     "steam_forge": {
       "name": "Steam Forge",
-      "desc": "+1 Steam per wave; all units deal +15% damage in Overdrive."
+      "desc": "+1 Steam at the start of every wave; if a battle starts above 60% Heat, all robots deal +15% damage."
     },
     "brass_ratchet": {
       "name": "Brass Ratchet",
-      "desc": "Gain +1 extra Nudge charge per wave."
+      "desc": "+1 reel nudge per wave."
     },
     "gilded_flywheel": {
       "name": "Gilded Flywheel",
-      "desc": "Gilded symbols appear in shop at 50% discount."
+      "desc": "Gilding a symbol in the workshop costs half as much."
     },
     "furnace_bellows": {
       "name": "Furnace Bellows",
-      "desc": "Smelt grants +1 extra XP when Heat is above 50%."
+      "desc": "A merge made above 50% Heat gives the robot +1 random mod."
     },
     "chain_cam": {
       "name": "Chain Cam",
-      "desc": "Golden Gear (Wild) on the center slot counts for all 8 paylines."
+      "desc": "Wild in the centre: every line through the centre holding a line symbol counts as 3-in-a-row."
     },
     "scrap_boiler": {
       "name": "Scrap Boiler",
-      "desc": "Sacrificing a Scrap Bot heals the Boiler for +1 HP."
+      "desc": "Every merge repairs the Boiler by +1 (up to max)."
     },
     "clockwork_relay": {
       "name": "Clockwork Relay",
-      "desc": "Each extra line hit reduces unit attack cooldowns by 10%."
+      "desc": "For every spin this wave that hit 2+ lines, robots attack 10% faster in battle (up to +30%)."
     },
     "overdrive_clutch": {
       "name": "Overdrive Clutch",
-      "desc": "Jams no longer damage units; jammed reels unlock faster."
+      "desc": "Jams neither hurt robots nor lock a reel."
     },
     "cog_catalyst": {
       "name": "Cog Catalyst",
-      "desc": "Cog units gain +25% HP and taunt nearby enemies."
+      "desc": "Cog robots get +25% health in battle."
     },
     "spring_barrel": {
       "name": "Spring Barrel",
-      "desc": "3 Spring symbols on a line summon 2 Spring units."
+      "desc": "Every line of Springs summons two archers instead of one."
     },
     "fuse_initiator": {
       "name": "Fuse Initiator",
-      "desc": "Fuse explosions have +50% blast radius."
+      "desc": "Fuse explosions and fire pools cover a 50% larger area."
     },
     "coil_resonator": {
       "name": "Coil Resonator",
-      "desc": "Coil lightning arcs bounce to +2 additional targets."
+      "desc": "Coil chain lightning jumps to 2 more targets."
     },
     "grand_regulator": {
       "name": "Grand Regulator",
-      "desc": "Scoring a Jackpot awards +50 Cogs and +2 Steam."
+      "desc": "A Jackpot also pays +50 Cogs and +2 Steam."
     },
     "perpetual_cam": {
       "name": "Perpetual Cam",
-      "desc": "Unused Hold charges carry over between waves (max 4)."
+      "desc": "Unused holds carry over to the next wave (up to 4 in total)."
     }
   },
   "gadget": {

@@ -51,6 +51,8 @@ export interface SpinResult {
   lineHits: LineEvaluationResult[];
   isJackpot: boolean;
   pairsCount: number;
+  /** faction of the first 2-of-a-kind line (Hollow Spring) */
+  pairFaction?: 'cog' | 'spring' | 'fuse' | 'coil';
   factionHitsCount: number;
   totalSummonsToTrigger: Array<{
     faction: 'cog' | 'spring' | 'fuse' | 'coil' | 'scrap';
@@ -82,15 +84,45 @@ export class ReelManager {
     strips: [ReelSymbol[], ReelSymbol[], ReelSymbol[]],
     currentIndices: [number, number, number],
     heldReels: [boolean, boolean, boolean],
-    rng: PRNG
+    rng: PRNG,
+    symbolWeight?: (reel: number, symbol: SlotSymbol) => number
   ): [number, number, number] {
     const nextIndices: [number, number, number] = [...currentIndices];
     for (let c = 0; c < 3; c++) {
       if (!heldReels[c]) {
-        nextIndices[c] = rng.nextRange(0, strips[c].length - 1);
+        nextIndices[c] = this.pickStop(strips[c], c, rng, symbolWeight);
       }
     }
     return nextIndices;
+  }
+
+  /**
+   * Picks a stop position. Without weights every stop is equally likely. With weights a stop
+   * counts 1 + Σ(weight − 1) over the 3 symbols it shows, so heavier symbols land in the window
+   * more often. One random draw per reel either way.
+   */
+  public static pickStop(
+    strip: ReelSymbol[],
+    reel: number,
+    rng: PRNG,
+    symbolWeight?: (reel: number, symbol: SlotSymbol) => number
+  ): number {
+    const len = strip.length;
+    if (!symbolWeight) return rng.nextRange(0, len - 1);
+    const weights: number[] = [];
+    for (let i = 0; i < len; i++) {
+      let w = 1;
+      for (let k = 0; k < 3; k++) w += symbolWeight(reel, strip[(i + k) % len].symbol) - 1;
+      weights.push(w);
+    }
+    if (weights.every((w) => w === weights[0])) return rng.nextRange(0, len - 1);
+    const total = weights.reduce((a, b) => a + b, 0);
+    let roll = rng.next() * total;
+    for (let i = 0; i < len; i++) {
+      roll -= weights[i];
+      if (roll < 0) return i;
+    }
+    return len - 1;
   }
 
   /**
@@ -101,28 +133,32 @@ export class ReelManager {
     activeModifiers?: {
       mirrorHorizontal?: boolean;
       upgradeDiagonal?: boolean;
-      hollowSpringPairBonus?: boolean;
+      /** Chain Cam: a wild in the centre completes every line through the centre that holds a faction symbol */
       omniCenterWild?: boolean;
     }
   ): SpinResult {
     const lineHits: LineEvaluationResult[] = [];
     let isJackpot = false;
     let pairsCount = 0;
+    let pairFaction: SpinResult['pairFaction'];
     let factionHitsCount = 0;
     const summonsToTrigger: SpinResult['totalSummonsToTrigger'] = [];
 
-    // Optional rule: omni-center wild
-    if (activeModifiers?.omniCenterWild && grid[1][1].symbol === 'wild') {
-      // center wild counts for everything
-    }
+    const centreWild = activeModifiers?.omniCenterWild === true && grid[1][1].symbol === 'wild';
 
     for (const payline of PAYLINES) {
       const symbolsOnLine: ReelSymbol[] = payline.coords.map(([c, r]) => grid[c][r]);
-      const evalResult = this.evaluateLine(payline, symbolsOnLine);
+      let evalResult = this.evaluateLine(payline, symbolsOnLine);
+
+      // Chain Cam: centre wild + one faction symbol on a line through the centre is a win
+      if (centreWild && evalResult.matchType === 'pair' && payline.coords.some(([c, r]) => c === 1 && r === 1)) {
+        evalResult = { ...evalResult, matchType: 'faction_three' };
+      }
 
       if (evalResult.matchType === 'pair') {
         // pairs are not a win: only 3-in-a-row (row, column or diagonal) pays out
         pairsCount++;
+        pairFaction ??= evalResult.faction;
         continue;
       }
       if (evalResult.matchType !== 'none') {
@@ -157,6 +193,7 @@ export class ReelManager {
       lineHits,
       isJackpot,
       pairsCount,
+      pairFaction,
       factionHitsCount,
       totalSummonsToTrigger: summonsToTrigger
     };

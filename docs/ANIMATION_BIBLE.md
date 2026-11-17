@@ -5,6 +5,15 @@
 **Core Standard:** 8–12 FPS Authentic Frame-by-Frame 2D Pixel Animation with Integer Pixel Movement  
 **Data-Driven Invariant:** Zero hardcoded animation timings in game logic. All values reside in `/data/animation/*.json`.
 
+> **Состояние на ноябрь 2026.** Это план (этап P0). Что сделано на деле:
+> - У каждой фигурки из `src/art/forge` 12 кадров: покой (0–3), ходьба (4–7), атака (8–11) — `SpriteForge.ts`.
+>   Отдельных кадров попадания, смерти и появления нет: попадание — белая вспышка, смерть — вспышка, обломки
+>   и исчезновение (`WORK_LOG.md` §2).
+> - Снаряды: стрелы, бомбы по дуге, молнии. Роботы в бою ходят к врагам — анимация ходьбы видна на поле.
+> - Постановка прокрутки и эффекты — `src/presentation/` (`SlotDirector`, `Choreographer`, `Juice`, `ParticleKit`).
+> - JSON из `data/animation/` игрой не читаются; тайминги заданы в коде.
+> - Джекпот-шоу с выбором из трёх легендарных роботов не сделано: джекпот всегда даёт Левиафана.
+
 ---
 
 ## 1. Core Principles of Steampunk Pixel Animation

@@ -97,12 +97,14 @@ export const BALANCE = {
   // Act 3 enemies already have much higher base stats, hence the drop at 21.
   // Tuned with tools/sim (VeteranBot): see docs/BALANCE.md. Raised ×1.25 hp / ×1.12 damage
   // when robots started walking to enemies out of reach (the run got far easier: 65% → 97% wins).
+  // Raised again ×1.125 hp / ×1.06 damage when all 20 engine cores and the heat bonus started working
+  // (VeteranBot 86% → 66% wins).
   ENEMY_SCALE_ANCHORS: [
     { wave: 1, hp: 1, damage: 1 },
-    { wave: 10, hp: 17.5, damage: 5.6 },
-    { wave: 20, hp: 75, damage: 17.9 },
-    { wave: 21, hp: 50, damage: 13.4 },
-    { wave: 30, hp: 77.5, damage: 20.1 }
+    { wave: 10, hp: 19.7, damage: 5.9 },
+    { wave: 20, hp: 84.4, damage: 19 },
+    { wave: 21, hp: 56.3, damage: 14.2 },
+    { wave: 30, hp: 87.2, damage: 21.3 }
   ] as ReadonlyArray<{ wave: number; hp: number; damage: number }>,
 
   // Emergency Valve

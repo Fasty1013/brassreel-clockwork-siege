@@ -166,7 +166,6 @@ describe('Coverage & Edge Case Verification Suite', () => {
     const res = ReelManager.evaluateGrid(grid, {
       mirrorHorizontal: true,
       upgradeDiagonal: true,
-      hollowSpringPairBonus: true,
       omniCenterWild: true
     });
 

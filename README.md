@@ -1,182 +1,86 @@
 # BRASSREEL: Clockwork Siege
 
-> **Roguelite auto-battler defense powered by a 3×3 slot machine forge.**  
-> *Luck creates opportunities — smart builds forge victory.*
+Стимпанк-рогалик: слот-машина 3×3 призывает роботов, роботы защищают котёл Нью-Брассхольма от 30 волн врагов.
 
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.7-blue.svg)](https://www.typescriptlang.org/)
-[![Phaser](https://img.shields.io/badge/Phaser-3.88-orange.svg)](https://phaser.io/)
-[![Vitest](https://img.shields.io/badge/Vitest-3.2-brightgreen.svg)](https://vitest.dev/)
-[![Vite](https://img.shields.io/badge/Vite-6.2-purple.svg)](https://vitejs.dev/)
+- **Играть онлайн:** https://fasty1013.github.io/brassreel-clockwork-siege/ — сайт обновляется при каждой отправке в ветку `main` (`.github/workflows/pages.yml`).
+- **На Windows:** `BRASSREEL.exe` (или `PLAY.bat`) в корне проекта, рядом нужна папка `dist`.
+- **Версия:** 0.4.0. **Технологии:** Phaser 3, TypeScript, Vite, Vitest, Zod, шрифт Rubik.
 
 ---
 
-## ⚙️ About The Game
+## Об игре
 
-**BRASSREEL: Clockwork Siege** is a dark brass and clockwork steampunk defense roguelite. You are the engineer-operator of a casino-mechanized forge defending **The Boiler of New Brassholm** (10 pressure HP) against relentless hordes of rust automatons and scrap marauders.
+Забег — 3 акта по 10 волн, в конце каждого акта босс (Паровой Барон, Императрица Коррозии, Железный Колосс).
+Сюжет кампании «Великий Регулятор»: Барон украл часы города и разобрал их на три части, каждый босс хранит одну.
 
-Instead of traditional tower placement, your defenders are stamped and summoned through a **customizable 3×3 slot machine forge**:
-- **3 customizable reel strips:** Add faction symbols, remove weak symbols (*Reel Thinning*), and gild symbols (*Gilded +50% stats*).
-- **8 paylines (3 rows, 3 columns, 2 diagonals):**
-  - **3 of a kind** summons Tier 1 faction defenders (Cog Tanks, Spring Archers, Fuse Sappers, Coil Sparkers).
-  - **2 of a kind** summons Tier 0 Scrap Bots (fuel for the Smelt crucible).
-  - **3 Crowns** triggers **JACKPOT**: choice of 1 of 3 legendary *Grand Automatons*!
-- **Skill over pure RNG:** `HOLD` lock reels for the next spin; `NUDGE` bump reels up or down.
-- **Push-Your-Luck Heat Gauge:** Extra spins increase furnace Heat (0–100%) and Crown/Wild weights, but risk **Jam** malfunctions.
-- **Smelt Crucible (Fusion & Evolution):** Drag defenders onto each other to absorb and evolve (★1 → ★2 at 3 XP, ★2 → ★3 at 6 XP) with 2 branching archetypes per tier (4 final forms per faction), plus inheritance of rolled modifiers.
-- **Real-Time Auto-Battle (8×5 discrete grid):** 1×/2×/4× battle speed, projectile trajectories, status effects (Burn, Shock, Stun, Slow, Barrier), and **Emergency Valve** slow-motion release.
-- **Act 1 Boss:** *The Steam Baron* with a Phase 2 Overheat transformation.
+Один ход:
 
----
+1. **Подготовка.** 3 бесплатные прокрутки за волну, дальше прокрутка стоит 1 пар и добавляет 20% жара.
+   Награда только за 3 одинаковых символа в линию (8 линий: 3 ряда, 3 колонки, 2 диагонали).
+   Тройка призывает робота своей линейки в резерв на 10 мест. Удержание (2 за волну) и сдвиг (1 за волну) барабанов.
+2. **Расстановка.** Роботы перетаскиваются на поле 8×5 в любую клетку. Лимит на поле — 5, растёт в древе навыков.
+   Два робота одной линейки и одного уровня сливаются: уровень +1, до 5★. На 3★ и 5★ — выбор эволюции.
+3. **Бой.** Автобой: враги идут справа к котлу, роботы сами подходят к врагам вне досягаемости.
+   У каждого класса своя черта (щиты, цепные молнии, оглушение…). Аварийный клапан (V) замедляет врагов.
+4. **Мастерская.** 3 случайных гаджета, редактор барабанов (добавить, позолотить, убрать символ), древо навыков (T).
 
-## 📸 Screenshots
+Каждые 5 волн — выбор ядра двигателя. Между забегами — архив кузницы (постоянные улучшения за очищенные шестерни)
+и уровни угрозы кампании.
 
-| 1. Main Menu (Casino-Forge) | 2. Prep Phase (3×3 Slot & Workbench) |
-|:---:|:---:|
-| ![Main Menu](docs/screenshots/screenshot_01_menu.png) | ![Prep Phase](docs/screenshots/screenshot_02_prep_slot.png) |
+Подробные правила — [`docs/GAME_INFO.md`](docs/GAME_INFO.md).
 
-| 3. Battle Phase (8×5 Defense Grid) | 4. Foundry Workshop (Shop & Deck Edit) |
-|:---:|:---:|
-| ![Battle Phase](docs/screenshots/screenshot_03_battle.png) | ![Foundry Shop](docs/screenshots/screenshot_04_shop.png) |
+## Скриншоты
 
-| 5. Boss Fight: The Steam Baron (Phase 2 Overheat) | 6. Victory / Defeat Screen |
-|:---:|:---:|
-| ![Boss Wave](docs/screenshots/screenshot_05_boss.png) | ![Game Over / Victory](docs/screenshots/screenshot_06_game_over.png) |
+Снимки в `docs/screenshots/` сделаны до визуальной переделки и не показывают текущий вид игры.
+Текущий вид — в игре по ссылке выше или через `tools/qa/shot.ts`.
 
-| 7. Foundry Archives (Meta-Progression & Permanent Upgrades) |
-|:---:|
-| ![Foundry Archives](docs/screenshots/screenshot_07_archive.png) |
+## Устройство
 
----
+Логика игры (`src/core/`) не зависит от Phaser и браузера: одно и то же зерно с одними и теми же действиями
+даёт тот же забег. Поэтому та же логика гоняется ботами в симуляторе (`tools/sim/`).
 
-## 🏛️ Architecture: Pure Core vs. Render Decoupling
-
-The game architecture strictly separates the **pure deterministic logic core** from the **Phaser 3 UI presentation layer**:
-
-```mermaid
-graph TD
-    subgraph UI_Phaser["Phaser 3 View Layer (Rendering & Input)"]
-        MenuScene --> RunScene
-        RunScene --> HUD
-        RunScene --> ReelView
-        RunScene --> GridView
-        RunScene --> UnitCard
-        RunScene --> ShopView
-        RunScene --> EvolutionModal
-        RunScene --> GameOverScene
-    end
-
-    subgraph Pure_Core["Deterministic Headless Core (No DOM / No Phaser)"]
-        RunReducer --> RunState
-        RunReducer --> CombatEngine
-        RunReducer --> ReelManager
-        RunReducer --> HeatManager
-        RunReducer --> SmeltManager
-        RunReducer --> WaveController
-        RunReducer --> CoreEngine
-        EventBus
-    end
-
-    RunScene -- "RunCommand (SPIN, DEPLOY, SMELT, STEP_BATTLE)" --> RunReducer
-    RunReducer -- "CoreEvent (unit_summoned, line_hit, breach)" --> EventBus
-    EventBus -- "Event Listeners" --> RunScene
+```
+src/
+  core/        логика без графики: барабаны, бой, слияние, гаджеты, навыки, кампания, состояние (reducer)
+  data/        числа и содержимое: balance.ts, роботы, враги, гаджеты, ядра, навыки, сюжет, тексты i18n
+  art/         процедурная пиксельная графика (forge — фигурки и значки, environment — фоны, ui — рамки)
+  presentation/ постановка прокрутки и эффекты
+  audio/       звуки WebAudio, синтезируются кодом
+  ui/, scenes/ окна и сцены Phaser
+tests/         тесты Vitest
+tools/sim/     забеги ботами без графики
+tools/qa/      скриншоты, листы спрайтов, проверка играбельности
+launcher/      исходник BRASSREEL.exe
 ```
 
-- **SFC32 Multi-Stream PRNG:** Separate seed streams for `reel`, `combat`, `loot`, and `shop`. The same master seed always reproduces the exact same run bit-by-bit.
-- **100% Procedural Pixel-Art:** All 48 sprites, symbols, tiles, and particles are synthesized programmatically on HTML5 canvas in [`src/fx/proceduralAssets.ts`](src/fx/proceduralAssets.ts). Zero external image dependencies.
-- **i18n Dual-Language:** Full English and Russian support with dynamic runtime switching.
+Подробнее — [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md). Внешних картинок и звуков в игре нет: всё рисуется и синтезируется кодом.
 
----
+## Команды
 
-## 🚀 Quickstart & How To Play
-
-### 🎮 Option 1: Native Windows Executable (.exe)
-Simply double-click **`BRASSREEL.exe`** (or **`PLAY.bat`**) in the root directory!
-- Runs instantly in a native, standalone, borderless 1920×1080 desktop window.
-- Zero browser UI (no URL bars or tabs), full WebGL acceleration, and WebAudio SFX.
-- Full keyboard shortcuts suite (Space, Enter, 1/2/3, Q/W/E, V, P, F11, M).
-
-### 🌐 Option 2: Web Browser Local Server
 ```bash
 npm install
-npm run build
-npm run preview
-```
-Then open `http://localhost:4173/` in any browser.
-
----
-
-## 🛠️ Developer Commands
-```bash
-# Start Vite development server
-npm run dev
-
-# Run TypeScript strict typecheck
-npm run typecheck
-
-# Run Vitest test suite (74/74 unit & integration tests)
-npm test
-
-# Run test coverage report (90.66% line coverage)
-npm run test:coverage
+npm run dev          # сервер разработки
+npm test             # тесты
+npm run typecheck    # проверка типов
+npm run build        # сборка в dist/ (нужна для BRASSREEL.exe)
+npm run sim -- --runs 1000 --bot veteran --waves 30   # баланс: 1000 забегов ботом
 ```
 
-### Production Build & Desktop Wrappers
-```bash
-# Build production bundle with modular vendor chunks in /dist
-npm run build
+Выпуск и упаковка — [`docs/RELEASE.md`](docs/RELEASE.md). Управление — [`docs/CONTROLS.md`](docs/CONTROLS.md).
 
-# Preview production build locally
-npm run preview
+## Документы
 
-# Desktop Steam Wrappers (see docs/RELEASE.md)
-# Tauri 2: npx tauri build
-# Electron: npx electron electron/main.cjs
-```
+| Файл | О чём |
+|---|---|
+| [`docs/GAME_INFO.md`](docs/GAME_INFO.md) | правила игры для игрока |
+| [`docs/GDD.md`](docs/GDD.md) | дизайн: механики и числа |
+| [`docs/BALANCE.md`](docs/BALANCE.md) | математика барабанов, рост врагов, замеры симулятором |
+| [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) | устройство кода |
+| [`docs/CONTENT_GUIDE.md`](docs/CONTENT_GUIDE.md) | как добавлять роботов, врагов, гаджеты |
+| [`docs/WORK_LOG.md`](docs/WORK_LOG.md) | журнал работ |
+| [`docs/claude_code.md`](docs/claude_code.md) | памятка для Claude Code |
+| [`docs/releases/`](docs/releases/) | заметки к выпускам |
 
----
+## Лицензия
 
-## 🗺️ Project Structure
-
-```
-├── .agent/               # Agent team governance, rules, and workflows
-├── docs/                 # Game Design Document (GDD), Architecture, Balance model
-│   ├── ARCHITECTURE.md   # Core design patterns, state management, PRNG
-│   ├── GDD.md            # Complete game design document
-│   ├── BALANCE.md        # Mathematical balance, odds, and bot targets
-│   ├── HANDOFF.md        # Inter-agent task board and handoff log
-│   └── screenshots/      # High-resolution gameplay screenshots
-├── src/
-│   ├── core/             # Pure deterministic engine (PRNG, reels, combat, state)
-│   ├── data/             # Data-driven tables (units, mods, cores, gadgets, enemies)
-│   │   ├── i18n/         # Localization dictionaries (en.json, ru.json)
-│   │   └── schemas/      # Zod validation schemas
-│   ├── fx/               # Procedural pixel-art Canvas asset generator
-│   ├── scenes/           # Phaser 3 scenes (Boot, Menu, Run, GameOver)
-│   └── ui/               # Interactive UI components (HUD, ReelView, GridView, ShopView)
-├── tests/                # Vitest unit & integration tests, E2E Puppeteer scripts
-└── tools/sim/            # Node.js headless simulator and autonomous bot policies
-```
-
----
-
-## 📜 Milestones & Roadmap
-
-- [x] **M0: Planning & Architectural Foundations** — GDD, Balance model, governance rules.
-- [x] **M1: Pure Engine & Headless Simulator** — 90.99% coverage, 58/58 tests, 1,000 runs in 1.82s.
-- [x] **M2: Playable Vertical Slice (Phaser 3)** — Full 10-wave playable loop, procedural Canvas art, 3×3 slot forge, E2E browser verification.
-- [x] **M3: Meta-Progression, Audio & Polish** — Procedural WebAudio SFX engine, Foundry Archives (`localStorage` meta-progression), full 3-Act content expansion (30 waves, 3 bosses, 23 enemies), 65/65 tests.
-- [x] **M4: QA Hardening & Balance Tuning** — 10,000 headless runs (16.95% winrate), failure heatmap, 100% i18n audit (368 keys), 74/74 tests (90.66% coverage).
-- [x] **M5: Steam / Tauri Release Packaging** — Tauri 2 & Electron desktop wrappers, offline packaging, modular vendor chunking, full keyboard shortcuts suite, production release manual.
-
----
-
-## 📄 License
-
-Original project and procedural assets. MIT License.
-
-
-## Играть онлайн
-
-https://fasty1013.github.io/brassreel-clockwork-siege/
-
-Сайт обновляется автоматически при каждой отправке в ветку `main` (см. `.github/workflows/pages.yml`).
+Оригинальный проект, графика и звук сделаны кодом. MIT.

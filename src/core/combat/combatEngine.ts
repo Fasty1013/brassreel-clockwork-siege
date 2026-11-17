@@ -146,6 +146,8 @@ export interface CombatSimulationState {
   valveUses: number;
   /** effects of the gadgets owned when the battle started */
   gadgetMods?: CombatGadgetMods;
+  /** in-battle engine-core rules (CoreEffects.applyBattleStart) */
+  coreMods?: { fuseRadiusMult: number; coilExtraJumps: number };
   valveSlowRemaining: number;
   allEnemiesSpawned: boolean;
   cogsEarned: number;
@@ -772,6 +774,11 @@ export class CombatEngine {
     }
   }
 
+  /** Fuse Initiator: blast and fire-pool radius multiplier for Fuse robots. */
+  private static fuseRadiusMult(state: CombatSimulationState, unit: CombatUnit): number {
+    return unit.sourceUnit.faction === 'fuse' ? state.coreMods?.fuseRadiusMult ?? 1 : 1;
+  }
+
   /** Damage to an enemy outside the main hit (splash, chains, bolts); handles death and bounty. */
   private static dealExtra(
     state: CombatSimulationState,
@@ -945,13 +952,15 @@ export class CombatEngine {
           unit.focusStacks = 0;
         }
         break;
-      case 'molten_pool':
+      case 'molten_pool': {
+        const radius = qp.radiusTiles * this.fuseRadiusMult(state, unit);
         for (const e of [target, ...others()]) {
-          if (Math.hypot(e.x - target.x, e.y - target.y) > qp.radiusTiles) continue;
+          if (Math.hypot(e.x - target.x, e.y - target.y) > radius) continue;
           e.statuses.burnDps = Math.max(e.statuses.burnDps, Math.round(unit.damage * qp.burnPctOfDamage));
           e.statuses.burnDuration = qp.durationSeconds;
         }
         break;
+      }
       case 'thermal_vuln':
         target.statuses.vulnPct = qp.bonusDamagePct;
         target.statuses.vulnDuration = qp.durationSeconds;
@@ -962,7 +971,9 @@ export class CombatEngine {
       case 'chain_lightning': {
         let from = target;
         const hit = new Set([target.id]);
-        for (let j = 0; j < qp.maxJumps; j++) {
+        // Coil Resonator: Coil lightning jumps further
+        const jumps = qp.maxJumps + (unit.sourceUnit.faction === 'coil' ? state.coreMods?.coilExtraJumps ?? 0 : 0);
+        for (let j = 0; j < jumps; j++) {
           const next = state.enemies.find((e) => !e.isDead && !hit.has(e.id) && Math.abs(e.x - from.x) < 2.5);
           if (!next) break;
           hit.add(next.id);
@@ -1042,8 +1053,9 @@ export class CombatEngine {
 
       // Death explosion (fuse line)
       if (quirk?.effectType === 'death_explosion') {
+        const radius = qp.radiusTiles * this.fuseRadiusMult(state, target);
         for (const e of state.enemies) {
-          if (!e.isDead && Math.abs(e.x - target.x) <= qp.radiusTiles && Math.abs(e.y - target.y) <= qp.radiusTiles) {
+          if (!e.isDead && Math.abs(e.x - target.x) <= radius && Math.abs(e.y - target.y) <= radius) {
             this.dealExtra(state, target, e, target.damage * qp.damageMult, false);
           }
         }

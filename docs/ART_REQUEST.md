@@ -4,6 +4,11 @@
 **Target:** Ready-to-use specifications and copy-paste prompts for Aseprite artists and generative pixel-art tools.  
 **Export Standard:** PNG Sprite Sheet Grid + JSON Array/Hash (Phaser 3 Atlas compatible).
 
+> **Состояние на ноябрь 2026.** Заказ внешнему художнику не понадобился: все фигурки, значки, фоны и рамки
+> рисует код (`src/art/`), внешних картинок в игре нет. Документ остаётся на случай, если понадобится
+> нарисованная вручную графика. Имена роботов в игре теперь другие: «Страж-Бот» вместо Cog Knight,
+> «Стрело-Бот» вместо Spring Archer и т.д. (`GAME_INFO.md`, раздел 3); проводник — Мастер Шестерёнкин.
+
 ---
 
 ## 1. Technical Pixel-Art Specifications

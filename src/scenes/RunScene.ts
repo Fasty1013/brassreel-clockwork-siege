@@ -26,6 +26,7 @@ import { CampaignManager } from '@core/campaign/campaign';
 import { CHAPTERS, STORY_SCENES, WAVE_LINES, chapterForWave } from '@data/story';
 import { DialogueModal } from '@ui/DialogueModal';
 import { EconomyManager } from '@core/economy/economy';
+import { CoreEffects } from '@core/cores/coreEffects';
 import { SkillTreeModal } from '@ui/SkillTreeModal';
 import { InfoTip } from '@ui/InfoTip';
 import { t } from '@data/i18n';
@@ -1196,7 +1197,7 @@ export class RunScene extends Phaser.Scene {
         .map((def) => ({ def, price: GadgetManager.price(st, def.id) })),
       prices: {
         symbol: EconomyManager.getAddSymbolCost(discount),
-        gild: EconomyManager.getGildSymbolCost(discount),
+        gild: CoreEffects.gildCost(st),
         remove: EconomyManager.getRemoveSymbolCost(st.economy, discount),
         reroll: EconomyManager.getRerollCost(st.economy, discount)
       },

@@ -1,49 +1,42 @@
-# BRASSREEL: Clockwork Siege — Controls & Player Reference Guide
+# BRASSREEL: Clockwork Siege — управление
 
-## 🕹️ Input Schemes
+Игра проходится мышью (или пальцем на телефоне в горизонтальном положении); клавиши ускоряют то же самое.
+Обработчики клавиш — `setupKeyboardShortcuts`, `setupCampaignAndMenu` и `setupSkillTree` в `src/scenes/RunScene.ts`.
 
-The game is fully playable with either pure Mouse / Touch control or Hybrid Keyboard + Mouse controls.
+## Клавиатура
 
----
-
-## ⌨️ Desktop Keyboard Controls
-
-| Key | Phase | Action |
+| Клавиша | Когда | Действие |
 |---|---|---|
-| <kbd>Space</kbd> | **PREP** | **Spin the Forge** (Consumes free spins, then Overdrive spins) |
-| <kbd>Space</kbd> | **RESULT** | Advance from Wave Victory to Foundry Workshop |
-| <kbd>Space</kbd> / <kbd>Enter</kbd> | **SHOP** | Close Shop and start the next wave |
-| <kbd>Enter</kbd> | **PREP** | **Engage Defense (В БОЙ)** — start real-time battle |
-| <kbd>1</kbd> | **PREP** | Toggle **Hold** on Reel Strip 1 (Left) |
-| <kbd>2</kbd> | **PREP** | Toggle **Hold** on Reel Strip 2 (Center) |
-| <kbd>3</kbd> | **PREP** | Toggle **Hold** on Reel Strip 3 (Right) |
-| <kbd>Q</kbd> | **PREP** | **Nudge** Reel Strip 1 (+1 position) |
-| <kbd>W</kbd> | **PREP** | **Nudge** Reel Strip 2 (+1 position) |
-| <kbd>E</kbd> | **PREP** | **Nudge** Reel Strip 3 (+1 position) |
-| <kbd>1</kbd> | **BATTLE** | Set Battle Speed to **1×** (Normal) |
-| <kbd>2</kbd> | **BATTLE** | Set Battle Speed to **2×** (Fast) |
-| <kbd>4</kbd> | **BATTLE** | Set Battle Speed to **4×** (Turbo) |
-| <kbd>P</kbd> | **BATTLE** | **Pause / Resume** battle simulation |
-| <kbd>V</kbd> | **BATTLE** | Activate **Emergency Valve** (Vent Steam / Slow 60%) |
-| <kbd>F</kbd> / <kbd>F11</kbd> | **ANY** | Toggle **Fullscreen** mode |
-| <kbd>M</kbd> | **ANY** | Toggle **Mute / Unmute** SFX & Ambient Hum |
+| Пробел | подготовка | крутить барабаны |
+| Пробел | итог волны | перейти в мастерскую |
+| Пробел / Enter | мастерская | закрыть мастерскую, следующая волна |
+| Enter | подготовка | начать бой |
+| 1 / 2 / 3 | подготовка | удержать левый / средний / правый барабан |
+| Q / W / E | подготовка | сдвинуть левый / средний / правый барабан на символ |
+| 1 / 2 / 4 | бой | скорость боя ×1 / ×2 / ×4 |
+| P | бой | пауза |
+| V | бой | аварийный клапан: враги замедлены на 60% на 5 с |
+| T | всегда | древо навыков (повторно — закрыть); покупать можно везде, кроме боя |
+| K | всегда | карта кампании (то же — клик по ленте «АКТ … ВОЛНА …» над полем) |
+| Esc | всегда | закрыть карту или древо; если окон нет — выйти в меню, забег на паузе |
+| F / F11 | всегда | полный экран |
+| M | всегда | звук вкл/выкл |
 
----
+В главном меню: Пробел или Enter — продолжить забег (или начать новый), Esc — вернуться в забег.
+Пока открыта сюжетная сцена, клавиши игры не работают: Пробел листает текст, Esc пропускает сцену.
 
-## 🖱️ Mouse & Touch Controls
+## Мышь
 
-- **Left-Click Button:** Activates any button (Spin, Engage, Shop, Mute, Upgrades).
-- **Drag & Drop (Bench to Grid):** Drag any defender card from the reserve workbench (bottom) to any slot in columns 0–3 of the defense grid.
-- **Drag & Drop (Grid to Grid):** Reposition deployed defenders between valid grid tiles.
-- **Drag & Drop (Crucible Smelt):** Drag one defender onto another to merge them, transferring experience and selected rolled modifiers.
-- **Hover (Card Tooltip):** Hover over any defender card on the workbench or field to inspect current HP, Damage, Attack Speed, Range, Armor, Star Rank, and active Rolled Mods.
-- **Reel Click:** Click the small lock icon below any reel column to toggle Hold.
+- **Кнопки:** все действия, включая рычаг слот-машины, удержание под барабаном, «В БОЙ», «МЕНЮ (Esc)».
+- **Перетаскивание робота:**
+  - на пустую клетку поля — поставить или переставить;
+  - на робота той же линейки и того же уровня — слияние;
+  - на другого робота — обмен местами;
+  - на резерв — убрать с поля (если в резерве есть место).
+- **Наведение:** подсказка у любого элемента — счётчики, кнопки, символы, роботы, враги в бою.
+- **Мастерская:** вкладка «Барабан 1/2/3», клик по символу ленты выбирает его для позолоты или удаления.
 
----
+## Экран
 
-## ⚙️ Display & Resolution
-
-- **Native Game Resolution:** 1920 × 1080 (16:9).
-- **Scale Mode:** `Phaser.Scale.FIT` with `autoCenter: CENTER_BOTH`.
-- **Supported Aspect Ratios:** 16:9, 16:10 (Steam Deck 1280×800), 21:9 (Ultrawide), 4:3. Crisp pixel-art scaling with letterboxing ensures zero sprite distortion.
-
+- Игра рисуется в 1920×1080 и вписывается в окно (`Phaser.Scale.FIT`, по центру).
+- В окне меньше 1920×1080 холст масштабируется со сглаживанием, в полном размере — пиксельно (`src/main.ts`).

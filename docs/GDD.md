@@ -1,403 +1,211 @@
-# BRASSREEL: Clockwork Siege — Game Design Document (GDD)
+# BRASSREEL: Clockwork Siege — дизайн игры (GDD)
 
-Version: 1.0.0 (Milestone M0)  
-Owner: Game Designer  
-
----
-
-## 1. High Concept & Fantasy
-
-**BRASSREEL: Clockwork Siege** is a roguelite auto-battler tower defense game powered by a mechanical 3×3 slot machine.
-You are the Master Foundryman of *New Brassholm*, the last bastioned factory-city standing in the Rust Wastes. In the center of your citadel hums **The Boiler** — a pressurized steam heart that powers the city's defenses. Outside the iron gates, hordes of rogue scrap marauders and clockwork automatons march to crack the pressure hull.
-
-To defend the gates, you operate the **Furnace Slot** — a massive brass casino forge that stamps out clockwork soldiers, turrets, and war engines on every pull of the lever. Success is not pure luck: through tactical reel deck-building, symbol manipulation (Hold, Nudge), heat management, and the **Smelt** crucible, you forge jackpot spins into an invincible defensive line.
+Версия 2.0, ноябрь 2026 (игра v0.4.0). Описывает правила, которые работают в коде сейчас.
+Правила для игрока простым языком — [`GAME_INFO.md`](GAME_INFO.md); числа — `src/data/balance.ts`;
+как менялись правила — [`WORK_LOG.md`](WORK_LOG.md).
 
 ---
 
-## 2. Core Game Loop
+## 1. Замысел
+
+Стимпанк-рогалик с автобоем. Механик кузницы-казино Нью-Брассхольма защищает Котёл от орд ржавых автоматонов.
+Защитников не строят, а выбивают на слот-машине 3×3: удача даёт роботов, а игрок решает, что крутить,
+что удержать, кого слить, кого поставить и что купить.
+
+**Кампания «Великий Регулятор»** (`src/data/story.ts`, `src/core/campaign/campaign.ts`): Паровой Барон украл
+часы города и разобрал на три части. Каждый босс хранит одну — Маховик, Спираль, Сердце. Персонажи:
+Мастер Шестерёнкин, разведчица Лира, Паровой Барон, Императрица Коррозии, Барон в Железном Колоссе.
+
+## 2. Цикл забега
+
+30 волн: 3 акта по 10, на 10-й волне акта — босс, на 5-й — проверка ОТК.
 
 ```
-+--------------------------------------------------------------------------+
-|                                RUN LIFECYCLE                             |
-|                           3 Acts × 10 Waves = 30 Waves                   |
-+--------------------------------------------------------------------------+
-                                     |
-                                     v
-+--------------------------------------------------------------------------+
-| 1. PREPARATION PHASE (Turn-based, Unhurried)                            |
-|  - 3 Free Spins + Extra Spins (costs 1 Steam & adds +20 Heat)           |
-|  - Skill usage: HOLD (2 charges), NUDGE (1 charge)                       |
-|  - Payline Evaluation: Units summoned to Reserve Bench                   |
-|  - SMELT Crucible: Merge units, choose evolution branches, transfer mods |
-|  - Grid Deployment: Drag & drop units onto 8×5 defense zone (Cols 0-3)   |
-|  - Shop & Reel Customization: Buy/Remove/Gild symbols, buy Gadgets       |
-+--------------------------------------------------------------------------+
-                                     |
-                                     v
-+--------------------------------------------------------------------------+
-| 2. BATTLE PHASE (Real-time Auto-Battler)                                 |
-|  - Speed controls: 1× / 2× / 4× and Pause                                |
-|  - Units auto-target, engage, cast quirks, and fire projectiles          |
-|  - Player Intervention: Emergency Valve (1 charge per wave):             |
-|      Option A: "Pressure Relief" -> Slow all enemies by 60% for 5 sec    |
-|      Option B: "Boiler Patch" -> Restore +3 Boiler HP                    |
-|  - Enemies breach Column 0 -> Leak (-1 Boiler HP; Boss leaks -3 HP)     |
-+--------------------------------------------------------------------------+
-                                     |
-                                     v
-+--------------------------------------------------------------------------+
-| 3. RESULT PHASE (Rewards & Progression)                                  |
-|  - Victory Cogs awarded based on wave clear and enemies crushed          |
-|  - Gadget Choice: Draft 1 of 3 offered Gadgets                           |
-|  - Wave 5: Inspection Condition resolved (Bonus reward or Penalty)       |
-|  - Wave 10: Act Boss defeated -> Engine Core drafted & next Act unlocked|
-|  - Defeat Condition: Boiler HP reaches 0 -> Permadeath & Meta-Score      |
-+--------------------------------------------------------------------------+
+ПОДГОТОВКА → РАССТАНОВКА → БОЙ → ИТОГ → МАСТЕРСКАЯ → следующая волна
+   барабаны     поле 8×5    автобой  шестерни  гаджеты, барабаны
+   (расставлять, сливать и покупать навыки можно в любой фазе, кроме боя)
 ```
 
----
+- **Поражение:** прочность Котла (старт 10) падает до 0.
+- **Победа:** пройден босс 30-й волны.
+- **Зерно:** случайное на каждый забег, `?seed=…` в адресе повторяет забег.
+- **Пауза:** Esc или «МЕНЮ» уводит в главное меню, забег замирает; «Продолжить забег» возвращает.
+  Забег не сохраняется после закрытия вкладки.
 
-## 3. The 3×3 Slot Machine & Reel Mechanics
+## 3. Слот-машина (`src/core/reels/`, `src/core/heat/`)
 
-### 3.1 Reel Anatomy & Deck Building
-- The slot machine features **3 Columns (Reels)** and **3 Rows**, displaying 9 symbols per spin.
-- Each reel has its own circular **Reel Strip** (deck).
-- Players start with a balanced starter deck on each reel:
-  - Reel 1: 3 Cog, 2 Spring, 2 Fuse, 1 Coil, 1 Golden Gear, 1 Crown (10 symbols)
-  - Reel 2: 2 Cog, 3 Spring, 1 Fuse, 2 Coil, 1 Golden Gear, 1 Crown (10 symbols)
-  - Reel 3: 2 Cog, 1 Spring, 3 Fuse, 2 Coil, 1 Golden Gear, 1 Crown (10 symbols)
-- **Deck Customization** in the Shop:
-  - **Add Symbol**: Purchase and insert a chosen symbol into any reel strip (Cost: 15 Cogs).
-  - **Remove Symbol (Thinning)**: Purge an unwanted symbol from a reel strip (Cost: 20 Cogs, +5 per removal).
-  - **Gild Symbol**: Upgrade a standard symbol to "Gilded" (Summoned unit gains +25% base stats and rolls an extra Rare/Epic mod; Cost: 25 Cogs).
+### 3.1 Барабаны и символы
+- 3 барабана, у каждого своя лента, видно 3 символа. Стартовые ленты по 10 символов (`STARTER_REEL_1..3`):
 
-### 3.2 Symbols
-1. **Cog (Brown / Brass)**: Summons Cog faction melee defenders & tanks.
-2. **Spring (Green / Copper)**: Summons Spring faction rapid ranged archers & snipers.
-3. **Fuse (Red / Crimson)**: Summons Fuse faction explosive bombers & pyromancers.
-4. **Coil (Cyan / Electric)**: Summons Coil faction chain-lightning casters & barrier buffers.
-5. **Golden Gear (Wild)**: Substitutes for Cog, Spring, Fuse, or Coil to complete 3-in-a-row paylines.
-6. **Crown (Gold / Jackpot)**: Does not substitute as Wild. 3 Crowns on any payline triggers the **Grand Automaton Jackpot**.
+| Барабан | Шестерня | Пружина | Запал | Катушка | Джокер | Корона |
+|---|---|---|---|---|---|---|
+| 1 | 3 | 2 | 2 | 1 | 1 | 1 |
+| 2 | 2 | 3 | 1 | 2 | 1 | 1 |
+| 3 | 2 | 1 | 3 | 2 | 1 | 1 |
 
-### 3.3 The 8 Paylines
-The machine evaluates 8 discrete paylines across the $3 \times 3$ matrix:
-- **Horizontal**: Line 1 (Row 0), Line 2 (Row 1), Line 3 (Row 2).
-- **Vertical**: Line 4 (Col 0), Line 5 (Col 1), Line 6 (Col 2).
-- **Diagonal**: Line 7 (Top-Left to Bottom-Right), Line 8 (Bottom-Left to Top-Right).
+- **Шестерня, Пружина, Запал, Катушка** — четыре линейки роботов.
+- **Джокер** заменяет любой символ линейки. Три джокера — Страж-Бот (линейка Шестерней).
+- **Корона** не заменяется джокером. Три короны — джекпот.
+- **Позолоченный символ** в выигрышной линии даёт робота с лучшими модулями.
 
-### 3.4 Payout & Summon Rules
-- **3-of-a-Kind (Matching Faction, Wild valid)**: Summons a **Tier 1 Unit** of that faction.
-- **2-of-a-Kind (Pair)**: Summons a **Scrap Bot (Tier 0)**. There are *no completely dead spins* — scrap is fuel for smelting.
-- **3 Crowns (Jackpot)**: Triggers the **Jackpot Celebration**. Player selects 1 of 3 legendary **Grand Automatons** to summon instantly.
-- **Multi-Line Combos**: If a spin hits multiple paylines simultaneously, combo multipliers activate:
-  - 2 Lines: All summoned units receive +15% HP & Damage.
-  - 3 Lines: All summoned units receive +30% HP & Damage and start with +1 Smelt XP.
-  - 4+ Lines: "Mega Forge Combo" -> +50% stats, +1 Smelt XP, and +10 bonus Cogs.
+### 3.2 Линии и награды
+- 8 линий: 3 горизонтали, 3 вертикали, 2 диагонали.
+- **Только 3 в линию.** Пары ничего не дают.
+- Тройка призывает базового робота линейки (1★) в резерв.
+- Несколько линий за прокрутку усиливают призванных: 2 линии +15% к силе, 3 — +30%, 4+ — +50% и +10 шестерней
+  (`COMBO_BONUS`).
+- Джекпот (3 короны) — легендарный робот. Сейчас всегда Левиафан-Мех; выбор из трёх не сделан.
 
-### 3.5 Skill Over Pure RNG
-1. **HOLD (Lock Reel)**:
-   - Lock 1 reel in place. On the next spin, that reel does not rotate; only the other two spin.
-   - Uses 1 Hold Charge (2 charges granted per wave).
-2. **NUDGE (Shift Reel)**:
-   - Shift any one reel by 1 position UP or DOWN to complete a line.
-   - 1 Nudge charge per wave (upgradable via Engine Cores).
-3. **PUSH YOUR LUCK / Heat Gauge (0 - 100)**:
-   - Players receive **3 Free Spins** per wave.
-   - Extra spins cost **1 Steam** and generate **+20 Heat**.
-   - **Heat Benefits**:
-     - Heat 20–40 (Warm): Wild weight $\times 1.5$.
-     - Heat 41–60 (Hot): Wild weight $\times 2.0$, Crown weight $\times 1.5$.
-     - Heat 61–100 (Overdrive): Wild & Crown weights $\times 3.0$.
-   - **Jam Risk**:
-     - When Heat $> 60$, every spin checks for a **Mechanical Jam**.
-     - Jam Chance: $(Heat - 60) \times 0.875\%$ (reaches $35\%$ at 100 Heat).
-     - **Jam Penalty**: The spin fails to summon, a random deployed unit takes $25\%$ max HP damage, and one random reel is jammed (locked) for the next spin.
-   - At wave conclusion, Heat cools down by $-30$.
+### 3.3 Управление удачей
+- **Прокрутки:** 3 бесплатные за волну (+1 за ранг навыка «Лишний оборот»). Дальше — 1 пар и +20 жара.
+- **Удержание:** 2 за волну — барабан не крутится при следующей прокрутке.
+- **Сдвиг:** 1 за волну — барабан сдвигается на символ без прокрутки.
+- **Жар 0–100** — риск с выгодой. Чем горячее, тем чаще в окне джокеры и короны (`HeatManager.getHeatMultipliers`):
+  джокеры ×1.5 при жаре 21–40, ×2 при 41–60, ×3 выше 60; короны ×1.5 при 41–60, ×3 выше 60. Остановка барабана
+  весит `1 + Σ(вес − 1)` по трём видимым символам (`ReelManager.pickStop`).
+  Выше 60 каждая платная прокрутка может заклинить: шанс `(жар − 60) × 0.875%`, 35% при 100.
+  Заклинивание: прокрутка ничего не даёт, робот на поле теряет часть здоровья, один барабан блокируется
+  на следующую прокрутку. Между волнами жар остывает на 30.
 
----
+## 4. Роботы (`src/data/units.ts`, `src/core/smelt/`, `src/data/quirks.ts`)
 
-## 4. Units & Evolution System
+32 робота: 4 линейки по 7 (базовый, 2 эволюции на 3★, 4 на 5★), Утиль-Бот и 3 легендарных.
+Имена: «…-Бот» для базового и первой эволюции, «…-Мех» для финальной. Таблица имён — `GAME_INFO.md`, раздел 3.
 
-### 4.1 Smelt Crucible (Merging)
-- During PREP, the player can drag any unit onto another unit to perform **Smelt**.
-- The sacrifice unit is destroyed, transferring its essence to the target:
-  - Base XP granted: $+1\text{ XP}$.
-  - Same Faction Bonus: $+2\text{ XP}$ (double efficiency).
-- **Mod Inheritance**: The player selects 1 Rolled Mod from the sacrifice unit to replace one of the target's existing mods.
+| Линейка | Роль | Базовый |
+|---|---|---|
+| Шестерни | ближний бой, танк | Страж-Бот |
+| Пружины | стрелок | Стрело-Бот |
+| Запалы | подрывник, урон по площади | Запал-Бот |
+| Катушки | электрик, цепи и поддержка | Искро-Бот |
 
-### 4.2 Star Ranks & Evolution Branches
-- **★1 (Recruit)**: Baseline unit. 0 to 2 XP.
-- **★2 (Specialist)**: Unlocks at **3 XP**. Triggers an **Evolution Choice** between 2 distinct class archetypes.
-- **★3 (Masterwork)**: Unlocks at **6 XP**. Triggers a **Final Evolution Choice** (2 paths per ★2 archetype, yielding 4 final forms per faction).
+- **Характеристики:** здоровье, урон, броня, скорость атаки, дальность, скорость хода.
+- **Черта** (`quirks.ts`, 24 черты) — особенность класса, работает в бою: щиты соседям, оглушение каждым 3-м ударом,
+  пробивание, лишние болты, разгон атаки по одной цели, поджог, уязвимость, отбрасывание, цепная и громовая молния,
+  поле разгона, замедление времени и др. Числа черт привязаны к урону и здоровью робота.
+- **Модули** (`mods.ts`, 40 штук: обычные, редкие, эпические) — 2–3 случайных при призыве. Работают прибавки
+  к характеристикам и срабатывания на удар: поджог, шок, оглушение.
 
-```
-                            [ Tier 1 Unit ]
-                             (★1 Recruit)
-                                  |
-                   +--------------+--------------+
-                   | (3 XP)                      | (3 XP)
-             [ Branch A ]                  [ Branch B ]
-             (★2 Archetype 1)              (★2 Archetype 2)
-                   |                             |
-             +-----+-----+                 +-----+-----+
-             | (6 XP)    | (6 XP)          | (6 XP)    | (6 XP)
-          [ A1 ]       [ A2 ]           [ B1 ]       [ B2 ]
-         (★3 Final)   (★3 Final)       (★3 Final)   (★3 Final)
-```
+### 4.1 Уровни и слияние
+- Все роботы появляются с 1★.
+- Робот, перетащенный на робота той же линейки и того же уровня, сливается с ним: уровень +1, максимум 5★.
+- Каждый уровень: +50% здоровья и урона (`LEVEL_STAT_BONUS`), полное восстановление.
+- На 3★ и 5★ — выбор из двух веток эволюции: новый класс, уровень сохраняется, +1 модуль.
+- Вид по уровням: медь (2★), серебро (3★), золото (4★), золото с фиолетовым сиянием (5★).
 
-### 4.3 Complete Playable Unit Catalog
+### 4.2 Резерв и поле
+- Резерв — 10 мест (`BENCH_CAP`). Призыв в полный резерв переплавляет самого слабого робота в шестерни:
+  3 за 1★, вдвое больше за каждый уровень.
+- Поле 8×5, ставить можно в любую клетку. Лимит на поле — 5 (`BASE_UNIT_CAP`), +1 за ранг «Расширенного ангара»
+  и «Командного узла», +1 гаджетом «Набор Мастера».
 
-#### Faction 1: Cog (Brass/Tank/Melee)
-- **Quirk (Iron Plating)**: Takes 15% reduced damage from physical attacks.
-- **★1 Cog Knight**: Melee frontline. Cleaves adjacent enemy.
-  - **★2 Branch A: Bulwark (Shield Tank)**
-    - *★3 Final A1: Fortress Golem*: Deploys an impassable energy barricade absorbing 600 damage.
-    - *★3 Final A2: Aegis Bastion*: Reflects 35% of damage taken back to attackers.
-  - **★2 Branch B: Ramhead (Impact Bruiser)**
-    - *★3 Final B1: Steam Juggernaut*: Charges forward 2 tiles on combat start, stunning enemies for 2 sec.
-    - *★3 Final B2: Siegebreaker*: Basic attacks deal 40% cleave damage to an entire 3x1 column.
+## 5. Бой (`src/core/combat/combatEngine.ts`)
 
-#### Faction 2: Spring (Copper/Ranged/Precision)
-- **Quirk (Recoil Spring)**: 20% chance on hit for projectile to ricochet to a secondary target.
-- **★1 Spring Archer**: Fast single-target ranged attacker (Range: 5).
-  - **★2 Branch A: Sharpshooter (Long-Range Sniper)**
-    - *★3 Final A1: Clockwork Ballista*: Infinite range in lane; shots pierce through up to 3 enemies.
-    - *★3 Final A2: Eagle-Eye Sentinel*: Crits on targets above 70% HP for 250% damage.
-  - **★2 Branch B: Repeater (Rapid Fire)**
-    - *★3 Final B1: Volley Array*: Fires 3 rapid bolts every 1.2 seconds.
-    - *★3 Final B2: Chrono Marksman*: Each consecutive attack against the same target increases attack speed by 10% (stacks to 100%).
+- Шаг 50 мс. Скорость ×1 / ×2 / ×4, пауза.
+- Враги появляются справа и идут к Котлу. Прорыв левого края: −1 прочности, босс −3.
+- **Роботы идут к врагам:** у кого нет цели в радиусе, идёт к ближайшему врагу. Стрелки и маги встают
+  на своей дальности, ближний бой — перед врагом на его пути к Котлу (если занято — сбоку).
+  Союзников обходят, держат дистанцию `UNIT_SEPARATION`. Если к врагу не пробиться — идут к другому.
+  После боя все возвращаются на свои клетки. Турель из гаджета стоит на месте.
+- **Враги** бьют ближайшего робота в своём ряду. Вражеский стрелок, по которому 3 с никто не попадает,
+  подходит к цели до 1 клетки (`ENEMY_PRESS_AFTER_S`) — так бой не зависает.
+- **Урон:** `max(1, урон − броня)`. Порога «25% удара проходит всегда» из выпуска v0.4.0 в `main` нет.
+- **Боссы** после оглушения 3 с не оглушаются (`BOSS_STUN_IMMUNITY_S`).
+- **Аварийный клапан (V):** раз за бой, враги замедлены на 60% на 5 с.
 
-#### Faction 3: Fuse (Crimson/Bomber/AoE)
-- **Quirk (Combustion Spark)**: On death, explodes dealing 120 damage to all adjacent enemies.
-- **★1 Fuse Sapper**: Throws timed explosive bomb at densest enemy cluster (Range: 4, Splash: 1.5 tiles).
-  - **★2 Branch A: Pyromancer (Thermal/DoT)**
-    - *★3 Final A1: Magma Mortar*: Leaves a burning pool of molten slag dealing 40 fire damage/sec for 6 sec.
-    - *★3 Final A2: Hellfire Foundry*: Enemies burning from fire take 25% increased damage from all sources.
-  - **★2 Branch B: Demolitionist (Concussive Blast)**
-    - *★3 Final B1: Blast Dynamo*: Bomb explosions knock enemies back 1 tile.
-    - *★3 Final B2: Doom Barricade*: Plants 3 explosive landmines in front line that detonate on contact.
+## 6. Враги (`src/data/enemies.ts`, `src/data/waves.ts`)
 
-#### Faction 4: Coil (Electric/Support/Chain)
-- **Quirk (Conduction)**: Attacks arc electric voltage to 1 additional target for 50% damage.
-- **★1 Coil Sparker**: Medium range caster firing electrical sparks (Range: 4).
-  - **★2 Branch A: Conduit (Chain Master)**
-    - *★3 Final A1: Tesla Titan*: Arcs lightning through up to 5 enemies, applying Shock (enemies take bonus damage when hit).
-    - *★3 Final A2: Storm Conductor*: Every 4th attack calls down a lightning bolt dealing 300 damage and stunning for 1.5 sec.
-  - **★2 Branch B: Dynamo (Energy Buffer)**
-    - *★3 Final B1: Shield Galvanizer*: Grants a 150 HP kinetic shield to adjacent allies every 6 seconds.
-    - *★3 Final B2: Overload Core*: Allies in adjacent tiles gain +30% attack speed.
+20 обычных врагов и 3 босса.
 
-#### Tier 0 & Legendary Units
-- **Tier 0 Scrap Bot**: Fragile clockwork worker. Melee attack (15 dmg, 80 HP). Primary utility: fodder for Smelt (+1 XP).
-- **Legendary Jackpot Automatons (Draft 1 of 3 on 3 Crowns)**:
-  1. **Steam Leviathan**: Colossal 3-tile automaton (1800 HP). Cleaves entire front line and emits continuous steam scalding nearby foes.
-  2. **Solarion Sun-Forge**: Emits a continuous directed laser beam melting boss armor and boosting all ally damage by 25%.
-  3. **Chrono Warden**: Emits a time-dilation field slowing all enemies on screen by 45% and accelerating ally cooldowns by 50%.
-
----
-
-## 5. Rolled Mods (40 Mods)
-
-When any unit is summoned, it randomly rolls 2 to 3 mods from the Mod Matrix based on rarity weights:
-- Common: 70%, Rare: 25%, Epic: 5%.
-
-| ID | Name | Rarity | Stat / Effect |
+| Акт | Место | Враги | Босс (база здоровья) |
 |---|---|---|---|
-| `mod_iron_gears` | Iron Gears | Common | +15% Base Damage |
-| `mod_tempered_chassis` | Tempered Chassis | Common | +20% Maximum HP |
-| `mod_lubricated_joints` | Lubricated Joints | Common | +15% Attack Speed |
-| `mod_sharpened_teeth` | Sharpened Teeth | Common | +10% Critical Strike Chance |
-| `mod_reinforced_rivets` | Reinforced Rivets | Common | +5 Flat Armor |
-| `mod_calibrated_lens` | Calibrated Lens | Common | +1 Attack Range (Ranged only) |
-| `mod_copper_wire` | Copper Wire | Common | +15% Status Effect Duration |
-| `mod_steam_injector` | Steam Injector | Common | First attack deals +50% damage |
-| `mod_heavy_flywheel` | Heavy Flywheel | Common | +25% Knockback distance |
-| `mod_scrap_collector` | Scrap Collector | Common | Generates +1 Cog when this unit scores a kill |
-| `mod_spark_plug` | Spark Plug | Common | 10% chance on hit to Shock target |
-| `mod_damped_spring` | Damped Spring | Common | Takes 10% less damage from Ranged attacks |
-| `mod_brass_casing` | Brass Casing | Common | +8% Dodge Chance |
-| `mod_oil_flask` | Oil Flask | Common | Basic attacks slow enemy movement by 15% for 2s |
-| `mod_spiked_plating` | Spiked Plating | Common | Returns 12 damage when struck in melee |
-| `mod_pressure_gauge` | Pressure Gauge | Rare | Damage increases by up to +30% as HP drops |
-| `mod_pyrite_core` | Pyrite Core | Rare | +25% Critical Damage (+50% total on crit) |
-| `mod_hydraulic_ram` | Hydraulic Ram | Rare | Crits stun target for 1.0 second |
-| `mod_boiler_siphon` | Boiler Siphon | Rare | Heals 12% of damage dealt |
-| `mod_kinetic_capacitor` | Kinetic Capacitor| Rare | Stores 20% of damage taken, releases as blast at 5 charges |
-| `mod_thermite_coat` | Thermite Coat | Rare | Attacks apply Burn (30 fire damage over 3s) |
-| `mod_arc_repeater` | Arc Repeater | Rare | Chain attacks jump to +1 additional target |
-| `mod_plated_shield` | Plated Shield | Rare | Starts combat with a 100 HP temporary barrier |
-| `mod_clockwork_haste`| Clockwork Haste| Rare | After scoring a kill, +50% attack speed for 4s |
-| `mod_armor_piercer` | Armor Piercer | Rare | Attacks ignore 50% of target armor |
-| `mod_cleaving_blade` | Cleaving Blade | Rare | Melee attacks deal 35% splash to adjacent tiles |
-| `mod_shrapnel_shell` | Shrapnel Shell | Rare | Bombs release 4 piercing shrapnel needles |
-| `mod_galvanic_surge` | Galvanic Surge | Rare | Shocked enemies take +25% damage from all allies |
-| `mod_supercharged_coil`| Supercharged | Rare | Every 5th attack deals 200% electrical damage |
-| `mod_lead_ballast` | Lead Ballast | Rare | Immune to stuns and knockbacks |
-| `mod_chronometer` | Chronometer | Epic | Attack speed increased by 35% permanently |
-| `mod_overclock_reg` | Overclock Core | Epic | +40% Damage, but loses 1% HP per second in battle |
-| `mod_aegis_plating` | Aegis Plating | Epic | +15 Flat Armor and 25% damage reflection |
-| `mod_doomsday_fuse` | Doomsday Fuse | Epic | Death explosion damage increased by 250% |
-| `mod_chain_lightning`| Voltaic Cascade | Epic | Chain lightning jumps unlimited times if targets die |
-| `mod_vampiric_valves`| Steam Vampire | Epic | 25% Lifesteal and overheal converts to shield |
-| `mod_titan_piston` | Titan Piston | Epic | Basic attacks strike all enemies in current tile lane |
-| `mod_miracle_spring` | Miracle Spring | Epic | Survives lethal blow once per wave with 1 HP and 3s invulnerability |
-| `mod_omni_catalyst` | Omni Catalyst | Epic | Inherits the faction traits of all 4 factions |
-| `mod_jackpot_resonance`| Jackpot Touch | Epic | 5% chance on attack to drop 2 Cogs |
+| 1 | Латунный луг | Утиль-Мародёр, Паровой Вездеход, Латунный Жук, Ржавый Снайпер, Щитовой Дрон, Поршневая Гончая, Мортирный Ползун, Нестабильный Сапёр, Тяжёлый Бур, Электро-Ловчий, Шпилевой Голем, Котловой Диверсант | Паровой Барон (3 200) |
+| 2 | Ржавые топи | Кислотный Дрон, Ржавый Ползун, Болотный Сталкер, Токсичная Пиявка | Императрица Коррозии (6 500) |
+| 3 | Цитадель Барона | Часовой Палач, Цитадельное Орудие, Цитадельный Дредноут, Молниевый Шпиль | Железный Колосс (12 000) |
 
----
+- **Рост по волнам:** здоровье и урон врагов умножаются на коэффициент волны (`ENEMY_SCALE_ANCHORS`,
+  между опорными волнами — линейно; урон растёт примерно втрое медленнее здоровья). На 21-й волне спад:
+  базовые числа врагов 3-го акта и так выше. Текущие коэффициенты — в `balance.ts` и `BALANCE.md`.
+- **Угроза кампании** (0–3): враги +30% за уровень, очищенные шестерни +50%.
+- **Проверка ОТК** (волны 5, 15, 25): победить быстрее 40 / 45 / 50 с. Успех — +20 / +30 / +40 шестерней,
+  провал — Котёл теряет 1 / 2 / 2 прочности (не ниже 1).
 
-## 6. Engine Cores (20 Cores)
+## 7. Экономика
 
-Engine Cores alter fundamental machine rules. Players have **3 Core Slots**, unlocking at **Act 1 (Wave 1)**, **Act 2 (Wave 11)**, and **Act 3 (Wave 21)**.
-Each Core has 1–2 **Synergy Tags**. Equipping 2 Cores with the same tag triggers a **Tag Resonance** bonus.
+| Ресурс | Откуда | На что |
+|---|---|---|
+| Шестерни (старт 25) | награда за волну, убитые враги, переплавка из резерва, навык «Трофейщики» | мастерская, древо навыков |
+| Пар (старт 3, +2 за волну, максимум 5) | волна, гаджеты | платные прокрутки |
+| Жар | платные прокрутки | выше 60 — риск заклинивания |
+| Очищенные шестерни | итог забега, первая победа над боссом главы (25 / 50 / 100) | архив кузницы |
 
-| ID | Name | Tags | Core Ability |
+### 7.1 Мастерская (`src/core/gadgets/gadgets.ts`)
+- **Гаджеты:** 30 штук, на витрине 3 случайных; «Обновить товары» — 5 шестерней.
+  Улучшения действуют до конца забега, каждое купленное делает следующее дороже на 50%.
+  Расходники срабатывают сразу или в следующем бою, дорожают на 15% за волну. Список — `GAME_INFO.md`, раздел 6.
+- **Редактор барабанов:** вкладка барабана, выбор символа на ленте. Добавить символ — 15, позолотить — 25,
+  убрать — 20 (+5 за каждое удаление). Длина ленты 6–16.
+
+### 7.2 Древо навыков (`src/data/skills.ts`)
+4 ветки по 3 узла, покупка за шестерни вне боя, узел открывается после 1 ранга узла над ним.
+
+| Ветка | Узел 1 | Узел 2 | Узел 3 |
 |---|---|---|---|
-| `core_mirror_piston` | Mirror Piston | Reel, Combo | Horizontal paylines are evaluated twice. |
-| `core_lucky_cam` | Lucky Cam | Reel, Wild | Crown symbol weight is multiplied by 2.0 on the central reel. |
-| `core_recycler` | Recycler | Smelt, Economy | Performing a Smelt restores +1 Steam. |
-| `core_pressure_valve` | Pressure Valve | Heat, Defense | Max Heat increased to 120; Jam chance reduced by 10%. |
-| `core_diagonal_dynamo`| Diagonal Dynamo| Reel, Combo | Diagonal paylines summon units 1 Tier higher. |
-| `core_hollow_spring` | Hollow Spring | Reel, Fodder | Pairs (2-of-a-kind) have a 25% chance to summon Tier 1 instead of Scrap Bot. |
-| `core_steam_forge` | Steam Forge | Overclock, Heat| Gain +1 Steam per wave; all units deal +15% damage during Overdrive. |
-| `core_brass_ratchet` | Brass Ratchet | Reel, Skill | Gain +1 extra Nudge charge per wave. |
-| `core_gilded_flywheel`| Gilded Flywheel| Economy, Wild | Gilded symbols appear naturally in the shop at 50% discount. |
-| `core_furnace_bellows`| Furnace Bellows| Heat, Smelt | Smelt grants +1 extra XP if performed while Heat $> 50$. |
-| `core_chain_cam` | Chain Cam | Reel, Wild | Golden Gear (Wild) on the center slot counts for all 8 paylines. |
-| `core_scrap_boiler` | Scrap Boiler | Smelt, Defense | Sacrificing a Scrap Bot heals The Boiler for +1 HP (up to max 10). |
-| `core_clockwork_relay`| Clockwork Relay| Combo, Overclock| Each line hit beyond the first reduces all unit attack cooldowns by 10%. |
-| `core_overdrive_clutch`| Overdrive Clutch| Heat, Skill | Jams no longer damage units; jammed reels unlock automatically after 2s. |
-| `core_cog_catalyst` | Cog Catalyst | Faction, Defense| All Cog faction units gain +25% HP and taunt nearby enemies. |
-| `core_spring_barrel` | Spring Barrel | Faction, Reel | 3 Spring symbols on a line summon 2 Spring Archers instead of 1. |
-| `core_fuse_initiator` | Fuse Initiator | Faction, Overclock| Fuse bombs have 50% increased blast radius and ignite targets. |
-| `core_coil_resonator` | Coil Resonator | Faction, Combo | Coil units' lightning arcs bounce to 2 additional targets. |
-| `core_grand_regulator`| Grand Regulator| Wild, Economy | Scoring a Jackpot awards an additional +50 Cogs and 2 Steam. |
-| `core_perpetual_cam` | Perpetual Cam | Skill, Reel | Hold charges carry over between waves if unused (up to max 4). |
+| Логистика | +1 робот на поле (×3; 15/25/40) | +5 шестерней за волну (×3; 20/30/45) | +1 робот (×2; 60/90) |
+| Броня | +10% здоровья (×3; 15/25/40) | +2 брони (×3; 20/35/50) | +3 прочности Котла (×2; 30/50) |
+| Арсенал | +10% урона (×3; 15/25/40) | +8% скорости атаки (×3; 20/35/50) | +20% урона (×2; 60/90) |
+| Механика | +1 бесплатная прокрутка (×2; 25/45) | +1 удержание (×2; 20/35) | +1 сдвиг (×2; 25/40) |
 
-### Tag Resonances
-- **Reel Resonance (2+ Reel cores)**: Spin cost in Steam reduced by 1 every 2nd extra spin.
-- **Heat Resonance (2+ Heat cores)**: Jam chance cannot exceed 20%.
-- **Smelt Resonance (2+ Smelt cores)**: Smelting transfers 2 Rolled Mods instead of 1.
-- **Overclock Resonance (2+ Overclock cores)**: Unit attack speed increased by 15% globally.
-- **Economy Resonance (2+ Economy cores)**: Shop rerolls cost 0 Cogs for the first reroll each wave.
+### 7.3 Ядра двигателя (`src/data/cores.ts`, `src/core/cores/coreEffects.ts`)
+После волн 5, 10, 15… предлагается выбор из 3 ядер (4 с «Золотым ключом»), всего до 3 ядер за забег.
+Ядро меняет правила до конца забега. Тесты на каждое — `tests/core/coreEffects.test.ts`.
 
----
+| Ядро | Эффект |
+|---|---|
+| Зеркальный Поршень | горизонтальные линии засчитываются дважды |
+| Счастливый Кулачок | короны на среднем барабане выпадают вдвое чаще |
+| Утилизатор | слияние возвращает +1 пар |
+| Клапан Давления | жар до 120, шанс заклинить −10% |
+| Диагональное Динамо | роботы из диагоналей появляются с 2★ |
+| Полая Пружина | прокрутка без троек с шансом 25% превращает пару в робота |
+| Паровой Горн | +1 пар за волну; бой при жаре выше 60 — +15% урона |
+| Латунная Трещотка | +1 сдвиг за волну |
+| Золочёный Маховик | позолота вдвое дешевле |
+| Кузнечные Меха | слияние при жаре выше 50 — +1 модуль |
+| Цепной Кулачок | джокер в центре: линии через центр с символом линейки — тройки |
+| Утильный Котёл | слияние чинит котёл на +1 |
+| Часовое Реле | +10% скорости атаки за прокрутку волны с 2+ тройками (до +30%) |
+| Муфта Форсажа | заклинивание не ранит роботов и не блокирует барабан |
+| Катализатор Шестерни | Шестерни +25% здоровья в бою |
+| Пружинный Барабан | тройка Пружин даёт двух стрелков |
+| Детонатор Запала | взрывы и огненные лужи Запалов на 50% шире |
+| Резонатор Катушки | цепная молния Катушек +2 цели |
+| Гранд-Регулятор | джекпот: +50 шестерней и +2 пара |
+| Вечный Кулачок | неиспользованные удержания переходят в следующую волну (до 4) |
 
-## 7. Gadgets (30 Gadgets)
+Резонансы тегов (2 ядра с общим тегом) посчитаны в `CoreEngine.getActiveTagResonances`, но эффекта не дают.
 
-Gadgets are utility items found in the Shop or earned after wave clears:
+### 7.4 Архив кузницы (`src/core/meta/`)
+8 постоянных улучшений за очищенные шестерни: прочность Котла, стартовый пар, удержания, сдвиги, позолоченный
+стартовый символ, награда за волну, порог заклинивания. Хранится в `localStorage` (`brassreel_meta_state_v1`)
+вместе с прогрессом кампании.
 
-| ID | Name | Type | Cost | Effect |
-|---|---|---|---|---|
-| `gadget_brass_knuckles` | Brass Knuckles | Passive | 18 Cogs | Cog faction units deal +15% damage. |
-| `gadget_sharpening_stone`| Precision Scope | Passive | 18 Cogs | Spring faction units gain +1 Attack Range. |
-| `gadget_gunpowder_flask`| Black Powder | Passive | 18 Cogs | Fuse faction explosions deal +25% damage. |
-| `gadget_copper_coil` | Superconductor | Passive | 18 Cogs | Coil faction shock effects last 3 seconds longer. |
-| `gadget_toolkit` | Master Toolkit | Passive | 25 Cogs | Increases field unit capacity from 12 to 14. |
-| `gadget_oil_can` | Polished Gears | Passive | 20 Cogs | All units gain +10% attack speed. |
-| `gadget_iron_plates` | Barricade Plates | Passive | 20 Cogs | Boiler HP maximum increased from 10 to 12. |
-| `gadget_steam_gauge` | Heavy Regulator | Passive | 22 Cogs | Heat decay at wave end increased from -30 to -50. |
-| `gadget_magnet_arm` | Scrapper's Magnet| Passive | 15 Cogs | Defeated enemies drop +1 bonus Cog. |
-| `gadget_lucky_coin` | Tarnished Coin | Passive | 24 Cogs | Wild symbol weight in slot machine increased by +20%. |
-| `gadget_pressure_spring`| Recoil Buffer | Passive | 20 Cogs | Knockback effects against enemies increased by 1 tile. |
-| `gadget_insulated_gloves`| Safety Grip | Passive | 22 Cogs | Heat jams do not lock reels. |
-| `gadget_cog_wrench` | Forge Wrench | Passive | 20 Cogs | Smelt XP gained from different factions increased from 1 to 2. |
-| `gadget_lens_array` | Prismatic Lens | Passive | 25 Cogs | Units have +15% Critical Hit Chance. |
-| `gadget_reinforced_boiler`| Steel Rivets | Passive | 28 Cogs | Enemy breaches deal -1 less Boiler HP damage (min 1). |
-| `gadget_steam_battery` | High-Cap Boiler | Passive | 25 Cogs | Steam capacity increased from 5 to 8. |
-| `gadget_discount_coupon`| Merchant's Mark | Passive | 20 Cogs | All shop prices reduced by 20%. |
-| `gadget_golden_key` | Master Key | Passive | 30 Cogs | Next Core offer presents 4 choices instead of 3. |
-| `gadget_chrono_gear` | Chrono Gear | Passive | 30 Cogs | Emergency Valve cooldown resets immediately on boss waves. |
-| `gadget_scrap_magnet` | Scrap Compactor | Passive | 22 Cogs | Every 3rd Scrap Bot summoned spawns at ★2 rank. |
-| `gadget_spare_gasket` | Spare Gasket | Consumable | 8 Cogs | Negates the next Mechanical Jam. |
-| `gadget_steam_flask` | Steam Flask | Consumable | 10 Cogs | Restores +3 Steam immediately. |
-| `gadget_emergency_coolant`| Dry Ice Canister| Consumable | 12 Cogs | Reduces Heat to 0 instantly. |
-| `gadget_reel_reroll` | Reel Reroll | Consumable | 8 Cogs | Respins 1 chosen reel for free. |
-| `gadget_overcharge_vial`| Nitro Injector | Consumable | 14 Cogs | Next battle phase: All units deal double damage for 8s. |
-| `gadget_repair_kit` | Boiler Patch | Consumable | 16 Cogs | Restores +2 Boiler HP immediately. |
-| `gadget_bribe_token` | Smuggler's Mark | Consumable | 10 Cogs | Rerolls the current Shop stock with guaranteed Rare gadget. |
-| `gadget_sentry_kit` | Portable Turret | Consumable | 15 Cogs | Spawns a temporary gatling turret on the field for 1 wave. |
-| `gadget_shock_grenade` | Stun Mine | Consumable | 12 Cogs | Stuns the first 3 enemies that cross Column 4 for 4 seconds. |
-| `gadget_golden_ticket` | Gilded Stamp | Consumable | 18 Cogs | Automatically turns 1 random symbol on Reel 2 into Gilded. |
+## 8. Подача
 
----
+- **Сцены** (`DialogueModal`): вступление к главе, речь босса, сцена после победы, финал. Каждая показывается
+  один раз, потом её можно перечитать в «Хронике». Тексты сюжета только на русском.
+- **Реплики перед волнами** — 30 штук, в табличке над полем.
+- **Регулятор** в левом верхнем углу: загораются части, добытые в этом забеге.
+- **Лента кампании** над полем («АКТ 1/3», квадраты волн, «ВОЛНА 7/30») и **карта кампании** (K).
+- Графика — процедурный пиксель-арт (`src/art/`), звук — синтез WebAudio (`src/audio/SoundManager.ts`).
 
-## 8. Enemies & Boss Encounter (Act 1)
+## 9. Расхождения и недоделки
 
-### 8.1 Enemy Archetypes (12 Enemies)
-
-| ID | Name | HP | Spd | Dmg | Attack Type & Trait |
-|---|---|---|---|---|---|
-| `en_scrapper` | Scrap Marauder | 110 | 1.0 | 12 | Melee swarmer. Fast, spawns in packs. |
-| `en_steam_rover` | Steam Rover | 240 | 0.8 | 20 | Armored clockwork buggy. Charges front row. |
-| `en_clockwork_beetle`| Brass Beetle | 320 | 0.6 | 15 | Heavy shell. Has 10 Armor (reduces physical hits). |
-| `en_scrap_sniper` | Rust Sharpshooter| 90 | 0.7 | 35 | Ranged (Range: 6). Targets farthest player backline unit. |
-| `en_shield_drone` | Shield Drone | 180 | 0.9 | 8 | Flying. Projects a 120 HP bubble over nearest ally. |
-| `en_piston_hound` | Piston Hound | 140 | 1.4 | 18 | Very fast leaper. Jumps over first unit encountered. |
-| `en_mortar_crawler`| Mortar Crawler | 200 | 0.5 | 45 | Fires high-arching bombs at player backline. |
-| `en_steam_bomber` | Volatile Sapper | 130 | 1.1 | 80 | Kamikaze. Explodes on contact dealing heavy AoE damage. |
-| `en_heavy_borer` | Heavy Borer | 450 | 0.5 | 30 | Siege drill. Deals triple damage to deployed barricades. |
-| `en_shock_prowler` | Arc Prowler | 220 | 1.0 | 22 | Stuns hit units for 1 second every 3 attacks. |
-| `en_spire_golem` | Spire Golem | 600 | 0.4 | 40 | Mini-boss tank. Emits shockwaves damaging entire row. |
-| `en_boiler_raider` | Boiler Raider | 160 | 1.2 | 25 | Infiltrator. If not killed within 15s, speeds up by +50%. |
-
-### 8.2 Act 1 Boss: The Steam Baron (Wave 10)
-- **Base HP**: $3200$.
-- **Appearance**: A colossal brass walking tank locomotive with twin smokestacks and a giant cowcatcher drill.
-- **Phase 1: Iron Wall (100% to 50% HP)**:
-  - Deploys 2 `Shield Drones` every 12 seconds.
-  - Fires sweeping steam volleys across Rows 1 and 3 dealing 40 damage.
-- **Phase 2: Overheated Fury (50% to 0% HP)**:
-  - Sheds external armor (moves 40% faster).
-  - Vents superheated steam onto random $2 \times 2$ grid zones: tiles become hazardous for 6 seconds, dealing 25 fire damage/sec to stationed units.
-  - Initiates **Locomotive Charge**: charges forward 2 tiles, knocking back all defenders in the central lane.
-
----
-
-## 9. Special Waves & Inspection Mechanics
-
-### Wave 5: Inspection Wave
-Every 5th wave of an Act presents an **Inspection Challenge** set by the High Foundry Council. Players see the objective at the start of PREP:
-- **Challenge Variations**:
-  1. *Speed Trial*: "Defeat the wave within 35 seconds."
-  2. *Iron Perimeter*: "Do not let any enemy cross Column 3."
-  3. *Full Assembly*: "Have at least 6 units deployed on the field when battle begins."
-  4. *Manual Labor*: "Complete the battle without using the Emergency Valve."
-  5. *Monofaction*: "Deploy at least 3 units belonging to the same faction."
-- **Rewards (Success)**: Draft 1 of 3 Engine Cores + 20 Cogs.
-- **Penalties (Failure)**: Boiler loses -1 HP, and Wild symbols are disabled for the next wave.
-
----
-
-## 10. Battlefield & Spatial Grid Mechanics
-
-- **Grid Size**: $8 \text{ Columns} \times 5 \text{ Rows}$.
-  - `Col 0 to 3`: **Player Territory** (defenders can be placed and moved during PREP).
-  - `Col 4 to 7`: **No Man's Land & Enemy Approach Zone**.
-  - `Col 0 Border`: **The Boiler Gates**.
-- **Field Capacity**: Maximum 12 active units (expandable to 14 via `Master Toolkit`).
-- **Emergency Valve (Active Ability, 1 use per wave)**:
-  - Triggerable at any time during BATTLE.
-  - **Relief Valve**: Vents steam across the entire battlefield, slowing all enemy movement and attack speed by 60% for 5 seconds.
-  - **Seal Patch**: Sacrifices steam pressure to reinforce The Boiler, repairing +3 Boiler HP immediately.
-- **Boiler Health**: 10 Pressure Points.
-  - Standard enemy breach = $-1\text{ HP}$.
-  - Boss breach = $-3\text{ HP}$.
-  - Permadeath at 0 HP.
-
----
-
-## 11. Economy & Shop System
-
-- **Cogs (Gold)**:
-  - Earned by killing enemies (1-3 Cogs based on enemy tier), clearing waves (+15 to +30 Cogs), and scoring high slot combos.
-  - Spent in the Shop:
-    - Add Symbol to Reel Strip: 15 Cogs
-    - Remove Symbol (Thinning): 20 Cogs (+5 per consecutive removal)
-    - Gild Symbol: 25 Cogs
-    - Buy Gadget: 15 to 30 Cogs
-    - Reroll Shop Offer: 5 Cogs
-- **Steam (Energy)**:
-  - Starts at 3 Steam. Restores $+2\text{ Steam}$ at the start of each wave (up to max 5).
-  - Spent to purchase extra spins during PREP (1 Steam = 1 Extra Spin + 20 Heat).
-
+- Резонансы тегов ядер не дают эффекта.
+- Улучшение архива «Горячий тигель (Smelt XP)» тоже про старый опыт слияния.
+- Джекпот всегда даёт Левиафана.
+- Клапан в коде умеет и «залатать Котёл» (+3 прочности), но в игре доступно только замедление.
+- Акты 2–3 и боссы проверены симулятором, но не пройдены целиком в живой игре.
+- Выпуск v0.4.0 собран из ветки `visual-overhaul`. Часть его правил в `main` не перенесена: прокрутки за шестерни,
+  навык «Смазанный механизм», порог брони 25%, видимый шанс заклинивания, 60 с на проверке 25-й волны.
+  Этот документ описывает `main`.

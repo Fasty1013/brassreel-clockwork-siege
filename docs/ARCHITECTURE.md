@@ -1,230 +1,151 @@
-# BRASSREEL: Clockwork Siege — Architecture Specification
+# BRASSREEL: Clockwork Siege — устройство кода
 
-Version: 1.0.0 (Milestone M0)  
-Owner: Lead Architect  
-
----
-
-## 1. Architectural Philosophy
-
-BRASSREEL is built on strict architectural boundaries separating **Pure Simulation Logic** from **Rendering / Presentation**. The game is designed to run in two environments:
-1. **Interactive Client**: Phaser 3 (WebGL/Canvas) inside modern desktop/mobile browsers (with eventual Tauri/Electron distribution).
-2. **Headless Simulator / Test Runner**: Pure Node.js CLI runtime executing thousands of runs in seconds for balance audits, property-based tests, and automated regressions.
-
-```
-       +-----------------------------------------------------------+
-       |                     Interactive Web UI                    |
-       |  (Phaser 3 Scenes, ReelView, UnitCard, FX, WebAudio SFX)  |
-       +-----------------------------+-----------------------------+
-                                     | Dispatches Commands
-                                     | Subscribes to Events
-                                     v
-       +-----------------------------------------------------------+
-       |               Pure Game Core (/src/core)                  |
-       |  State Reducers | Deterministic RNG | Spatial Combat      |
-       |  Reels & Paylines | Smelt & Mods | Economy | Waves        |
-       +-----------------------------+-----------------------------+
-                                     ^
-                                     | Consumed Headlessly
-                                     | (No Phaser / No DOM)
-       +-----------------------------+-----------------------------+
-       |             Headless Simulator (/tools/sim)               |
-       |  Bot Policies (Random, Greedy, Smart) | Monte Carlo Tests  |
-       +-----------------------------------------------------------+
-```
-
-### Core Invariants
-- **Zero DOM/Phaser in Core**: No file in `/src/core` may import Phaser, reference `window`, `document`, or use browser-only globals.
-- **Strict Determinism**: Given the same seed string and input command sequence, every action (reel spin, payline evaluation, unit roll, combat tick, enemy spawn, damage calculation) produces the identical bit-exact state.
-- **Separated PRNG Streams**: A single master run seed seeds independent PRNG streams (`reel`, `combat`, `loot`, `shop`). Spinning reels does not alter combat roll sequences; shop rerolling does not alter reel spin stops.
-- **Data-Driven Design**: All game statistics, units, mods, quirks, cores, gadgets, enemies, and waves are declared as TypeScript records validated by Zod schemas in `/src/data`.
+Версия 2.0, ноябрь 2026 (игра v0.4.0).
 
 ---
 
-## 2. Directory Structure
+## 1. Главное правило: логика отдельно от графики
 
 ```
-/
-├── .agent/
-│   ├── rules/                 # Team roles, permissions, boundaries
-│   └── workflows/             # Standardized operational processes
-├── docs/
-│   ├── ARCHITECTURE.md        # Technical architecture (this document)
-│   ├── GDD.md                 # Game design document
-│   ├── BALANCE.md             # Mathematical targets and balance logs
-│   ├── CONTENT_GUIDE.md       # Guide for adding data-driven content
-│   ├── HANDOFF.md             # Inter-agent task board
-│   └── BUGS.md                # QA defect registry
-├── src/
-│   ├── core/                  # PURE DETERMINISTIC GAME SIMULATION
-│   │   ├── prng/              # Multi-stream PRNG (mulberry32 / sfc32)
-│   │   ├── events/            # Typed EventBus
-│   │   ├── state/             # RunState, gameState transitions, reducers
-│   │   ├── reels/             # ReelStrip, Spin evaluator, Payline matching, Wilds
-│   │   ├── heat/              # Heat gauge, Jam mechanics, risk/reward curves
-│   │   ├── units/             # Unit instances, Rolled Mods generator, Quirks
-│   │   ├── smelt/             # Smelt merge, XP thresholds, branch selection
-│   │   ├── cores/             # Engine Core triggers, tag synergy checks
-│   │   ├── gadgets/           # Gadget effect handlers
-│   │   ├── economy/           # Cogs, Steam, shop purchase transitions
-│   │   ├── combat/            # 8x5 battlefield, spatial grid, targeting, ticks
-│   │   └── waves/             # Wave lifecycle, Inspection rules, Boss AI
-│   ├── data/                  # DATA-DRIVEN TABLES & SCHEMAS
-│   │   ├── schemas/           # Zod schema definitions
-│   │   ├── balance.ts         # Numeric constants, curve parameters
-│   │   ├── units.ts           # 4 Factions x 3 Tiers + Branches (32 units)
-│   │   ├── mods.ts            # 40 Rolled Mod definitions
-│   │   ├── quirks.ts          # Unit archetype quirks
-│   │   ├── cores.ts           # 20 Engine Cores + tags
-│   │   ├── gadgets.ts         # 30 Gadgets
-│   │   ├── enemies.ts         # 12 Enemies + Boss phases
-│   │   ├── waves.ts           # Wave encounter tables (Waves 1-10)
-│   │   └── i18n/              # en.json, ru.json localization dictionaries
-│   ├── scenes/                # PHASER 3 SCENE LIFECYCLE
-│   │   ├── BootScene.ts       # Asset caching, procedural texture baking
-│   │   ├── MenuScene.ts       # Title screen, settings, seed input
-│   │   ├── RunScene.ts        # Primary orchestrator (PREP / BATTLE / RESULT)
-│   │   ├── ShopScene.ts       # Reel strip customization, gadget shop
-│   │   └── GameOverScene.ts   # Run summary, meta-progression rewards
-│   ├── ui/                    # VISUAL UI COMPONENTS (PHASER CONTAINERS)
-│   │   ├── ReelView.ts        # 3x3 animated reels with sequential stop
-│   │   ├── UnitCard.ts        # Unit card with stats, stars, mod badges
-│   │   ├── GridView.ts        # 8x5 battlefield grid with drag-and-drop slots
-│   │   ├── Tooltip.ts         # Rich hover tooltip with i18n text & stats
-│   │   ├── HeatMeter.ts       # Pressure/steam gauge with jam alert threshold
-│   │   ├── CoreBar.ts         # Active Engine Cores display
-│   │   └── EvolutionModal.ts  # Branch choice dialog on star rank up
-│   ├── fx/                    # VISUAL JUICE & PARTICLES
-│   │   ├── proceduralAssets.ts# Canvas-based pixel sprite generator
-│   │   ├── lineHighlighter.ts # Golden payline visual tracing
-│   │   ├── jackpotShow.ts     # Screen shake, flash, slow-mo, confetti
-│   │   └── combatFx.ts        # Projectile trails, slash sparks, steam clouds
-│   └── audio/                 # PROCEDURAL AUDIO SYNTHESIZERS
-│       ├── audioBus.ts        # Master WebAudio manager & volume bus
-│       ├── sfxGenerator.ts    # Procedural cogs, steam, bells, hits, jams
-│       └── synthMusic.ts      # Looped atmospheric clockwork soundbed
-├── tools/
-│   └── sim/                   # HEADLESS CLI SIMULATOR
-│       ├── runner.ts          # CLI entry point (Node.js)
-│       ├── bots/              # RandomBot, GreedyBot, SmartBot
-│       └── telemetry.ts       # Metric aggregator and JSON reporter
-├── tests/
-│   ├── core/                  # Core logic & property tests (Vitest)
-│   ├── combat/                # Combat simulation tests (Vitest)
-│   └── e2e/                   # Determinism and browser scenario tests
-├── index.html                 # Web entry point
-├── package.json
-├── tsconfig.json
-└── vite.config.ts
+   Phaser: сцены, окна, анимации, звук      (src/scenes, src/ui, src/art, src/presentation, src/fx, src/audio)
+          │ команды (RunCommand)       ▲ события (EventBus)
+          ▼                            │
+   Логика игры без графики                  (src/core)
+          ▲
+          │ та же логика, без браузера
+   Симулятор с ботами и тесты               (tools/sim, tests)
 ```
 
----
+- **В `src/core` нет Phaser, `window` и `document`.** Исключение — `core/meta/metaManager.ts`: он читает
+  и пишет `localStorage`, но проверяет, что `window` есть, и в Node работает без сохранений.
+- **Детерминизм:** одно зерно + те же команды = тот же забег до бита. Зерно случайное на каждый забег,
+  `?seed=…` в адресе задаёт его вручную.
+- **Данные отдельно от правил:** числа и содержимое — в `src/data`, правила их читают.
 
-## 3. Deterministic PRNG Stream Architecture
-
-To guarantee that player choices in the shop or Prep phase do not alter combat outcomes, a hierarchical PRNG tree is employed.
-
-```
-                     Master Run Seed (e.g., "BRASS-9821")
-                                      |
-                     +----------------+----------------+
-                     |                |                |
-                Reel Stream     Combat Stream     Loot Stream
-                     |                |                |
-             - Strip Spin       - Target Pick    - Rolled Mods
-             - Jam Checks       - Hit Variation  - Shop Stock
-             - Payline Order    - Status Procs   - Gadget Drops
-```
-
-### Algorithm
-We use **SFC32** (Small Fast Chaotic 32-bit PRNG) initialized via a 128-bit hash (MurmurHash3) from seed strings.
-- Fast execution in V8 engine (>100M numbers/sec).
-- Period $\approx 2^{128}$.
-- Predictable serialization: an active PRNG instance can serialize its 4 internal state integers `[a, b, c, d]` for snapshotting.
-
----
-
-## 4. State Management: Command & EventBus Architecture
-
-State mutation follows a unidirectional flow:
+## 2. Папки
 
 ```
-[ User Input / Bot Action ]
-             |
-             v
-      [ Dispatch Command ]
-             |
-             v
-  [ Pure Core Reducer ] <--- [ Isolated PRNG Stream ]
-             |
-             +---> Emits Typed Events via [ EventBus ]
-             |           |
-             |           +---> Phaser Scene updates visuals
-             |           +---> Particle FX triggers bursts
-             |           +---> WebAudio triggers sound synthesis
-             |
-             v
-      [ New Immutable RunState ]
+src/
+  main.ts            запуск Phaser, шрифт Rubik, масштабирование холста (keepCanvasSharp)
+  core/              ЛОГИКА
+    state/           RunState (состояние забега), reducer.ts (все команды)
+    prng/            SFC32 и четыре потока случайности
+    reels/           ленты, остановка, 8 линий, джокер, джекпот
+    heat/            жар и заклинивание
+    units/           создание робота: характеристики, модули
+    smelt/           слияние по уровням и эволюция
+    combat/          бой: движение, цели, атаки, черты, статусы, клапан, прорывы
+    waves/           волны, появление врагов, проверка ОТК
+    economy/         шестерни и пар
+    gadgets/         витрина мастерской, цены, эффекты гаджетов
+    skills/          древо навыков, лимит поля
+    cores/           ядра двигателя: coreEngine (какие надеты), coreEffects (что делают)
+    campaign/        кампания: части Регулятора, сцены, угрозы
+    meta/            архив кузницы между забегами (localStorage)
+    events/          типы событий и EventBus
+  data/              ДАННЫЕ
+    balance.ts       все числа баланса, рост врагов (ENEMY_SCALE_ANCHORS, enemyWaveScale)
+    units.ts         32 робота          quirks.ts   24 черты
+    mods.ts          40 модулей         cores.ts    20 ядер
+    gadgets.ts       30 гаджетов        skills.ts   12 узлов древа
+    enemies.ts       20 врагов + 3 босса
+    waves.ts         30 волн            acts.ts     3 акта для ленты и карты кампании
+    story.ts         главы, сцены, реплики перед волнами
+    schemas/         схемы Zod для units, mods, cores, gadgets, enemies, waves
+    i18n/            ru.json, en.json, t(key, params)
+  art/               ПРОЦЕДУРНАЯ ГРАФИКА
+    forge/           генератор фигурок: PixelCanvas, automaton (детали), roster (роботы),
+                     bestiary (враги, боссы), levelLook (вид по уровням), symbolIcons, SpriteForge
+    environment/     фоны трёх актов (actBackdrops.ts)
+    ui/              пиксельные панели и рамки (UISkin.ts, frames.ts)
+    characters/      ранние эталонные фигурки (Cog Knight и др.) для AnimationViewer
+  presentation/      постановка прокрутки (SlotDirector, Choreographer), эффекты (Juice, ParticleKit)
+  fx/                старый генератор текстур (proceduralAssets.ts), атмосфера, анимации
+  audio/             SoundManager.ts — синтез звуков WebAudio
+  ui/                окна и элементы: HUD, ReelView, GridView, UnitCard, ShopView, SkillTreeModal,
+                     EvolutionModal, CoreDraftModal, ArchiveModal, CampaignModal, CampaignMapModal,
+                     DialogueModal, InfoTip, Tooltip, ModalKit, TextStyles
+  scenes/            BootScene, MenuScene, RunScene, GameOverScene;
+                     отладочные GalleryScene (?debug=gallery), AnimationViewerScene, ReferenceScene
+tests/               Vitest: core/, combat/, meta/, audio/; e2e/playtestBrowser.ts (Puppeteer)
+tools/
+  sim/               runner.ts, telemetry.ts, idleUnits.ts, боты (VeteranBot и варианты; старые Random/Greedy/Smart)
+  qa/                shot.ts (скриншот), verifyPlayability.ts, renderForge.ts (листы спрайтов)
+launcher/            Launcher.cs — исходник BRASSREEL.exe
+electron/, src-tauri/ заготовки настольных обёрток (см. RELEASE.md)
+data/animation/      JSON с таймингами анимаций из планов визуальной переделки
 ```
 
-### Typed EventBus Events
-- `spin_start`: Reels begin spinning.
-- `reel_stopped`: Individual reel locks into final symbol display.
-- `line_hit`: Payline evaluated with symbol type, matching indices, and combo tier.
-- `jackpot`: 3 Crowns matched; triggers cinematic Jackpot sequence.
-- `unit_summoned`: Unit created and placed in player reserve/bench.
-- `unit_smelted`: Sacrifice absorbed; XP granted; mod transferred; evolution triggered if threshold met.
-- `jam_triggered`: Reel jammed; unit damaged; heat consequence fired.
-- `combat_tick`: Simulation step executed with projectile and damage events.
-- `boiler_damaged`: Boiler HP decreased; leak alert.
-- `wave_completed`: Wave victory; rewards calculated.
+## 3. Случайность
 
----
+`PrngManager.createStreams(seed)` создаёт четыре независимых потока SFC32 из одного зерна:
 
-## 5. Combat Engine Architecture
+| Поток | На что |
+|---|---|
+| `reel` | остановки барабанов, заклинивание |
+| `combat` | бой |
+| `loot` | модули при призыве |
+| `shop` | витрина мастерской, выбор ядер |
 
-The battlefield is an $8 \times 5$ discrete grid:
-- **Columns 0 to 3**: Player deployable defensive zone.
-- **Columns 4 to 7**: Combat transit and enemy approach zone. Enemies spawn on column 7 and march leftward towards column 0.
-- **Boiler Gate**: Column 0 border. Any enemy crossing column 0 deals damage directly to Boiler HP (Regular: $-1$, Boss: $-3$) and is consumed.
+Покупки в мастерской не меняют исход прокруток, прокрутки не меняют бой. Состояние потока сериализуется
+в 4 числа.
 
-### Simulation Tick Loop
-Combat runs in discrete time-steps (ticks = $50\text{ ms}$, i.e., $20\text{ ticks/sec}$):
-1. **Status Update**: Tick down active status durations (Stun, Burn, Slow, Armor Buff).
-2. **Aggro & Target Acquisition**:
-   - Melee units seek nearest opposing unit in same or adjacent row.
-   - Ranged units seek nearest unit within attack range radius.
-   - Enemies prioritize target blocking their lane; if unobstructed, move leftward at speed.
-3. **Attack Execution**:
-   - Attack cooldown timers tick down.
-   - On readiness: unit initiates attack animation, spawns projectile or applies instant melee strike.
-   - Damage formula: $\text{Damage} = \max(1, (\text{Base} + \text{ModAtk}) \times \text{Multiplier} - \text{Armor})$.
-4. **Collision & AoE Resolution**: Projectiles advance; explode on contact applying splash radius damage and status procs.
-5. **Death & Scrap Yield**: Destroyed units drop Cogs and emit death events.
+## 4. Состояние и команды
 
----
+Сцена не меняет состояние сама: она отправляет команду в `RunReducer.dispatch(state, command, rng, eventBus)`
+(`src/core/state/reducer.ts`). Команды:
 
-## 6. Procedural Assets & Sound Architecture
+`SPIN`, `HOLD_REEL`, `NUDGE_REEL`, `DEPLOY_UNIT`, `UNDEPLOY_UNIT`, `SMELT_UNITS`, `CHOOSE_EVOLUTION`,
+`BUY_SKILL`, `START_BATTLE`, `STEP_BATTLE`, `USE_VALVE`, `ADVANCE_TO_SHOP`, `BUY_SYMBOL`, `REMOVE_SYMBOL`,
+`GILD_SYMBOL`, `BUY_GADGET`, `EQUIP_CORE`, `REROLL_SHOP`, `START_NEXT_WAVE`.
 
-To ensure 100% original, copyright-clean, and self-contained distribution without external asset load bottlenecks:
-1. **Procedural Pixel-Art Generator (`/src/fx/proceduralAssets.ts`)**:
-   - Renders 16x16, 32x32, and 64x64 pixel sprites dynamically on HTML5 offscreen canvases at boot time.
-   - Textures are uploaded to Phaser's `TextureManager` (e.g., `tex_cog_t1`, `tex_spring_t2`, `tex_boss_baron`).
-   - Distinct brass, iron, copper, neon-amber, and cobalt palettes create a unified steampunk casino aesthetic.
-2. **Procedural WebAudio Synthesizer (`/src/audio/sfxGenerator.ts`)**:
-   - Generates all sound effects mathematically via WebAudio `AudioContext`:
-     - *Reel Tick*: Bandpass filtered square wave impulse ($1200\text{ Hz}$).
-     - *Reel Clunk / Stop*: Low frequency damped sine wave ($120\text{ Hz} \to 40\text{ Hz}$).
-     - *Coin Payout*: High resonant bell tones ($1800\text{ Hz} + 2400\text{ Hz}$).
-     - *Steam Vent*: Pink noise burst with envelope sweep.
-     - *Jam Spark*: Electric FM-modulated noise chirp.
-     - *Jackpot Chime*: Pentatonic brass chime arpeggio.
+Фазы забега: `PREP` → `BATTLE` → `RESULT` → `SHOP` → `PREP` …, в конце `GAME_OVER` или `VICTORY`.
+Расставлять, сливать и покупать навыки можно в любой фазе, кроме боя (`RunReducer.canArrange`).
 
----
+Редьюсер рассылает события через `EventBus` (`src/core/events/events.ts`): `spin_start`, `line_hit`, `jackpot`,
+`unit_summoned`, `bench_overflow`, `unit_smelted`, `evolution_ready`, `jam_triggered`, `wave_completed`,
+`inspection_completed`, `core_draft_ready`, `run_victory`, `run_defeat` и др. Сцена по ним рисует эффекты,
+открывает окна и играет звуки.
 
-## 7. Internationalization (i18n)
+Пауза забега: «МЕНЮ» или Esc усыпляет `RunScene` (`scene.sleep`) и запускает `MenuScene`;
+«Продолжить забег» будит её (`scene.wake`) в том же состоянии.
 
-- All user-facing strings are keyed dictionaries stored in `/src/data/i18n/en.json` and `/src/data/i18n/ru.json`.
-- A lightweight translation helper `t(key: string, params?: Record<string, string | number>): string` handles lookups and variable interpolations.
-- Zero raw Russian or English strings permitted in scene or UI component code.
+## 5. Бой
 
+`CombatEngine` (`src/core/combat/combatEngine.ts`) шагает по 50 мс (`STEP_BATTLE` с `dt`).
+Поле 8×5, координаты дробные: роботы и враги ходят непрерывно, клетки нужны для расстановки.
+
+За шаг:
+1. Статусы: оглушение, поджог, шок, замедление, щиты.
+2. Роботы: цель в радиусе — атака; нет — шаг к ближайшему врагу (стрелки встают на своей дальности,
+   ближний бой — перед врагом), обход союзников, дистанция `UNIT_SEPARATION`.
+3. Враги: ближайший робот своего ряда в радиусе — атака, иначе шаг к Котлу. Стрелок, по которому 3 с
+   никто не попадает, подходит к цели.
+4. Снаряды и черты: пробивание, цепи, урон по площади, щиты, отбрасывание.
+5. Смерти, награда за врагов, прорывы (−1 Котлу, босс −3).
+
+Урон: `max(1, урон − броня)`. Числа врагов умножаются на `enemyWaveScale(wave)` и угрозу кампании.
+
+## 6. Графика и звук
+
+- Внешних картинок нет. Фигурки собирает `src/art/forge`: детали (головы, ноги, оружие, щиты) рисуются
+  на `PixelCanvas` палитрами по 4 оттенка с тёмным контуром, `SpriteForge` склеивает кадры (покой, ходьба,
+  атака — 12 кадров) и регистрирует текстуры в Phaser при загрузке.
+- Звуки синтезирует `SoundManager` через WebAudio.
+- Шрифт — Rubik (`@fontsource/rubik`, 500 и 700), все стили текста — `src/ui/TextStyles.ts`.
+- Игра рисуется в 1920×1080 (`Phaser.Scale.FIT`). В уменьшенном окне холст сглаживается, в полном
+  размере — пиксельный (`keepCanvasSharp` в `src/main.ts`).
+
+## 7. Тексты
+
+- `t(key, params)` из `src/data/i18n/index.ts` берёт строку из `ru.json` или `en.json`.
+- По замыслу в коде окон не должно быть строк на языке игрока. На деле в `src/ui` и `src/scenes` много
+  русского текста прямо в коде (около 20 файлов), а сюжет (`story.ts`) и названия навыков (`skills.ts`) —
+  только на русском. Английская версия экранов не проверялась.
+
+## 8. Проверки
+
+- `npm test` — Vitest, 169 тестов в 24 файлах (ноябрь 2026).
+- `npm run typecheck` — TypeScript в режиме `strict`.
+- `npm run sim -- --runs 1000 --bot veteran --waves 30` — баланс; таблица по волнам, зависшие бои отдельно.
+- `npx tsx tools/qa/verifyPlayability.ts` — браузер: меню → барабаны → бой.

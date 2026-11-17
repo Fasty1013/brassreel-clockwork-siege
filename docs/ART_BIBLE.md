@@ -5,6 +5,18 @@
 **Aesthetic Anchor:** Authentic 16-bit Steampunk Pixel Art (Reference: *Slotbound* `/docs/reference/gameplay.mp4`)  
 **Canvas Resolution:** Native 640×360 px, integer ×3 nearest-neighbor scaling to 1920×1080 px (`Phaser.Scale.FIT`, `pixelArt: true`, `roundPixels: true`).
 
+> **Состояние на ноябрь 2026.** Это план визуальной переделки (этап P0). Что сделано на деле:
+> - Фигурки собирает генератор `src/art/forge/` (`PixelCanvas`, `automaton`, `roster`, `bestiary`):
+>   палитры по 4 оттенка на материал, тёмный контур, свет сверху-слева. Размеры по классам: 32 → 40 → 48 → 56 px,
+>   боссы 72–96 px (вместо таблицы раздела 3). Фигурки выводятся ×3.
+> - Вид по уровням (`levelLook.ts`): медная окантовка 2★, серебряная 3★, золотая 4★, золото с фиолетовым сиянием 5★.
+> - Фоны трёх актов — `src/art/environment/actBackdrops.ts`, выводятся ×4. Рамки и панели — `src/art/ui/UISkin.ts`, `frames.ts`.
+> - **Шрифт — Rubik** (`@fontsource/rubik`, 500 и 700), а не пиксельный, как в разделе 5. Пиксельные шрифты
+>   (Pixelify Sans, затем Tiny5) пробовали и отказались: в окне меньше 1920×1080 игра уменьшается, и тонкие
+>   пиксельные буквы теряют строки пикселей. Все стили текста — `src/ui/TextStyles.ts`.
+> - Игра рисуется в 1920×1080; в уменьшенном окне холст сглаживается, в полном размере — пиксельный.
+> - Палитры разделов 1–2 остаются ориентиром для новых фигурок и интерфейса.
+
 ---
 
 ## 1. Color Palettes & Contrast Philosophy

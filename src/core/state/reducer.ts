@@ -3,11 +3,12 @@ import { SkillManager } from '../skills/skills';
 import { RngStreams } from '../prng/prngManager';
 import { ReelManager, SlotSymbol } from '../reels/reels';
 import { HeatManager } from '../heat/heat';
-import { UnitFactory, UnitInstance } from '../units/unitFactory';
+import { UnitFactory, UnitInstance, UnitLevel } from '../units/unitFactory';
 import { SmeltManager } from '../smelt/smelt';
 import { CombatEngine } from '../combat/combatEngine';
 import { WaveController } from '../waves/waveController';
 import { CoreEngine } from '../cores/coreEngine';
+import { CoreEffects } from '../cores/coreEffects';
 import { EconomyManager } from '../economy/economy';
 import { BALANCE } from '@data/balance';
 import { CORES_DATA } from '@data/cores';
@@ -95,6 +96,7 @@ export class RunReducer {
           if (!EconomyManager.spendSteam(state.economy, BALANCE.EXTRA_SPIN_STEAM_COST)) {
             return state; // Cannot afford steam
           }
+          state.heat.maxHeat = CoreEffects.maxHeat(state);
           state.heat.currentHeat = Math.min(state.heat.maxHeat, state.heat.currentHeat + BALANCE.EXTRA_SPIN_HEAT_ADD);
           eventBus?.emit('heat_changed', { currentHeat: state.heat.currentHeat, delta: BALANCE.EXTRA_SPIN_HEAT_ADD });
 
@@ -110,7 +112,7 @@ export class RunReducer {
             state.consumables.gaskets--;
           } else if (jamCheck.isJammed) {
             const lockedReel = jamCheck.lockedReelIndex ?? 0;
-            if (!GadgetManager.owns(state, 'gadget_insulated_gloves')) {
+            if (!GadgetManager.owns(state, 'gadget_insulated_gloves') && !coreEngine.hasModifier('safe_jam')) {
               state.heldReels[lockedReel] = true;
             }
 
@@ -139,7 +141,8 @@ export class RunReducer {
           state.reelStrips,
           state.reelIndices,
           state.heldReels,
-          rng.reel
+          rng.reel,
+          CoreEffects.symbolWeights(state)
         );
         state.reelIndices = nextIndices;
         state.heldReels = [false, false, false]; // Reset holds after spin
@@ -148,7 +151,6 @@ export class RunReducer {
         const evalResult = ReelManager.evaluateGrid(grid, {
           mirrorHorizontal: coreEngine.hasModifier('mirror_horizontal_lines'),
           upgradeDiagonal: coreEngine.hasModifier('upgrade_diagonal_tier'),
-          hollowSpringPairBonus: coreEngine.hasModifier('pair_upgrade_chance') && rng.reel.next() < 0.25,
           omniCenterWild: coreEngine.hasModifier('omni_center_wild')
         });
 
@@ -176,6 +178,29 @@ export class RunReducer {
           // Summon 1st legendary by default or add to bench
           const legendary = UnitFactory.createUnit('unit_legendary_steam_leviathan', rng.loot, { customStarRank: 3 });
           RunReducer.addToBench(state, legendary, eventBus);
+          CoreEffects.onJackpot(state);
+        }
+
+        // Hollow Spring: a spin without a 3-in-a-row may turn its first pair into a robot
+        if (evalResult.factionHitsCount === 0 && evalResult.pairFaction) {
+          const chance = CoreEffects.pairSummonChance(state);
+          if (chance > 0 && rng.reel.next() < chance) {
+            evalResult.totalSummonsToTrigger.push({ faction: evalResult.pairFaction, tier: 1, isGilded: false });
+          }
+        }
+
+        // Spring Barrel: every line of Springs brings extra archers
+        const extraSprings = CoreEffects.extraSpringSummons(state);
+        if (extraSprings > 0) {
+          for (const summon of [...evalResult.totalSummonsToTrigger]) {
+            if (summon.faction !== 'spring') continue;
+            for (let i = 0; i < extraSprings; i++) evalResult.totalSummonsToTrigger.push({ ...summon });
+          }
+        }
+
+        // Clockwork Relay counts the combo spins of the wave
+        if (evalResult.lineHits.length >= 2) {
+          state.comboSpinsThisWave = (state.comboSpinsThisWave ?? 0) + 1;
         }
 
         // Trigger unit summons to bench
@@ -189,7 +214,9 @@ export class RunReducer {
           const comboMult = BALANCE.COMBO_BONUS[Math.min(4, Math.max(1, evalResult.lineHits.length)) as 1 | 2 | 3 | 4].statMult;
           const unit = UnitFactory.createUnit(unitDefId, rng.loot, {
             isGilded: summon.isGilded,
-            comboStatMult: comboMult
+            comboStatMult: comboMult,
+            // Diagonal Dynamo: diagonal lines summon a level higher
+            customStarRank: summon.tier > 1 ? (Math.min(BALANCE.MAX_UNIT_LEVEL, summon.tier) as UnitLevel) : undefined
           });
           if (RunReducer.addToBench(state, unit, eventBus)) {
             eventBus?.emit('unit_summoned', {
@@ -306,8 +333,7 @@ export class RunReducer {
 
         const smeltResult = SmeltManager.smelt(target, sacrifice, {
           sacrificeModIndex: command.sacrificeModIndex,
-          targetModIndexToReplace: command.targetModIndexToReplace,
-          furnaceBellowsBonus: coreEngine.hasModifier('heat_smelt_bonus') && state.heat.currentHeat > 50
+          targetModIndexToReplace: command.targetModIndexToReplace
         });
 
         if (!smeltResult.merged) {
@@ -332,6 +358,7 @@ export class RunReducer {
         if (coreEngine.hasModifier('smelt_refund_steam')) {
           EconomyManager.addSteam(state.economy, 1);
         }
+        CoreEffects.onMerge(state, target, rng.loot);
 
         eventBus?.emit('unit_smelted', {
           targetId: target.instanceId,
@@ -367,6 +394,7 @@ export class RunReducer {
         state.phase = 'BATTLE';
         state.combatState = CombatEngine.initCombatState(state.deployedUnits, state.boilerHp, state.maxBoilerHp);
         SkillManager.applyCombatBuffs(state, state.combatState);
+        CoreEffects.applyBattleStart(state, state.combatState);
         GadgetManager.applyBattleStart(state, state.combatState);
         CombatEngine.applyStartQuirks(state.combatState);
         this.waveController = new WaveController(state.waveNumber, state.threat ?? 0);
@@ -472,7 +500,7 @@ export class RunReducer {
         const strip = state.reelStrips[command.reelIndex];
         const item = strip?.[command.symbolIndex];
         if (state.phase !== 'SHOP' || !item || item.isGilded) return state;
-        const cost = EconomyManager.getGildSymbolCost(GadgetManager.discount(state));
+        const cost = CoreEffects.gildCost(state);
         if (EconomyManager.spendCogs(state.economy, cost)) {
           item.isGilded = true;
         }
@@ -518,12 +546,14 @@ export class RunReducer {
           state.freeSpinsLeft = BALANCE.FREE_SPINS_PER_WAVE + SkillManager.bonusSpins(state) + state.consumables.spinsNextWave;
           state.consumables.spinsNextWave = 0;
           state.shopOffers = [];
+          const leftoverHolds = state.holdsLeft;
           state.holdsLeft = BALANCE.BASE_HOLD_CHARGES + SkillManager.bonusHolds(state);
           state.nudgesLeft = BALANCE.BASE_NUDGE_CHARGES + SkillManager.bonusNudges(state);
           state.heldReels = [false, false, false];
           HeatManager.coolDownAtWaveEnd(state.heat);
           state.heat.currentHeat = Math.max(0, state.heat.currentHeat - GadgetManager.coolingBonus(state));
           EconomyManager.addSteam(state.economy, BALANCE.STEAM_PER_WAVE);
+          CoreEffects.onWaveStart(state, leftoverHolds);
 
           // Restore HP of surviving deployed units
           for (const u of state.deployedUnits) {

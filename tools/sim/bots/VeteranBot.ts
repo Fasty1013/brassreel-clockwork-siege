@@ -11,6 +11,7 @@ import { BALANCE } from '@data/balance';
 import { GADGETS_DATA } from '@data/gadgets';
 import { GadgetManager } from '@core/gadgets/gadgets';
 import { EconomyManager } from '@core/economy/economy';
+import { CoreEffects } from '@core/cores/coreEffects';
 
 export interface VeteranOptions {
   /** buy skill-tree nodes */
@@ -250,7 +251,7 @@ export class VeteranBot implements BotPolicy {
         state.reelStrips[r].filter((x) => x.symbol === main).length / state.reelStrips[r].length;
       if (reel !== undefined && mainShare(reel) < 0.75) return { type: 'BUY_SYMBOL', reelIndex: reel, symbol: main };
     }
-    if (spare >= EconomyManager.getGildSymbolCost(discount)) {
+    if (spare >= CoreEffects.gildCost(state)) {
       for (let r = 0; r < 3; r++) {
         const index = state.reelStrips[r].findIndex((x) => x.symbol === main && !x.isGilded);
         if (index >= 0) return { type: 'GILD_SYMBOL', reelIndex: r, symbolIndex: index };

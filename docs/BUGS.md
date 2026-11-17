@@ -1,24 +1,33 @@
-# BRASSREEL: Defect & Softlock Registry
+# BRASSREEL: реестр ошибок
 
-Owner: QA / Playtest Agent  
-Purpose: Track issues discovered across Vitest runs, headless simulation batches, and browser playtests.
+Ошибки, найденные тестами, симулятором и в игре. Обновлено: 17.11.2026.
 
----
+## Открытые
 
-## Active Defect Register
+| ID | Важность | Где | Что | Как увидеть |
+|---|---|---|---|---|
+| **BUG-007** | P2 | джекпот | Три короны всегда дают Левиафана-Меха; выбор из трёх легендарных роботов не показывается. | `reducer.ts`, команда `SPIN` |
+| **BUG-008** | P2 | тексты | Около 20 файлов `src/ui` и `src/scenes` содержат русские строки прямо в коде; сюжет (`story.ts`) и навыки (`skills.ts`) только на русском. На английском часть экранов останется русской. | переключить язык в меню |
+| **BUG-009** | P3 | архив | Улучшение «Горячий тигель (Smelt XP)» даёт опыт слияния, который при нынешнем слиянии по уровням ни на что не влияет. Описания ядер тоже говорят про «Утиль», «тир», «опыт». | `metaUpgrades.ts`, `ru.json` → `core.*.desc` |
 
-| Bug ID | Severity | Discovery Phase | Subsystem | Description | Reproduction Steps | Status | Assignee |
-|---|---|---|---|---|---|---|---|
-| **BUG-001** | P1 | M4 | i18n | Missing translations for Quirks, Act 2 & 3 enemies/bosses, and wave titles | Run parity audit across content tables | **CLOSED (Fixed)** | Content Dev |
-| **BUG-002** | P1 | M4 | Telemetry | Deaths clamped to wave 10 in telemetry aggregator during 30-wave simulation | Run 30-wave simulation batch | **CLOSED (Fixed)** | Balance Analyst |
-| **BUG-003** | P2 | M5 | UI / Core | Missing Engine Core draft modal on wave 5, 10, 15, 20, 25 | Complete wave 5 in RunScene | **CLOSED (Fixed)** | UI / Core Dev |
-| **BUG-004** | P2 | M5 | Packaging | Phaser 3 triggering chunk size warning in production build | Execute `npm run build` | **CLOSED (Fixed)** | Release Engineer |
+## Закрытые
 
----
+| ID | Важность | Где | Что | Решение |
+|---|---|---|---|---|
+| BUG-005 | P1 | ядра | 14 из 20 ядер двигателя ничего не делали (правило не читалось или флаг игнорировался), ещё 2 («Цепной Кулачок», «Диагональное Динамо») срабатывали вхолостую | все 20 работают, `src/core/cores/coreEffects.ts`; правила, писанные под пары и опыт, переделаны под нынешние; описания ru/en переписаны; тесты `tests/core/coreEffects.test.ts` |
+| BUG-006 | P2 | жар | жар не давал выгоды: `getHeatMultipliers` не вызывался | веса остановок барабана по жару, `ReelManager.pickStop` |
+| BUG-001 | P1 | тексты | нет переводов для черт, врагов 2–3 актов, названий волн | добавлены |
+| BUG-002 | P1 | симулятор | смерти обрезались 10-й волной при забеге на 30 | исправлен счёт |
+| BUG-003 | P2 | ядра | не появлялось окно выбора ядра на волнах 5, 10, 15… | исправлено |
+| BUG-004 | P2 | сборка | предупреждение о размере чанка Phaser | Phaser вынесен в отдельный чанк |
+| — | P0 | бой | бесконечные бои: враг-стрелок вне досягаемости роботов | стрелок подходит через 3 с (`BALANCE.md` §7) |
+| — | P1 | бой | босс оглушался модулями весь бой | 3 с неуязвимости к оглушению |
+| — | P1 | интерфейс | игра зависала на заставке, роботов нельзя было взять после боя, счётчик «6/5» и др. | `WORK_LOG.md` §7 |
+| — | P2 | мастерская | позолота уже золотого символа списывала шестерни, окно барабана выходило за край ленты | `WORK_LOG.md` §14 |
 
-## Defect Severity Classification
-- **P0 - Blocker**: Hard crash, unhandled exception in core simulation, game softlock, seed desynchronization across identical seeds.
-- **P1 - Critical**: Logic failure in payline evaluation, Smelt XP calculation error, broken Boss phase transition, untranslated string key in user view.
-- **P2 - Moderate**: Minor balance deviation from statistical envelope (>10% win rate divergence), UI visual overlap, particle hitching.
-- **P3 - Minor**: Cosmetic alignment discrepancy, sound mix balance nuance, non-critical typo in flavor lore.
+## Важность
 
+- **P0** — падение, зависание, бой без конца, разные забеги при одном зерне.
+- **P1** — правило не работает или работает не так, как написано игроку.
+- **P2** — заметное расхождение баланса или подачи, наложение элементов.
+- **P3** — косметика, опечатки, устаревший текст.

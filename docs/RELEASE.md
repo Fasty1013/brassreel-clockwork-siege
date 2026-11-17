@@ -1,68 +1,48 @@
-# BRASSREEL: Clockwork Siege — Steam & Production Release Manual
+# BRASSREEL: Clockwork Siege — выпуск и упаковка
 
-## 📦 Distribution Packages
+Игра — офлайн-страница HTML5 + WebGL: все картинки рисуются кодом, звуки синтезируются WebAudio,
+сетевых запросов нет. Есть три способа доставить её игроку.
 
-BRASSREEL is packaged as a high-performance, 100% offline HTML5 + WebGL application, ready for native Steam distribution via **Tauri 2** (preferred for ultra-lightweight binary ~10MB) or **Electron** (broadest cross-platform compatibility).
+## 1. Сайт (GitHub Pages)
 
----
+Основной способ. `.github/workflows/pages.yml` при каждой отправке в `main`:
+`npm ci` → `npm test` → `npm run build` → публикация `dist/`. Если тесты падают, сайт не обновляется.
 
-## 🛠️ Production Build Process
+Адрес: https://fasty1013.github.io/brassreel-clockwork-siege/
 
-### 1. Build the Web Application
+## 2. Windows: BRASSREEL.exe
+
+`BRASSREEL.exe` — маленький лаунчер (`launcher/Launcher.cs`, C# WinForms). Он раздаёт папку `dist`
+локальным HTTP-сервером (порт от 38888) и открывает игру отдельным окном Chrome или Edge.
+Лог — `%TEMP%\BRASSREEL_log.txt`. Нужны Windows 10/11 и установленный Chrome или Edge.
+
 ```bash
-# Typecheck, bundle and split vendor chunks into /dist
-npm run build
+npm run build       # собрать dist/
+npm run build:exe   # пересобрать BRASSREEL.exe из launcher/Launcher.cs (компилятор csc из .NET Framework 4)
 ```
 
-This generates:
-- `dist/index.html` (entry point with relative asset paths `./assets/...`)
-- `dist/assets/index-*.js` (~250 KB application logic & data)
-- `dist/assets/phaser-*.js` (~1.48 MB Phaser 3 engine)
+`PLAY.bat` собирает `dist`, если её нет, и запускает `BRASSREEL.exe`; без exe открывает `npm run preview`.
 
-### 2. Verify Local Preview
-```bash
-npm run preview
-```
-Visit `http://localhost:4173/` to verify zero console warnings, perfect WebAudio synthesis, and offline operability.
+**Архив для выпуска:** `BRASSREEL.exe` + папка `dist` в одном zip (`BRASSREEL-v<версия>-windows.zip`),
+к нему заметка в `docs/releases/v<версия>.md`. Пример — [`docs/releases/v0.4.0.md`](releases/v0.4.0.md).
 
----
+## 3. Заготовки под Steam (не доведены)
 
-## 🚀 Desktop Wrapper Builds (Steam Deployment)
+- **Electron:** `electron/main.cjs` и `preload.cjs`; пакет `electron` есть в devDependencies.
+  Запуск: `npx electron electron/main.cjs`. Сборщика установщика (`electron-builder`) в проекте нет.
+- **Tauri 2:** есть только `src-tauri/tauri.conf.json`, Rust-части (`Cargo.toml`, `src/main.rs`) нет —
+  `npx tauri build` в нынешнем виде не соберётся.
 
-### Option A: Tauri 2 (Recommended for Steam)
-1. Prerequisites: Rust toolchain installed (`curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh` or `rustup-init.exe` on Windows).
-2. Install Tauri CLI:
-   ```bash
-   npm install --save-dev @tauri-apps/cli@^2.0.0
-   ```
-3. Build standalone Windows `.exe` / Steam installer:
-   ```bash
-   npx tauri build
-   ```
-4. Output directory: `src-tauri/target/release/bundle/msi/` and `src-tauri/target/release/brassreel-clockwork-siege.exe`.
+## Перед выпуском
 
-### Option B: Electron
-1. Install electron-builder:
-   ```bash
-   npm install --save-dev electron electron-builder
-   ```
-2. Run in development:
-   ```bash
-   npx electron electron/main.cjs
-   ```
-3. Build Windows portable / installer:
-   ```bash
-   npx electron-builder --win portable
-   ```
+1. `npm test` и `npm run typecheck` — без ошибок.
+2. Менялись числа роботов, врагов или экономики — `npm run sim -- --runs 1000 --bot veteran --waves 30`,
+   итог в `docs/BALANCE.md`.
+3. `npm run build`, затем `npx tsx tools/qa/verifyPlayability.ts` (меню → барабаны → бой).
+4. Номер версии — в `package.json` и в подписи главного меню (`src/scenes/MenuScene.ts`).
+5. Заметка к выпуску в `docs/releases/`.
 
----
+## Сохранения
 
-## 📋 Steamworks Checklist
-
-- [x] **Zero External Network Dependencies:** All textures are synthesized on HTML5 Canvas via `proceduralAssets.ts`; all audio is synthesized via WebAudio `SoundManager.ts`. Zero 3rd party CDN requests.
-- [x] **Local Storage Meta-Progression:** Saves state in `localStorage` (`brassreel_meta_state_v1`), which seamlessly persists in Steam Cloud or local app data folders.
-- [x] **Display & Resolution Flexibility:** Supports fixed 1080p, 4K downsampling, and Steam Deck native 1280×800 (16:10) with automatic pixel-art aspect ratio preservation.
-- [x] **Input Parity:** Full mouse/touch support + full keyboard shortcut suite (Space, Enter, 1/2/3, Q/W/E, V, P, F11, M).
-- [x] **Deterministic Seed Engine:** Single seed reproduces the exact same run bit-by-bit for Steam daily runs / speedrun challenges.
-- [x] **Dual Localization:** Full English (`en`) and Russian (`ru`) with runtime language toggle and zero missing string keys.
-
+- Архив кузницы и прогресс кампании — в `localStorage` браузера, ключ `brassreel_meta_state_v1`.
+- Текущий забег живёт, пока открыта вкладка или окно игры; после закрытия начинается новый.

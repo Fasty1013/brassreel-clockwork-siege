@@ -1,40 +1,16 @@
-# Workflow: /new-content
+# Порядок: /new-content
 
-Use this workflow whenever adding or modifying content: Units, Rolled Mods, Engine Cores, Gadgets, Enemies, Boss mechanics, or Inspection challenges.
+Новый робот, враг, черта, модуль, ядро, гаджет, волна или навык. Подробно о полях — `docs/CONTENT_GUIDE.md`.
 
-## Steps
+## Шаги
 
-1. **GDD Alignment (Game Designer)**
-   - Verify design entry in `/docs/GDD.md`.
-   - Specify base stats, tier, tags, scaling formulas, and edge cases.
-   - Hand off to Content Dev via `/docs/HANDOFF.md`.
-
-2. **Schema & Data Definition (Content Dev)**
-   - Add data definition in `/src/data/<category>.ts` matching the respective schema in `/src/data/schemas/`.
-   - Validate structure using Zod schema parser (`validateContent()`).
-   - Add both English (`/src/data/i18n/en.json`) and Russian (`/src/data/i18n/ru.json`) localization strings:
-     - `name`: Short display title.
-     - `desc`: Full functional description with variable interpolations.
-     - `flavor`: Atmospheric lore snippet.
-
-3. **Core Integration & Unit Testing (Core Engine Dev / Combat Dev)**
-   - If mechanic requires custom logic (e.g., new status effect, new line evaluation rule), implement handler in `/src/core`.
-   - Write targeted unit test in `/tests/core` or `/tests/combat` verifying:
-     - Correct state modification when triggered.
-     - Correct interaction with other systems (e.g. Wild substitution, Mod inheritance).
-     - Deterministic execution across repeated seed runs.
-
-4. **Visual & Audio Hookup (UI / Art / Audio Dev)**
-   - Register procedural sprite / icon generator in `/src/fx/proceduralAssets.ts`.
-   - Add specific sound event binding if applicable in `/src/audio/sfxGenerator.ts`.
-   - Verify tooltip rendering in `/src/ui/Tooltip.ts`.
-
-5. **Headless Simulator Smoke Test (Balance Analyst)**
-   - Execute: `npm run sim -- --runs 500 --bot smart`
-   - Confirm zero unhandled exceptions, zero undefined stat lookups, and valid winrate metrics.
-
-6. **Quality Gate Verification**
-   - Run `npm run typecheck`
-   - Run `npm test`
-   - Update `/docs/HANDOFF.md` with completion log.
-
+1. **Дизайн.** Запись в `docs/GDD.md`: числа, роль, как взаимодействует с другими системами.
+2. **Данные.** Запись в `src/data/<таблица>.ts` по схеме из `src/data/schemas/`, строки `name`/`desc`
+   в `src/data/i18n/ru.json` и `en.json`.
+3. **Логика.** Новый вид эффекта — обработчик в `src/core` (бой — `src/core/combat/combatEngine.ts`)
+   и тест в `tests/core` или `tests/combat`: эффект срабатывает, сочетается с другими, повторяется при том же зерне.
+   Ядро без обработчика `hasModifier('<ruleModifier>')` ничего не делает.
+4. **Вид.** Фигурка с нужным `spriteKey` в `src/art/forge/roster.ts` или `bestiary.ts`;
+   проверка — `?debug=gallery` или `npx tsx tools/qa/renderForge.ts <папка>`. Звук — в `src/audio/SoundManager.ts`.
+5. **Симулятор:** `npm run sim -- --runs 500 --bot veteran --waves 30` — без ошибок и зависших боёв.
+6. **Проверки:** `npm run typecheck`, `npm test`. Запись в `docs/WORK_LOG.md`.
