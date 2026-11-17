@@ -30,14 +30,16 @@ function expectInsideField(state: CombatSimulationState): void {
   }
 }
 
-function expectApart(state: CombatSimulationState): void {
+function closestPair(state: CombatSimulationState): number {
+  let min = Infinity;
   for (let i = 0; i < state.units.length; i++) {
     for (let j = i + 1; j < state.units.length; j++) {
       const a = state.units[i];
       const b = state.units[j];
-      expect(Math.hypot(a.x - b.x, a.y - b.y)).toBeGreaterThanOrEqual(BALANCE.UNIT_SEPARATION - 1e-9);
+      min = Math.min(min, Math.hypot(a.x - b.x, a.y - b.y));
     }
   }
+  return min;
 }
 
 describe('Robots walk to enemies they cannot reach', () => {
@@ -85,7 +87,7 @@ describe('Robots walk to enemies they cannot reach', () => {
     expect(state.units[0].y).toBe(2.5);
   });
 
-  it('a crowd heading for one enemy never overlaps and stays on the field', () => {
+  it('a crowd heading for one enemy stays on the field, gets through and ends up spread out', () => {
     const rng = PRNG.fromSeed('CROWD_SEED');
     const units = [
       place('unit_cog_knight', 0, 0, rng),
@@ -104,13 +106,37 @@ describe('Robots walk to enemies they cannot reach', () => {
     for (let i = 0; i < 20 * 20; i++) {
       CombatEngine.step(state, 0.05, rng);
       expectInsideField(state);
-      expectApart(state);
+      // squeezing past an ally is allowed, standing on top of it is not
+      expect(closestPair(state)).toBeGreaterThan(0.1);
     }
+    // once fighting, robots step apart again
+    expect(closestPair(state)).toBeGreaterThanOrEqual(BALANCE.UNIT_SEPARATION - 1e-6);
     // with room around the golem, at least the front spots get filled and everyone is busy or waiting nearby
     const reaching = state.units.filter(
       (u) => Math.hypot(target.x - u.x, target.y - u.y) <= u.attackRange
     );
     expect(reaching.length).toBeGreaterThanOrEqual(3);
+  });
+
+  it('a shooter behind a solid wall of allies squeezes through instead of standing', () => {
+    const rng = PRNG.fromSeed('WALL_SEED');
+    const wall = [0, 1, 2, 3, 4].map((row) => place('unit_cog_bulwark', 2, row, rng));
+    const archerDef = place('unit_spring_archer', 1, 2, rng);
+    const state = CombatEngine.initCombatState([...wall, archerDef], 10);
+    // the wall cannot move: it stands stunned for the whole test
+    for (const u of state.units) if (u.id !== archerDef.instanceId) u.statuses.stunDuration = 1000;
+    const target = parkedEnemy(state, 'en_scrapper', 7.8, 2, 1);
+    target.hp = target.maxHp = 1_000_000;
+    target.damage = 0;
+    const archer = state.units.find((u) => u.id === archerDef.instanceId)!;
+    expect(Math.hypot(target.x - archer.x, target.y - archer.y)).toBeGreaterThan(archer.attackRange);
+
+    for (let i = 0; i < 20 * 8; i++) {
+      CombatEngine.step(state, 0.05, rng);
+      expectInsideField(state);
+    }
+    expect(Math.hypot(target.x - archer.x, target.y - archer.y)).toBeLessThanOrEqual(archer.attackRange);
+    expect(target.hp).toBeLessThan(target.maxHp);
   });
 
   it('a battle with enemies parked out of reach still ends in victory', () => {
