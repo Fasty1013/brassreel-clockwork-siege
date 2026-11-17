@@ -12,6 +12,7 @@
 
 Забег — 3 акта по 10 волн, в конце каждого акта босс (Паровой Барон, Императрица Коррозии, Железный Колосс).
 Сюжет кампании «Великий Регулятор»: Барон украл часы города и разобрал их на три части, каждый босс хранит одну.
+Полный сценарий — [`docs/STORY.md`](docs/STORY.md).
 
 Один ход:
 
@@ -50,6 +51,7 @@ src/
 tests/         тесты Vitest
 tools/sim/     забеги ботами без графики
 tools/qa/      скриншоты, листы спрайтов, проверка играбельности
+tools/docs/    генераторы документов (STORY.md)
 launcher/      исходник BRASSREEL.exe
 ```
 
@@ -64,6 +66,7 @@ npm test             # тесты
 npm run typecheck    # проверка типов
 npm run build        # сборка в dist/ (нужна для BRASSREEL.exe)
 npm run sim -- --runs 1000 --bot veteran --waves 30   # баланс: 1000 забегов ботом
+npx tsx tools/docs/storyToMarkdown.ts                 # пересобрать docs/STORY.md из src/data/story.ts
 ```
 
 Выпуск и упаковка — [`docs/RELEASE.md`](docs/RELEASE.md). Управление — [`docs/CONTROLS.md`](docs/CONTROLS.md).
@@ -73,6 +76,7 @@ npm run sim -- --runs 1000 --bot veteran --waves 30   # баланс: 1000 за�
 | Файл | О чём |
 |---|---|
 | [`docs/GAME_INFO.md`](docs/GAME_INFO.md) | правила игры для игрока |
+| [`docs/STORY.md`](docs/STORY.md) | сценарий кампании (собирается из `src/data/story.ts`) |
 | [`docs/GDD.md`](docs/GDD.md) | дизайн: механики и числа |
 | [`docs/BALANCE.md`](docs/BALANCE.md) | математика барабанов, рост врагов, замеры симулятором |
 | [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) | устройство кода |
