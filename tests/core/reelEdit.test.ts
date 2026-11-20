@@ -19,7 +19,7 @@ describe('workshop reel editing', () => {
     const { state, rng } = shop();
     RunReducer.dispatch(state, { type: 'BUY_SYMBOL', reelIndex: 2, symbol: 'coil' }, rng);
     expect(state.reelStrips[2].at(-1)?.symbol).toBe('coil');
-    expect(state.reelStrips[0]).toHaveLength(10);
+    expect(state.reelStrips[0]).toHaveLength(BALANCE.STARTER_REEL_1.length);
     expect(state.economy.cogs).toBe(1000 - BALANCE.COST_ADD_SYMBOL);
   });
 
@@ -69,6 +69,6 @@ describe('workshop reel editing', () => {
     RunReducer.dispatch(state, { type: 'GILD_SYMBOL', reelIndex: 0, symbolIndex: 0 }, rng);
     RunReducer.dispatch(state, { type: 'REMOVE_SYMBOL', reelIndex: 0, symbolIndex: 0 }, rng);
     expect(state.economy.cogs).toBe(1000);
-    expect(state.reelStrips[0]).toHaveLength(10);
+    expect(state.reelStrips[0]).toHaveLength(BALANCE.STARTER_REEL_1.length);
   });
 });

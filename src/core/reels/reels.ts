@@ -1,6 +1,8 @@
 import { PRNG } from '../prng/sfc32';
 
-export type SlotSymbol = 'cog' | 'spring' | 'fuse' | 'coil' | 'wild' | 'crown';
+export type SlotSymbol = 'cog' | 'spring' | 'fuse' | 'coil' | 'wrench' | 'wild' | 'crown';
+/** the five robot lines a symbol can summon */
+export type LineFaction = 'cog' | 'spring' | 'fuse' | 'coil' | 'wrench';
 
 export interface ReelSymbol {
   symbol: SlotSymbol;
@@ -41,7 +43,7 @@ export interface LineEvaluationResult {
   coords: [[number, number], [number, number], [number, number]];
   type: 'horizontal' | 'vertical' | 'diagonal';
   matchType: 'jackpot' | 'faction_three' | 'pair' | 'none';
-  faction?: 'cog' | 'spring' | 'fuse' | 'coil';
+  faction?: LineFaction;
   isGilded: boolean;
   wildCount: number;
 }
@@ -52,10 +54,10 @@ export interface SpinResult {
   isJackpot: boolean;
   pairsCount: number;
   /** faction of the first 2-of-a-kind line (Hollow Spring) */
-  pairFaction?: 'cog' | 'spring' | 'fuse' | 'coil';
+  pairFaction?: LineFaction;
   factionHitsCount: number;
   totalSummonsToTrigger: Array<{
-    faction: 'cog' | 'spring' | 'fuse' | 'coil' | 'scrap';
+    faction: LineFaction | 'scrap';
     tier: number;
     isGilded: boolean;
   }>;
@@ -75,6 +77,15 @@ export class ReelManager {
       [strips[2][stopIndices[2]], strips[2][(stopIndices[2] + 1) % strips[2].length], strips[2][(stopIndices[2] + 2) % strips[2].length]]
     ];
     return grid;
+  }
+
+  /**
+   * The last reel (left to right) that turns on a spin, or -1 when all are held/jammed.
+   * The spin animation is over when this reel stops.
+   */
+  public static lastSpinningReel(heldReels: readonly boolean[]): number {
+    for (let c = heldReels.length - 1; c >= 0; c--) if (!heldReels[c]) return c;
+    return -1;
   }
 
   /**
@@ -238,7 +249,7 @@ export class ReelManager {
     }
 
     // 3. Check for 3-of-a-kind with Wild substitution
-    const factions: Array<'cog' | 'spring' | 'fuse' | 'coil'> = ['cog', 'spring', 'fuse', 'coil'];
+    const factions: LineFaction[] = ['cog', 'spring', 'fuse', 'coil', 'wrench'];
     for (const f of factions) {
       const match0 = s0 === f || s0 === 'wild';
       const match1 = s1 === f || s1 === 'wild';

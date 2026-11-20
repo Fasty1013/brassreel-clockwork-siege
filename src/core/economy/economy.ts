@@ -96,7 +96,7 @@ export class EconomyManager {
       }
     }
 
-    const standardSymbols: SlotSymbol[] = ['cog', 'spring', 'fuse', 'coil'];
+    const standardSymbols: SlotSymbol[] = ['cog', 'spring', 'fuse', 'coil', 'wrench'];
     const offeredSymbols: SlotSymbol[] = [];
     for (let i = 0; i < 3; i++) {
       offeredSymbols.push(rng.pick(standardSymbols));

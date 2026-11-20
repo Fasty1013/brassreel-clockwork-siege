@@ -78,3 +78,39 @@ describe('Reels, Paylines, and Wild Evaluation Suite', () => {
   });
 });
 
+
+describe('spin end with held or jammed reels (lever never froze)', () => {
+  it('the spin ends on the last reel that turns', () => {
+    expect(ReelManager.lastSpinningReel([false, false, false])).toBe(2);
+    expect(ReelManager.lastSpinningReel([false, false, true])).toBe(1);
+    expect(ReelManager.lastSpinningReel([false, true, true])).toBe(0);
+    expect(ReelManager.lastSpinningReel([true, false, true])).toBe(1);
+    expect(ReelManager.lastSpinningReel([true, true, true])).toBe(-1);
+  });
+
+  it('a jam that locks the right reel still leaves a spin that can finish', async () => {
+    const { RunStateManager } = await import('@core/state/RunState');
+    const { RunReducer } = await import('@core/state/reducer');
+    const { PrngManager } = await import('@core/prng/prngManager');
+    const { EventBus } = await import('@core/events/events');
+    // the reported case: wave 7, no free spins, heat 90%, steam left
+    for (let seed = 0; seed < 200; seed++) {
+      const state = RunStateManager.createInitialState(`jam${seed}`);
+      const rng = PrngManager.createStreams(`jam${seed}`);
+      const bus = new EventBus();
+      let locked = -1;
+      bus.on('jam_triggered', (d) => (locked = d.lockedReelIndex ?? -1));
+      state.waveNumber = 7;
+      state.freeSpinsLeft = 0;
+      state.economy.steam = 5;
+      state.heat.currentHeat = 90;
+      RunReducer.dispatch(state, { type: 'SPIN' }, rng, bus);
+      if (locked !== 2) continue;
+      // the right reel is jammed for the next spin: the animation must end on reel 1
+      expect(state.heldReels[2]).toBe(true);
+      expect(ReelManager.lastSpinningReel(state.heldReels)).toBe(1);
+      return;
+    }
+    throw new Error('no seed jammed the right reel');
+  });
+});

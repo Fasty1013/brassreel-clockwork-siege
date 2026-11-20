@@ -49,7 +49,7 @@ export const UNITS_DATA: Record<string, UnitDefinition> = {
     attackRange: 1,
     armor: 14,
     moveSpeed: 0.8,
-    quirkId: 'quirk_iron_plating',
+    quirkId: 'quirk_steel_bulwark',
     evolutionBranchA: 'unit_cog_fortress_golem',
     evolutionBranchB: 'unit_cog_aegis_bastion',
     spriteKey: 'tex_cog_bulwark'
@@ -67,7 +67,7 @@ export const UNITS_DATA: Record<string, UnitDefinition> = {
     attackRange: 1,
     armor: 8,
     moveSpeed: 1.2,
-    quirkId: 'quirk_iron_plating',
+    quirkId: 'quirk_ram_strike',
     evolutionBranchA: 'unit_cog_steam_juggernaut',
     evolutionBranchB: 'unit_cog_siegebreaker',
     spriteKey: 'tex_cog_ramhead'
@@ -165,7 +165,7 @@ export const UNITS_DATA: Record<string, UnitDefinition> = {
     attackRange: 7,
     armor: 3,
     moveSpeed: 0.9,
-    quirkId: 'quirk_recoil_spring',
+    quirkId: 'quirk_through_shot',
     evolutionBranchA: 'unit_spring_clockwork_ballista',
     evolutionBranchB: 'unit_spring_eagle_sentinel',
     spriteKey: 'tex_spring_sharpshooter'
@@ -183,7 +183,7 @@ export const UNITS_DATA: Record<string, UnitDefinition> = {
     attackRange: 4,
     armor: 4,
     moveSpeed: 1.05,
-    quirkId: 'quirk_recoil_spring',
+    quirkId: 'quirk_double_shot',
     evolutionBranchA: 'unit_spring_volley_array',
     evolutionBranchB: 'unit_spring_chrono_marksman',
     spriteKey: 'tex_spring_repeater'
@@ -281,7 +281,7 @@ export const UNITS_DATA: Record<string, UnitDefinition> = {
     attackRange: 4,
     armor: 4,
     moveSpeed: 1.0,
-    quirkId: 'quirk_death_explosion',
+    quirkId: 'quirk_ignite',
     evolutionBranchA: 'unit_fuse_magma_mortar',
     evolutionBranchB: 'unit_fuse_hellfire_foundry',
     spriteKey: 'tex_fuse_pyromancer'
@@ -299,7 +299,7 @@ export const UNITS_DATA: Record<string, UnitDefinition> = {
     attackRange: 4,
     armor: 5,
     moveSpeed: 0.9,
-    quirkId: 'quirk_death_explosion',
+    quirkId: 'quirk_shrapnel',
     evolutionBranchA: 'unit_fuse_blast_dynamo',
     evolutionBranchB: 'unit_fuse_doom_barricade',
     spriteKey: 'tex_fuse_demolitionist'
@@ -397,7 +397,7 @@ export const UNITS_DATA: Record<string, UnitDefinition> = {
     attackRange: 4,
     armor: 4,
     moveSpeed: 1.0,
-    quirkId: 'quirk_electric_conduction',
+    quirkId: 'quirk_double_arc',
     evolutionBranchA: 'unit_coil_tesla_titan',
     evolutionBranchB: 'unit_coil_storm_conductor',
     spriteKey: 'tex_coil_conduit'
@@ -415,7 +415,7 @@ export const UNITS_DATA: Record<string, UnitDefinition> = {
     attackRange: 3,
     armor: 6,
     moveSpeed: 1.0,
-    quirkId: 'quirk_electric_conduction',
+    quirkId: 'quirk_recharge_field',
     evolutionBranchA: 'unit_coil_shield_galvanizer',
     evolutionBranchB: 'unit_coil_overload_core',
     spriteKey: 'tex_coil_dynamo'
@@ -480,6 +480,124 @@ export const UNITS_DATA: Record<string, UnitDefinition> = {
     moveSpeed: 1.05,
     quirkId: 'quirk_overclock_field',
     spriteKey: 'tex_coil_overload'
+  },
+
+  // --- FACTION 5: WRENCH (White-green / Healers) ---
+  // Every wrench robot heals: instead of attacking it mends the most damaged ally in reach
+  // (own and neighbouring lanes) for its damage × the quirk's healMult; with nobody hurt it attacks.
+  unit_wrench_mender: {
+    id: 'unit_wrench_mender',
+    nameKey: 'unit.wrench_mender.name',
+    descKey: 'unit.wrench_mender.desc',
+    faction: 'wrench',
+    tier: 1,
+    baseHp: 170,
+    baseDamage: 20,
+    attackSpeed: 0.9,
+    attackRange: 3,
+    armor: 3,
+    moveSpeed: 1.0,
+    quirkId: 'quirk_field_repair',
+    evolutionBranchA: 'unit_wrench_medic',
+    evolutionBranchB: 'unit_wrench_welder',
+    spriteKey: 'tex_wrench_mender'
+  },
+  // Wrench Tier 2 Branch A: Medic (more healing, a second patient)
+  unit_wrench_medic: {
+    id: 'unit_wrench_medic',
+    nameKey: 'unit.wrench_medic.name',
+    descKey: 'unit.wrench_medic.desc',
+    faction: 'wrench',
+    tier: 2,
+    baseHp: 260,
+    baseDamage: 32,
+    attackSpeed: 0.95,
+    attackRange: 3,
+    armor: 4,
+    moveSpeed: 1.0,
+    quirkId: 'quirk_heal_chain',
+    evolutionBranchA: 'unit_wrench_field_medic',
+    evolutionBranchB: 'unit_wrench_phoenix',
+    spriteKey: 'tex_wrench_medic'
+  },
+  // Wrench Tier 2 Branch B: Welder (healing that turns into armor plates)
+  unit_wrench_welder: {
+    id: 'unit_wrench_welder',
+    nameKey: 'unit.wrench_welder.name',
+    descKey: 'unit.wrench_welder.desc',
+    faction: 'wrench',
+    tier: 2,
+    baseHp: 300,
+    baseDamage: 30,
+    attackSpeed: 0.9,
+    attackRange: 3,
+    armor: 7,
+    moveSpeed: 1.0,
+    quirkId: 'quirk_heal_shield',
+    evolutionBranchA: 'unit_wrench_plating',
+    evolutionBranchB: 'unit_wrench_regenerator',
+    spriteKey: 'tex_wrench_welder'
+  },
+  // Wrench Tier 3 Final Forms
+  unit_wrench_field_medic: {
+    id: 'unit_wrench_field_medic',
+    nameKey: 'unit.wrench_field_medic.name',
+    descKey: 'unit.wrench_field_medic.desc',
+    faction: 'wrench',
+    tier: 3,
+    baseHp: 420,
+    baseDamage: 48,
+    attackSpeed: 1.0,
+    attackRange: 3,
+    armor: 6,
+    moveSpeed: 1.0,
+    quirkId: 'quirk_heal_aoe',
+    spriteKey: 'tex_wrench_field_medic'
+  },
+  unit_wrench_phoenix: {
+    id: 'unit_wrench_phoenix',
+    nameKey: 'unit.wrench_phoenix.name',
+    descKey: 'unit.wrench_phoenix.desc',
+    faction: 'wrench',
+    tier: 3,
+    baseHp: 400,
+    baseDamage: 46,
+    attackSpeed: 1.0,
+    attackRange: 4,
+    armor: 6,
+    moveSpeed: 1.0,
+    quirkId: 'quirk_revive',
+    spriteKey: 'tex_wrench_phoenix'
+  },
+  unit_wrench_plating: {
+    id: 'unit_wrench_plating',
+    nameKey: 'unit.wrench_plating.name',
+    descKey: 'unit.wrench_plating.desc',
+    faction: 'wrench',
+    tier: 3,
+    baseHp: 520,
+    baseDamage: 42,
+    attackSpeed: 0.95,
+    attackRange: 3,
+    armor: 10,
+    moveSpeed: 0.95,
+    quirkId: 'quirk_guard_aura',
+    spriteKey: 'tex_wrench_plating'
+  },
+  unit_wrench_regenerator: {
+    id: 'unit_wrench_regenerator',
+    nameKey: 'unit.wrench_regenerator.name',
+    descKey: 'unit.wrench_regenerator.desc',
+    faction: 'wrench',
+    tier: 3,
+    baseHp: 460,
+    baseDamage: 44,
+    attackSpeed: 1.0,
+    attackRange: 3,
+    armor: 8,
+    moveSpeed: 1.0,
+    quirkId: 'quirk_regen_aura',
+    spriteKey: 'tex_wrench_regenerator'
   },
 
   // --- LEGENDARY: GRAND AUTOMATONS (JACKPOT REWARDS) ---

@@ -59,6 +59,12 @@ export interface CombatUnit {
   isDead: boolean;
   /** temporary copy placed by the Portable Turret gadget for one battle */
   isTurret?: boolean;
+  /** healer line: revives left this battle (revive quirk) */
+  revivesLeft?: number;
+  /** this robot was already brought back once this battle */
+  revived?: boolean;
+  /** fraction of a hit point carried between ticks of regeneration */
+  regenCarry?: number;
   /** attacks made this battle (every-Nth-hit quirks) */
   hits?: number;
   /** focus quirk: current target and stacked attack speed */
@@ -132,7 +138,7 @@ export interface CombatEnemy {
 }
 
 export interface CombatEvent {
-  type: 'attack' | 'projectile_hit' | 'damage' | 'death' | 'breach' | 'valve_used' | 'boss_phase' | 'leap' | 'blast';
+  type: 'attack' | 'projectile_hit' | 'damage' | 'death' | 'breach' | 'valve_used' | 'boss_phase' | 'leap' | 'blast' | 'heal' | 'revive';
   sourceId: string;
   targetId?: string;
   amount?: number;
@@ -316,7 +322,10 @@ export class CombatEngine {
       // steps at most UNIT_LEASH tiles off its cell, only toward an enemy it can reach from
       // there, and walks back when there is none. (a Portable Turret is bolted down)
       if (!unit.isTurret) {
-        if (!this.findBestEnemyTarget(unit, state.enemies)) {
+        if (unit.sourceUnit.faction === 'wrench') {
+          // healers never go for enemies: they step toward a wounded ally just out of reach
+          this.advanceHealer(unit, state, dt);
+        } else if (!this.findBestEnemyTarget(unit, state.enemies)) {
           this.advanceUnit(unit, state, dt);
         } else {
           const w = this.walkOf(unit);
@@ -328,9 +337,15 @@ export class CombatEngine {
 
       unit.attackCooldown -= dt;
       if (unit.attackCooldown <= 0) {
+        // Healers mend the most damaged ally in reach; with nobody hurt they attack
+        // Healers only heal (the most damaged ally in reach); they never attack
+        const isHealer = unit.sourceUnit.faction === 'wrench';
+        const healed = isHealer && this.tryHeal(unit, state);
         // Target selection
-        const target = this.findBestEnemyTarget(unit, state.enemies);
-        if (target) {
+        const target = isHealer ? null : this.findBestEnemyTarget(unit, state.enemies);
+        if (healed) {
+          unit.attackCooldown = 1.0 / Math.max(0.2, unit.attackSpeed);
+        } else if (target) {
           this.executeUnitAttack(unit, target, state, rng);
           let effectiveAttackSpeed = unit.statuses.slowDuration > 0
             ? unit.attackSpeed * (1 - unit.statuses.slowRatio)
@@ -432,6 +447,10 @@ export class CombatEngine {
     for (const enemy of state.enemies) {
       enemy.answered = false;
     }
+
+    // Healer auras and revives
+    this.tickHealerAuras(state, dt);
+    this.reviveFallen(state);
 
     // 5. Clean up dead entities
     state.units = state.units.filter((u) => !u.isDead);
@@ -804,6 +823,147 @@ export class CombatEngine {
     }
   }
 
+  // ------------------------------------------------------------ healers
+
+  /** Allies a healer can reach: hurt, alive, in its lanes and within its range (never the healer itself). */
+  private static patients(healer: CombatUnit, state: CombatSimulationState): CombatUnit[] {
+    const homeY = this.homeOf(healer).y;
+    return state.units.filter(
+      (a) =>
+        a !== healer &&
+        !a.isDead &&
+        a.hp < a.maxHp &&
+        Math.abs(a.y - homeY) <= BALANCE.LANE_REACH + 0.1 &&
+        Math.hypot(a.x - healer.x, a.y - healer.y) <= healer.attackRange
+    );
+  }
+
+  /**
+   * One heal: the ally with the lowest share of health gets damage × healMult (the healer's
+   * «damage» is its healing power and grows +50% per level like everyone's damage).
+   * heal_aoe also mends the allies around the patient, heal_all every wounded ally in reach,
+   * heal_shield turns healing past full health into a shield.
+   */
+  private static tryHeal(healer: CombatUnit, state: CombatSimulationState): boolean {
+    const hurt = this.patients(healer, state).sort((a, b) => a.hp / a.maxHp - b.hp / b.maxHp);
+    if (hurt.length === 0) return false;
+    const q = QUIRKS_DATA[healer.sourceUnit.quirkId];
+    const qp = q?.params ?? {};
+    const power = healer.damage * (qp.healMult ?? 1.2);
+    const patient = hurt[0];
+    this.applyHeal(state, healer, patient, power, q?.effectType === 'heal_shield' ? qp.maxShieldPctOfHp : 0);
+    if (q?.effectType === 'heal_all') {
+      for (const a of hurt.slice(1)) this.applyHeal(state, healer, a, power * qp.allPct, 0);
+    }
+    if (q?.effectType === 'heal_aoe') {
+      for (const a of state.units) {
+        if (a === patient || a.isDead || a.hp >= a.maxHp) continue;
+        if (Math.hypot(a.x - patient.x, a.y - patient.y) <= qp.radiusTiles) this.applyHeal(state, healer, a, power * qp.splashPct, 0);
+      }
+    }
+    return true;
+  }
+
+  /**
+   * A healer with nobody wounded in reach steps (at most UNIT_LEASH off its cell) toward the most
+   * damaged ally it could reach from there; with nobody to reach it goes back to its cell.
+   */
+  private static advanceHealer(unit: CombatUnit, state: CombatSimulationState, dt: number): void {
+    if (this.patients(unit, state).length > 0) return;
+    const home = this.homeOf(unit);
+    const homeY = home.y;
+    const wounded = state.units
+      .filter(
+        (a) =>
+          a !== unit &&
+          !a.isDead &&
+          a.hp < a.maxHp &&
+          Math.abs(a.y - homeY) <= BALANCE.LANE_REACH + 0.1 &&
+          Math.hypot(a.x - home.x, a.y - home.y) <= unit.attackRange + BALANCE.UNIT_LEASH
+      )
+      .sort((a, b) => a.hp / a.maxHp - b.hp / b.maxHp)[0];
+    if (!wounded) {
+      this.returnHome(unit, state, dt);
+      return;
+    }
+    const d = Math.hypot(wounded.x - home.x, wounded.y - home.y);
+    const along = Math.min(BALANCE.UNIT_LEASH, Math.max(0, d - unit.attackRange + 0.05));
+    const goal = { x: home.x + ((wounded.x - home.x) / d) * along, y: home.y + ((wounded.y - home.y) / d) * along };
+    const dist = Math.hypot(goal.x - unit.x, goal.y - unit.y);
+    if (dist < 1e-3) return;
+    const step = Math.min(unit.moveSpeed * dt, dist);
+    const nx = unit.x + ((goal.x - unit.x) / dist) * step;
+    const ny = unit.y + ((goal.y - unit.y) / dist) * step;
+    if (!this.crowdsAnotherUnit(unit, nx, ny, state.units)) this.placeUnit(unit, nx, ny);
+  }
+
+  private static applyHeal(state: CombatSimulationState, healer: CombatUnit, target: CombatUnit, amount: number, shieldCapPct: number): void {
+    const healed = Math.min(Math.round(amount), target.maxHp - target.hp);
+    target.hp += healed;
+    if (shieldCapPct > 0) {
+      const extra = Math.round(amount) - healed;
+      const cap = Math.round(target.maxHp * shieldCapPct);
+      target.shield = Math.max(target.shield, Math.min(cap, target.shield + extra));
+    }
+    state.events.push({ type: 'heal', sourceId: healer.id, targetId: target.id, amount: healed });
+  }
+
+  /** Regenerator Mech: allies around it regain a share of their health every second. */
+  private static tickHealerAuras(state: CombatSimulationState, dt: number): void {
+    for (const src of state.units) {
+      if (src.isDead) continue;
+      const q = this.quirk(src, 'regen_aura');
+      if (!q) continue;
+      for (const a of state.units) {
+        if (a.isDead || a.hp >= a.maxHp) continue;
+        if (Math.hypot(a.x - src.x, a.y - src.y) > q.params.radiusTiles) continue;
+        a.regenCarry = (a.regenCarry ?? 0) + a.maxHp * q.params.regenPctPerSec * dt;
+        const whole = Math.floor(a.regenCarry);
+        if (whole > 0) {
+          a.regenCarry -= whole;
+          a.hp = Math.min(a.maxHp, a.hp + whole);
+        }
+      }
+    }
+  }
+
+  /** Enemy damage multiplier for a long battle: +ENRAGE_STEP every ENRAGE_EVERY_S after ENRAGE_AFTER_S. */
+  public static enrage(state: CombatSimulationState): number {
+    const over = state.elapsedSeconds - BALANCE.ENRAGE_AFTER_S;
+    return over <= 0 ? 1 : 1 + Math.floor(over / BALANCE.ENRAGE_EVERY_S + 1) * BALANCE.ENRAGE_STEP;
+  }
+
+  /** Share of damage a robot is spared by the strongest Plating Mech around it. */
+  private static guardReduction(state: CombatSimulationState, target: CombatUnit): number {
+    let best = 0;
+    for (const src of state.units) {
+      if (src.isDead) continue;
+      const q = this.quirk(src, 'guard_aura');
+      if (!q || Math.hypot(target.x - src.x, target.y - src.y) > q.params.radiusTiles) continue;
+      best = Math.max(best, q.params.damageReductionPct);
+    }
+    return best;
+  }
+
+  /** Phoenix Mech: the first robots to fall come back once (one per revive charge). */
+  private static reviveFallen(state: CombatSimulationState): void {
+    for (const phoenix of state.units) {
+      if (phoenix.isDead) continue;
+      const q = this.quirk(phoenix, 'revive');
+      if (!q) continue;
+      phoenix.revivesLeft ??= q.params.revives;
+      if (phoenix.revivesLeft <= 0) continue;
+      const fallen = state.units.find((u) => u.isDead && !u.revived && u !== phoenix && !u.isTurret);
+      if (!fallen) continue;
+      fallen.isDead = false;
+      fallen.revived = true;
+      fallen.hp = Math.max(1, Math.round(fallen.maxHp * q.params.reviveHpPct));
+      fallen.statuses.burnDuration = 0;
+      phoenix.revivesLeft--;
+      state.events.push({ type: 'revive', sourceId: phoenix.id, targetId: fallen.id, amount: fallen.hp });
+    }
+  }
+
   /** Fuse Initiator: blast and fire-pool radius multiplier for Fuse robots. */
   private static fuseRadiusMult(state: CombatSimulationState, unit: CombatUnit): number {
     return unit.sourceUnit.faction === 'fuse' ? state.coreMods?.fuseRadiusMult ?? 1 : 1;
@@ -1076,6 +1236,10 @@ export class CombatEngine {
     if (quirk?.effectType === 'damage_reduction' || quirk?.effectType === 'steam_shroud') {
       incoming *= 1 - qp.damageReductionPct;
     }
+    // Plating Mech: allies around it take less damage
+    incoming *= 1 - this.guardReduction(state, target);
+    // a battle that drags on makes the enemies frenzied: no endless stand-offs
+    incoming *= this.enrage(state);
     const netDmg = Math.max(1, Math.round(incoming - target.armor));
 
     if (target.shield > 0) {

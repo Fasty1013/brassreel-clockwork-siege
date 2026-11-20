@@ -24,7 +24,15 @@ export interface QuirkDefinition {
     | 'steam_shroud'
     | 'solar_beam'
     | 'time_dilation'
-    | 'scrap_scavenge';
+    | 'scrap_scavenge'
+    // healer line (faction 'wrench'): every wrench robot heals; these add to it
+    | 'field_repair'   // plain healing
+    | 'heal_all'       // the heal also mends every other wounded ally in reach
+    | 'heal_shield'    // healing past full health becomes a shield
+    | 'heal_aoe'       // the heal also mends every ally around the target
+    | 'revive'         // brings back the first fallen ally once per battle
+    | 'guard_aura'     // allies around take less damage
+    | 'regen_aura';    // allies around regenerate health
   params: Record<string, number>;
 }
 
@@ -196,6 +204,115 @@ export const QUIRKS_DATA: Record<string, QuirkDefinition> = {
     descKey: 'quirk.time_dilation.desc',
     effectType: 'time_dilation',
     params: { slowPct: 0.4 }
+  },
+
+  // --- level-3 evolutions: each branch has its own quirk (a lighter take on its level-5 forms) ---
+  quirk_steel_bulwark: {
+    id: 'quirk_steel_bulwark',
+    nameKey: 'quirk.steel_bulwark.name',
+    descKey: 'quirk.steel_bulwark.desc',
+    effectType: 'shield_aura',
+    params: { shieldPctOfHp: 0.15, intervalSeconds: 10, radiusTiles: 1.5 }
+  },
+  quirk_ram_strike: {
+    id: 'quirk_ram_strike',
+    nameKey: 'quirk.ram_strike.name',
+    descKey: 'quirk.ram_strike.desc',
+    effectType: 'stun_charge',
+    params: { everyNthHit: 4, stunSeconds: 1, bossStunSeconds: 0.3 }
+  },
+  quirk_through_shot: {
+    id: 'quirk_through_shot',
+    nameKey: 'quirk.through_shot.name',
+    descKey: 'quirk.through_shot.desc',
+    effectType: 'pierce',
+    params: { maxTargets: 2 }
+  },
+  quirk_double_shot: {
+    id: 'quirk_double_shot',
+    nameKey: 'quirk.double_shot.name',
+    descKey: 'quirk.double_shot.desc',
+    effectType: 'burst_fire',
+    params: { extraBolts: 1, damagePct: 0.35 }
+  },
+  quirk_ignite: {
+    id: 'quirk_ignite',
+    nameKey: 'quirk.ignite.name',
+    descKey: 'quirk.ignite.desc',
+    effectType: 'molten_pool',
+    params: { burnPctOfDamage: 0.25, durationSeconds: 3, radiusTiles: 0.6 }
+  },
+  quirk_shrapnel: {
+    id: 'quirk_shrapnel',
+    nameKey: 'quirk.shrapnel.name',
+    descKey: 'quirk.shrapnel.desc',
+    effectType: 'cleave',
+    params: { cleavePct: 0.3 }
+  },
+  quirk_double_arc: {
+    id: 'quirk_double_arc',
+    nameKey: 'quirk.double_arc.name',
+    descKey: 'quirk.double_arc.desc',
+    effectType: 'chain_lightning',
+    params: { maxJumps: 2, damageRatio: 0.6 }
+  },
+  quirk_recharge_field: {
+    id: 'quirk_recharge_field',
+    nameKey: 'quirk.recharge_field.name',
+    descKey: 'quirk.recharge_field.desc',
+    effectType: 'speed_aura',
+    params: { speedBuffPct: 0.12, radiusTiles: 1.5 }
+  },
+
+  // --- healer line (wrench): heal power = the robot's damage × healMult ---
+  quirk_field_repair: {
+    id: 'quirk_field_repair',
+    nameKey: 'quirk.field_repair.name',
+    descKey: 'quirk.field_repair.desc',
+    effectType: 'field_repair',
+    params: { healMult: 1.2 }
+  },
+  quirk_heal_chain: {
+    id: 'quirk_heal_chain',
+    nameKey: 'quirk.heal_chain.name',
+    descKey: 'quirk.heal_chain.desc',
+    effectType: 'heal_aoe',
+    params: { healMult: 1.3, splashPct: 0.5, radiusTiles: 1.2 }
+  },
+  quirk_heal_shield: {
+    id: 'quirk_heal_shield',
+    nameKey: 'quirk.heal_shield.name',
+    descKey: 'quirk.heal_shield.desc',
+    effectType: 'heal_shield',
+    params: { healMult: 1.3, maxShieldPctOfHp: 0.3 }
+  },
+  quirk_heal_aoe: {
+    id: 'quirk_heal_aoe',
+    nameKey: 'quirk.heal_aoe.name',
+    descKey: 'quirk.heal_aoe.desc',
+    effectType: 'heal_all',
+    params: { healMult: 1.4, allPct: 0.6 }
+  },
+  quirk_revive: {
+    id: 'quirk_revive',
+    nameKey: 'quirk.revive.name',
+    descKey: 'quirk.revive.desc',
+    effectType: 'revive',
+    params: { healMult: 1.4, revives: 1, reviveHpPct: 0.5 }
+  },
+  quirk_guard_aura: {
+    id: 'quirk_guard_aura',
+    nameKey: 'quirk.guard_aura.name',
+    descKey: 'quirk.guard_aura.desc',
+    effectType: 'guard_aura',
+    params: { healMult: 1.4, damageReductionPct: 0.2, radiusTiles: 1.5 }
+  },
+  quirk_regen_aura: {
+    id: 'quirk_regen_aura',
+    nameKey: 'quirk.regen_aura.name',
+    descKey: 'quirk.regen_aura.desc',
+    effectType: 'regen_aura',
+    params: { healMult: 1.4, regenPctPerSec: 0.025, radiusTiles: 1.5 }
   }
 };
 

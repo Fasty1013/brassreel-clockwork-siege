@@ -100,11 +100,11 @@
     },
     "fuse_pyromancer": {
       "name": "Flame Bot",
-      "desc": "Throws fire capsules and goes out with a bang."
+      "desc": "Throws fire capsules: a pool of fire flares under the target."
     },
     "fuse_demolitionist": {
       "name": "Blast Bot",
-      "desc": "Heavy charges; explodes when destroyed."
+      "desc": "Heavy charges: shrapnel hits enemies in neighbouring lanes."
     },
     "fuse_magma_mortar": {
       "name": "Mortar Mech",
@@ -132,7 +132,7 @@
     },
     "coil_dynamo": {
       "name": "Dynamo Bot",
-      "desc": "Support electrician: lightning jumps to a nearby enemy."
+      "desc": "Support electrician: speeds up the attacks of nearby robots."
     },
     "coil_tesla_titan": {
       "name": "Tesla Mech",
@@ -161,6 +161,34 @@
     "chrono_warden": {
       "name": "Chrono Warden Mech",
       "desc": "Bends time on the field: every enemy walks slower."
+    },
+    "wrench_mender": {
+      "name": "Mender Bot",
+      "desc": "Field mechanic: does not fight, repairs the most damaged robot nearby. Keeps robots from falling."
+    },
+    "wrench_medic": {
+      "name": "Medic Bot",
+      "desc": "Repairs the wounded robot and the robots right next to it."
+    },
+    "wrench_welder": {
+      "name": "Welder Bot",
+      "desc": "Welds on armor: healing past full health becomes a shield."
+    },
+    "wrench_field_medic": {
+      "name": "Field Medic Mech",
+      "desc": "Repairs every wounded robot in reach at once."
+    },
+    "wrench_phoenix": {
+      "name": "Phoenix Mech",
+      "desc": "Once per battle brings a fallen robot back with half its health."
+    },
+    "wrench_plating": {
+      "name": "Plating Mech",
+      "desc": "Robots next to it take 20% less damage."
+    },
+    "wrench_regenerator": {
+      "name": "Regen Mech",
+      "desc": "Robots next to it regenerate health every second."
     }
   },
   "enemy": {
@@ -725,6 +753,66 @@
     "steam_aegis": {
       "name": "Steam Aegis",
       "desc": "Takes 20% less damage and returns 20% to the attacker."
+    },
+    "steel_bulwark": {
+      "name": "Steel Bulwark",
+      "desc": "Every 10 s shields itself and neighbours for 15% of its health."
+    },
+    "ram_strike": {
+      "name": "Ram Strike",
+      "desc": "Every 4th hit stuns the target for 1 s (a boss for 0.3 s)."
+    },
+    "through_shot": {
+      "name": "Through Shot",
+      "desc": "The shot pierces its target and hits the enemy behind."
+    },
+    "double_shot": {
+      "name": "Double Shot",
+      "desc": "Every shot adds a bolt at a random enemy: 35% damage."
+    },
+    "ignite": {
+      "name": "Ignite",
+      "desc": "Fire flares under the target: burns for 25% damage per second, 3 s."
+    },
+    "shrapnel": {
+      "name": "Shrapnel",
+      "desc": "Hits enemies in neighbouring lanes: 30% damage."
+    },
+    "double_arc": {
+      "name": "Double Arc",
+      "desc": "Lightning jumps to 2 more enemies: 60% damage each."
+    },
+    "recharge_field": {
+      "name": "Recharge Field",
+      "desc": "Robots nearby attack 12% faster."
+    },
+    "field_repair": {
+      "name": "Field Repair",
+      "desc": "Never attacks. Repairs the most damaged (by share of health) robot in its own and neighbouring lanes for 120% of its healing power. The power grows with level."
+    },
+    "heal_chain": {
+      "name": "Triage",
+      "desc": "Repairs the most damaged robot for 130% of power, robots within 1.2 tiles of it for half of that."
+    },
+    "heal_shield": {
+      "name": "Welded Plates",
+      "desc": "Repairs for 130% of power; healing past full health becomes a shield (up to 30% of health)."
+    },
+    "heal_aoe": {
+      "name": "Field Hospital",
+      "desc": "Repairs the most damaged robot for 140% of power and every other wounded robot in reach for 60% of that."
+    },
+    "revive": {
+      "name": "Rebirth",
+      "desc": "Repairs for 140% of power. Once per battle brings the first fallen robot back with 50% health."
+    },
+    "guard_aura": {
+      "name": "Guard Field",
+      "desc": "Repairs for 140% of power. Robots within 1.5 tiles take 20% less damage."
+    },
+    "regen_aura": {
+      "name": "Regeneration",
+      "desc": "Repairs for 140% of power. Robots within 1.5 tiles regain 2.5% health per second."
     }
   },
   "wave": {

@@ -153,7 +153,7 @@ data/animation/      JSON с таймингами анимаций из план
 
 ## 8. Проверки
 
-- `npm test` — Vitest, 184 теста в 25 файлах (ноябрь 2026).
+- `npm test` — Vitest, 203 теста в 26 файлах (ноябрь 2026).
 - `npm run typecheck` — TypeScript в режиме `strict`.
 - `npm run sim -- --runs 1000 --bot veteran --waves 30` — баланс; таблица по волнам, зависшие бои отдельно.
 - `npx tsx tools/qa/verifyPlayability.ts` — браузер: меню → барабаны → бой.

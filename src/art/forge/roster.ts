@@ -16,8 +16,21 @@ export const PAL = {
   cog: { body: R.brass, trim: R.gold, accent: R.red, eye: C.eyeWarm },
   spring: { body: R.green, trim: R.brass, accent: R.moss, eye: C.eyeWarm },
   fuse: { body: R.red, trim: R.iron, accent: R.ember, eye: C.fire1 },
-  coil: { body: R.blue, trim: R.steel, accent: R.cyan, eye: C.eyeCyan }
+  coil: { body: R.blue, trim: R.steel, accent: R.cyan, eye: C.eyeCyan },
+  wrench: { body: R.bone, trim: R.green, accent: R.steel, eye: C.eyeCyan }
 } as const satisfies Record<string, Palette>;
+
+/** Green repair cross on the chest: the mark of the healer line. */
+function repairCross(size: number) {
+  return (g: PixelCanvas, a: Anchors): void => {
+    const cx = a.tx + Math.floor(a.tw / 2);
+    const cy = a.ty + Math.floor(a.th / 2);
+    const arm = size >= 3 ? 2 : 1;
+    g.hl(cx - arm, cy, arm * 2 + 1, R.green[2]);
+    g.vl(cx, cy - arm, arm * 2 + 1, R.green[2]);
+    g.px(cx, cy, R.green[3]);
+  };
+}
 
 interface Opt {
   head: HeadType;
@@ -272,6 +285,35 @@ export const ROSTER: SpriteDef[] = [
   human('tex_coil_overload', bot(48, PAL.coil, {
     head: 'cyclops', hw: 10, hh: 9, legs: 'spider', lh: 7, shape: 'round', weapon: 'fork', wlen: 9,
     back: ['coilpack', 'antenna'], tw: 17, th: 14, shift: -7, deco: bigCore(R.cyan, 9)
+  })),
+
+  // ============ WRENCH — white-green healers
+  human('tex_wrench_mender', bot(32, PAL.wrench, {
+    head: 'goggles', weapon: 'hammer', wlen: 6, back: ['tank'], deco: repairCross(1)
+  })),
+  human('tex_wrench_medic', bot(40, PAL.wrench, {
+    head: 'mask', chest: 'core', weapon: 'staff', wlen: 9, back: ['tank', 'antenna'], shift: -3,
+    deco: repairCross(2)
+  })),
+  human('tex_wrench_welder', bot(40, PAL.wrench, {
+    head: 'helm', chest: 'plate', weapon: 'hammer', wlen: 8, back: ['tank'], shift: -4,
+    deco: combine(repairCross(2), shoulderPads(R.steel, 5))
+  })),
+  human('tex_wrench_field_medic', bot(48, PAL.wrench, {
+    head: 'dome', hw: 12, hh: 10, legs: 'hover', lh: 7, chest: 'core', weapon: 'staff', wlen: 12,
+    back: ['tank', 'halo'], tw: 14, shift: -3, deco: repairCross(3)
+  })),
+  human('tex_wrench_phoenix', bot(48, PAL.wrench, {
+    head: 'glass', hw: 12, hh: 11, chest: 'core', weapon: 'staff', wlen: 12, back: ['wings', 'halo'],
+    tw: 14, shift: -3, deco: repairCross(3)
+  })),
+  human('tex_wrench_plating', bot(48, PAL.wrench, {
+    head: 'helm', crest: true, shape: 'box', chest: 'plate', weapon: 'hammer', wlen: 10, shield: 'energy',
+    back: ['tank'], tw: 16, th: 12, shift: -6, deco: combine(repairCross(3), shoulderPads(R.steel, 6))
+  })),
+  human('tex_wrench_regenerator', bot(48, PAL.wrench, {
+    head: 'cyclops', hw: 11, hh: 10, legs: 'spider', lh: 7, shape: 'round', weapon: 'staff', wlen: 11,
+    back: ['tank', 'antenna'], tw: 16, th: 13, shift: -7, deco: combine(repairCross(3), bigCore(R.green, 7))
   })),
 
   // ============ LEGENDARY

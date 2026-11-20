@@ -225,12 +225,13 @@ export class VeteranBot implements BotPolicy {
   private reelEdit(state: RunState): RunCommand | null {
     const discount = GadgetManager.discount(state);
     const spare = state.economy.cogs - this.nextSkillCost(state);
+    // healers support the army instead of being it: the reels focus on a fighting line, wrenches are kept
     const counts: Record<string, number> = { cog: 0, spring: 0, fuse: 0, coil: 0 };
     for (const u of [...state.deployedUnits, ...state.reserveBench]) {
       if (u.faction in counts) counts[u.faction] += 2 ** (u.starRank - 1);
     }
     const main = (Object.keys(counts) as SlotSymbol[]).sort((a, b) => counts[b] - counts[a])[0];
-    const isOff = (sym: SlotSymbol): boolean => sym !== main && sym !== 'wild' && sym !== 'crown';
+    const isOff = (sym: SlotSymbol): boolean => sym !== main && sym !== 'wild' && sym !== 'crown' && sym !== 'wrench';
 
     if (spare >= EconomyManager.getRemoveSymbolCost(state.economy, discount)) {
       let best: { reel: number; index: number; off: number } | null = null;
@@ -321,7 +322,9 @@ export class VeteranBot implements BotPolicy {
 
   // ------------------------------------------------------------ placement
   private static score(u: UnitInstance): number {
-    return u.damage * u.attackSpeed * 10 + u.maxHp;
+    // a healer's damage is its healing power: worth about three times as much to the line
+    const worth = u.faction === 'wrench' ? 3 : 1;
+    return u.damage * u.attackSpeed * 10 * worth + u.maxHp;
   }
 
   /**

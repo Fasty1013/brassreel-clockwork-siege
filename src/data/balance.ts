@@ -44,9 +44,10 @@ export const BALANCE = {
   /** reaching these levels offers an evolution branch choice */
   EVOLUTION_LEVELS: [3, 5] as readonly number[],
 
-  // Starter Deck (10 symbols per reel)
+  // Starter Deck (10 / 12 / 10 symbols)
   STARTER_REEL_1: ['cog', 'cog', 'cog', 'spring', 'spring', 'fuse', 'fuse', 'coil', 'wild', 'crown'] as const,
-  STARTER_REEL_2: ['cog', 'cog', 'spring', 'spring', 'spring', 'fuse', 'coil', 'coil', 'wild', 'crown'] as const,
+  // the healer line (wrench) lives on the middle reel: wild + 2 wrenches in a row, ~9% of spins summon a healer
+  STARTER_REEL_2: ['cog', 'cog', 'spring', 'spring', 'spring', 'fuse', 'coil', 'coil', 'wild', 'wrench', 'wrench', 'crown'] as const,
   STARTER_REEL_3: ['cog', 'cog', 'spring', 'fuse', 'fuse', 'fuse', 'coil', 'coil', 'wild', 'crown'] as const,
 
   // Shop Costs (in Cogs)
@@ -86,6 +87,12 @@ export const BALANCE = {
   BOSS_STUN_IMMUNITY_S: 3,
   /** after a knockback, an enemy cannot be knocked back again for this long (no knock-lock) */
   KNOCKBACK_IMMUNITY_S: 3,
+  /** frenzy: after this many seconds of battle enemies hit harder… */
+  ENRAGE_AFTER_S: 60,
+  /** …by this much more… */
+  ENRAGE_STEP: 1,
+  /** …every this many seconds (healers and tanks can no longer hold a stand-off for ever) */
+  ENRAGE_EVERY_S: 10,
   /**
    * Robots with no enemy in their attack range walk toward the nearest one (at their own
    * moveSpeed) until it is in range: shooters stop at their range, melee robots step in front of it.
@@ -120,12 +127,13 @@ export const BALANCE = {
   // Lowered ×0.53 when enemies started to evolve (mutations), robots got a leash and lanes: the
   // mutations are now the enemies' main strength, and placement decides the run
   // (VeteranBot ≈42% wins, random placement ≈5%, everyone in one lane 0%).
+  // Lowered ×0.9 more when the healer line came (a healer takes a fighter's place on the field).
   ENEMY_SCALE_ANCHORS: [
     { wave: 1, hp: 1, damage: 1 },
-    { wave: 10, hp: 10.6, damage: 3.1 },
-    { wave: 20, hp: 45.1, damage: 10.1 },
-    { wave: 21, hp: 30.1, damage: 7.5 },
-    { wave: 30, hp: 46.6, damage: 11.4 }
+    { wave: 10, hp: 9.5, damage: 2.8 },
+    { wave: 20, hp: 40.6, damage: 9.1 },
+    { wave: 21, hp: 27.1, damage: 6.8 },
+    { wave: 30, hp: 41.9, damage: 10.3 }
   ] as ReadonlyArray<{ wave: number; hp: number; damage: number }>,
 
   // Emergency Valve

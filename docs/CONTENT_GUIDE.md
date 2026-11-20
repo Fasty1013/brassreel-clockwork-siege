@@ -26,7 +26,7 @@
 ```typescript
 {
   id, nameKey, descKey,
-  faction: 'cog' | 'spring' | 'fuse' | 'coil' | 'scrap' | 'legendary',
+  faction: 'cog' | 'spring' | 'fuse' | 'coil' | 'wrench' | 'scrap' | 'legendary',
   tier: 0 | 1 | 2 | 3,          // 1 — базовый, 2 — эволюция на 3★, 3 — эволюция на 5★
   baseHp, baseDamage,
   attackSpeed,                  // атак в секунду

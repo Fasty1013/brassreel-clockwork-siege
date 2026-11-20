@@ -44,7 +44,7 @@ export type RunCommand =
   | { type: 'START_NEXT_WAVE' };
 
 /** Symbols the workshop sells. */
-export const BUYABLE_SYMBOLS: readonly SlotSymbol[] = ['cog', 'spring', 'fuse', 'coil'];
+export const BUYABLE_SYMBOLS: readonly SlotSymbol[] = ['cog', 'spring', 'fuse', 'coil', 'wrench'];
 
 export class RunReducer {
   private static waveController = new WaveController(1);
@@ -211,6 +211,7 @@ export class RunReducer {
           else if (summon.faction === 'spring') unitDefId = 'unit_spring_archer';
           else if (summon.faction === 'fuse') unitDefId = 'unit_fuse_sapper';
           else if (summon.faction === 'coil') unitDefId = 'unit_coil_sparker';
+          else if (summon.faction === 'wrench') unitDefId = 'unit_wrench_mender';
 
           const comboMult = BALANCE.COMBO_BONUS[Math.min(4, Math.max(1, evalResult.lineHits.length)) as 1 | 2 | 3 | 4].statMult;
           const unit = UnitFactory.createUnit(unitDefId, rng.loot, {

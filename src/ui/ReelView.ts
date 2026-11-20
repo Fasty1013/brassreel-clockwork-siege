@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { ReelSymbol, Grid3x3, SpinResult } from '@core/reels/reels';
+import { ReelSymbol, Grid3x3, SpinResult, ReelManager } from '@core/reels/reels';
 import { SoundManager } from '../audio/SoundManager';
 import { ParticleKit } from '../presentation/ParticleKit';
 import { InfoTip } from './InfoTip';
@@ -197,6 +197,7 @@ export class ReelView extends Phaser.GameObjects.Container {
       sym_spring: ['Пружина', '3 в ряд призывают Стрело-Бота — стрелка с дальней дистанции.'],
       sym_fuse: ['Запал', '3 в ряд призывают Запал-Бота — подрывника, бьющего по площади.'],
       sym_coil: ['Катушка', '3 в ряд призывают Искро-Бота — электрика с цепной молнией.'],
+      sym_wrench: ['Ключ', '3 в ряд призывают Ремонт-Бота — лекаря, который чинит роботов в бою.'],
       sym_wild: ['Джокер', 'Заменяет любой символ фракции и помогает собрать тройку.'],
       sym_crown: ['Корона', '3 короны в ряд — джекпот: легендарный робот.']
     };
@@ -235,6 +236,7 @@ export class ReelView extends Phaser.GameObjects.Container {
       spring: 'sym_spring',
       fuse: 'sym_fuse',
       coil: 'sym_coil',
+      wrench: 'sym_wrench',
       wild: 'sym_wild',
       crown: 'sym_crown'
     };
@@ -274,7 +276,10 @@ export class ReelView extends Phaser.GameObjects.Container {
     this.isSpinning = true;
     this.clearPaylines();
 
-    const symbols = ['sym_cog', 'sym_spring', 'sym_fuse', 'sym_coil', 'sym_wild', 'sym_crown'];
+    const symbols = ['sym_cog', 'sym_spring', 'sym_fuse', 'sym_coil', 'sym_wrench', 'sym_wild', 'sym_crown'];
+    // the spin is over when the last reel that actually turns stops (a held or jammed
+    // right reel used to leave the lever locked for good)
+    const lastReel = ReelManager.lastSpinningReel(heldReels);
 
     for (let c = 0; c < 3; c++) {
       if (heldReels[c]) continue;
@@ -316,7 +321,7 @@ export class ReelView extends Phaser.GameObjects.Container {
           ease: 'Back.easeOut'
         });
 
-        if (c === 2) {
+        if (c === lastReel) {
           this.scene.time.delayedCall(160, () => {
             this.isSpinning = false;
             onComplete();
@@ -325,7 +330,7 @@ export class ReelView extends Phaser.GameObjects.Container {
       });
     }
 
-    if (heldReels.every((h) => h)) {
+    if (lastReel === -1) {
       this.isSpinning = false;
       onComplete();
     }

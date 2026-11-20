@@ -15,9 +15,9 @@ import { QUIRKS_DATA } from '@data/quirks';
 import { t, setLocale } from '@data/i18n';
 
 describe('Data Catalog Validation Suite', () => {
-  it('validates all 32 unit definitions against UnitSchema', () => {
+  it('validates all 39 unit definitions against UnitSchema', () => {
     const units = Object.values(UNITS_DATA);
-    expect(units.length).toBe(32); // 28 faction + 1 scrap + 3 legendary
+    expect(units.length).toBe(39); // 35 line robots (5 lines × 7) + 1 scrap + 3 legendary
 
     for (const unit of units) {
       const res = UnitSchema.safeParse(unit);

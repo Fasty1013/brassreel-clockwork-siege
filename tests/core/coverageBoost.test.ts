@@ -248,8 +248,11 @@ describe('Coverage & Edge Case Verification Suite', () => {
     RunReducer.dispatch(state, { type: 'NUDGE_REEL', reelIndex: 0, direction: 1 }, rng);
     expect(state.nudgesLeft).toBe(0);
 
-    // Spin
-    RunReducer.dispatch(state, { type: 'SPIN' }, rng);
+    // Spin until the reels summon a robot
+    for (let i = 0; i < 30 && state.reserveBench.length === 0; i++) {
+      state.freeSpinsLeft = 1;
+      RunReducer.dispatch(state, { type: 'SPIN' }, rng);
+    }
     expect(state.reserveBench.length).toBeGreaterThan(0);
 
     // Deploy & Undeploy

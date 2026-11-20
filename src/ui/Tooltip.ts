@@ -10,8 +10,12 @@ const PAD = 18;
 const INNER = W - PAD * 2;
 
 const FACTION_RU: Record<string, string> = {
-  cog: 'Шестерни', spring: 'Пружины', fuse: 'Запалы', coil: 'Катушки', scrap: 'Утиль', legendary: 'Легенда'
+  cog: 'Шестерни', spring: 'Пружины', fuse: 'Запалы', coil: 'Катушки', wrench: 'Ключи, лекарь', scrap: 'Утиль', legendary: 'Легенда'
 };
+
+/** Health one heal restores (healer power × its quirk's healMult). */
+const healPerAction = (unit: UnitInstance): number =>
+  Math.round(unit.damage * (QUIRKS_DATA[unit.quirkId]?.params.healMult ?? 1));
 
 /**
  * Robot info card shown on hover: name + level, faction line, stats grid,
@@ -58,7 +62,8 @@ export class Tooltip extends Phaser.GameObjects.Container {
     y += 12;
     const stats: Array<[string, string]> = [
       ['ЗДОРОВЬЕ', `${unit.currentHp}/${unit.maxHp}`],
-      ['УРОН', `${unit.damage}`],
+      // healers never attack: their «damage» is the healing power of one heal
+      unit.faction === 'wrench' ? ['ЛЕЧЕНИЕ', `${healPerAction(unit)}`] : ['УРОН', `${unit.damage}`],
       ['БРОНЯ', `${unit.armor}`],
       ['СКОРОСТЬ', `${unit.attackSpeed}/с`],
       ['ДАЛЬНОСТЬ', `${unit.attackRange}`],

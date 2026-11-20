@@ -1023,6 +1023,12 @@ export class RunScene extends Phaser.Scene {
             }
           }
         }
+      } else if (ev.type === 'heal' || ev.type === 'revive') {
+        const card = ev.targetId ? this.unitCards.get(ev.targetId) : undefined;
+        if (card && (ev.amount ?? 0) > 0) {
+          const text = ev.type === 'revive' ? 'ВОССТАЛ!' : `+${ev.amount}`;
+          this.showFloatingText(card.x + Phaser.Math.Between(-8, 8), card.y - 40, text, '#7dffa8');
+        }
       } else if (ev.type === 'damage') {
         const enemyVis = ev.targetId ? this.enemyVisuals.get(ev.targetId) : undefined;
         const card = ev.targetId ? this.unitCards.get(ev.targetId) : undefined;
@@ -1086,6 +1092,14 @@ export class RunScene extends Phaser.Scene {
 
   private syncCombatEntities(): void {
     if (!this.state.combatState) return;
+
+    // 0. Robots knocked out this battle fall and lie there until the wave ends
+    const standing = new Set(this.state.combatState.units.filter((u) => !u.isDead).map((u) => u.id));
+    for (const u of this.state.deployedUnits) {
+      const card = this.unitCards.get(u.instanceId);
+      if (card && !standing.has(u.instanceId)) card.setFallen(true);
+      else if (card?.fallen) card.setFallen(false); // brought back by a Phoenix Mech
+    }
 
     // 1. Sync defender unit HP
     for (const u of this.state.combatState.units) {
@@ -1314,6 +1328,8 @@ export class RunScene extends Phaser.Scene {
 
   private syncUnitCards(): void {
     const allUnits = [...this.state.reserveBench, ...this.state.deployedUnits];
+    // outside battle nobody lies on the field: the fallen stand up for the next wave
+    if (this.state.phase !== 'BATTLE') for (const card of this.unitCards.values()) card.setFallen(false);
     const activeIds = new Set(allUnits.map((u) => u.instanceId));
 
     // Destroy cards for removed/smelted units (and evolved ones, which need their new sprite)

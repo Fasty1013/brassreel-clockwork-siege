@@ -42,7 +42,8 @@ const SYMBOLS: Array<{ sym: SlotSymbol; name: string; color: string }> = [
   { sym: 'cog', name: 'Шестерня', color: '#e0a45c' },
   { sym: 'spring', name: 'Пружина', color: '#74c98d' },
   { sym: 'fuse', name: 'Запал', color: '#ee5a4a' },
-  { sym: 'coil', name: 'Катушка', color: '#7ee6f5' }
+  { sym: 'coil', name: 'Катушка', color: '#7ee6f5' },
+  { sym: 'wrench', name: 'Ключ', color: '#9ff5b8' }
 ];
 
 /**
@@ -133,17 +134,19 @@ export class ShopView extends Phaser.GameObjects.Container {
     this.stripInfo = scene.add.text(530, 76, '', { fontSize: '18px', color: MUTED }).setOrigin(1, 0.5);
     this.add(this.stripInfo);
 
+    // one button per symbol, spread over the same width (5 symbols since the healer line)
+    const step = 1080 / SYMBOLS.length;
     SYMBOLS.forEach((sym, i) => {
-      const x = -405 + i * 270;
+      const x = -540 + step * (i + 0.5);
       const y = 204;
-      const btn = scene.add.rectangle(x, y, 250, 64, 0x1f1a27);
+      const btn = scene.add.rectangle(x, y, step - 16, 64, 0x1f1a27);
       btn.setStrokeStyle(2, 0xd4a373);
       btn.setInteractive({ useHandCursor: true });
       this.add(btn);
-      this.add(scene.add.image(x - 82, y, `sym_${sym.sym}`).setScale(2));
-      const label = scene.add.text(x - 44, y - 13, `+ ${sym.name}`, { fontSize: '21px', color: sym.color }).setOrigin(0, 0.5);
+      this.add(scene.add.image(x - step / 2 + 34, y, `sym_${sym.sym}`).setScale(1.7));
+      const label = scene.add.text(x - step / 2 + 64, y - 13, `+ ${sym.name}`, { fontSize: '19px', color: sym.color }).setOrigin(0, 0.5);
       this.add(label);
-      this.registerPrice('symbol', x - 44, y + 15, btn, label);
+      this.registerPrice('symbol', x - step / 2 + 64, y + 15, btn, label);
       this.hover(btn);
       btn.on('pointerdown', () => this.emit('buy_symbol', this.selectedReel, sym.sym));
     });

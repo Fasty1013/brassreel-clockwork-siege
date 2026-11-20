@@ -137,11 +137,35 @@ function crown(g: PixelCanvas): void {
   g.rect(17, 17, 2, 2, R.green[2]);
 }
 
+/** Wrench with a green repair cross: the healer line. */
+function wrench(g: PixelCanvas): void {
+  // handle: a thick steel bar from bottom-left to the jaw
+  for (let k = 0; k < 11; k++) {
+    const x = 4 + k;
+    const y = 19 - k;
+    g.rect(x, y - 1, 3, 3, R.steel[1]);
+    g.px(x, y - 1, R.steel[3]);
+  }
+  // open jaw at the top-right
+  g.oval(13, 2, 9, 9, R.steel);
+  g.erase(17, 2); g.erase(18, 2); g.erase(17, 3); g.erase(18, 3); g.erase(17, 4); g.erase(18, 4);
+  g.px(14, 4, R.steel[3]);
+  // grip ring at the bottom
+  g.oval(2, 17, 6, 6, R.steel);
+  g.oval(4, 19, 2, 2, OUTLINE);
+  // green repair cross
+  g.rect(14, 13, 7, 3, R.green[2]);
+  g.rect(16, 11, 3, 7, R.green[2]);
+  g.px(16, 13, R.green[3]);
+  g.px(15, 14, R.green[3]);
+}
+
 const ICONS: Record<string, Draw> = {
   sym_cog: gear,
   sym_spring: spring,
   sym_fuse: fuse,
   sym_coil: coil,
+  sym_wrench: wrench,
   sym_wild: wild,
   sym_crown: crown
 };

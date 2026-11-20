@@ -12,6 +12,7 @@ const FACTION_COLORS: Record<string, number> = {
   spring: 0x3f9b63,
   fuse: 0xc22a33,
   coil: 0x2274c4,
+  wrench: 0x9ff5b8,
   scrap: 0x8a879c,
   legendary: 0xffd166
 };
@@ -42,6 +43,9 @@ export class UnitCard extends Phaser.GameObjects.Container {
   private readonly nativeSize: number;
   private readonly animated: boolean;
   private hpW = 52;
+  /** knocked out in this battle: lies on the field until the wave ends */
+  public fallen = false;
+  private fallenMark: Phaser.GameObjects.Text | null = null;
 
   constructor(scene: Phaser.Scene, x: number, y: number, unit: UnitInstance, tooltip: Tooltip) {
     super(scene, x, y);
@@ -368,6 +372,34 @@ export class UnitCard extends Phaser.GameObjects.Container {
         onImpact?.();
       }
     });
+  }
+
+  /**
+   * A robot whose health hit 0 falls: it lies on its side, greyed out, and does nothing until the
+   * wave is over. Next wave it stands up again at full health.
+   */
+  public setFallen(on: boolean): void {
+    if (on === this.fallen) return;
+    this.fallen = on;
+    if (on) {
+      this.stopIdleBobbing();
+      this.sprite.anims?.stop();
+      this.sprite.setAngle(-90).setTint(0x6a6470).setAlpha(0.75);
+      this.hpBarBg.setVisible(false);
+      this.hpBarFill.setVisible(false);
+      this.fallenMark = this.scene.add
+        .text(0, -6, '✖', { fontSize: '22px', color: '#ff5a5a', fontStyle: 'bold', stroke: '#17121f', strokeThickness: 4 })
+        .setOrigin(0.5);
+      this.add(this.fallenMark);
+    } else {
+      this.sprite.setAngle(0).clearTint().setAlpha(1);
+      this.hpBarBg.setVisible(true);
+      this.hpBarFill.setVisible(true);
+      this.fallenMark?.destroy();
+      this.fallenMark = null;
+      if (this.animated) playLoop(this.sprite, this.spriteKey, 'idle');
+      else this.startIdleBobbing();
+    }
   }
 
   public playHitFlash(): void {
