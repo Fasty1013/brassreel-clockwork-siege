@@ -5,6 +5,8 @@ type Body = string | (() => string);
 
 const W = 380;
 const PAD = 14;
+/** on touch screens a hint appears after holding a finger this long */
+export const LONG_PRESS_MS = 400;
 
 /**
  * InfoTip — "what is this?" hint shown when the pointer rests on any UI element.
@@ -44,13 +46,36 @@ export class InfoTip {
   /** Show the hint while the pointer is over `obj` (made interactive if it is not yet). */
   public attach(obj: Phaser.GameObjects.GameObject, title: string, body: Body): void {
     if (!obj.input) (obj as Phaser.GameObjects.Image).setInteractive();
-    obj.on('pointerover', (p: Phaser.Input.Pointer) => this.show(obj, title, body, p));
+    // Mouse: show on hover. Touch (phones): there is no hover, so the hint shows on a long press
+    // and goes away when the finger is lifted.
+    let press: Phaser.Time.TimerEvent | null = null;
+    const cancelPress = (): void => {
+      press?.remove();
+      press = null;
+    };
+    obj.on('pointerover', (p: Phaser.Input.Pointer) => {
+      if (!p.wasTouch) this.show(obj, title, body, p);
+    });
     obj.on('pointermove', (p: Phaser.Input.Pointer) => {
       if (this.owner === obj) this.place(p.x, p.y);
     });
-    obj.on('pointerout', () => this.hide(obj));
-    obj.on('pointerdown', () => this.hide(obj));
-    obj.once(Phaser.GameObjects.Events.DESTROY, () => this.hide(obj));
+    obj.on('pointerout', () => {
+      cancelPress();
+      this.hide(obj);
+    });
+    obj.on('pointerdown', (p: Phaser.Input.Pointer) => {
+      this.hide(obj);
+      cancelPress();
+      if (p.wasTouch) press = this.scene.time.delayedCall(LONG_PRESS_MS, () => this.show(obj, title, body, p));
+    });
+    obj.on('pointerup', (p: Phaser.Input.Pointer) => {
+      cancelPress();
+      if (p.wasTouch) this.hide(obj);
+    });
+    obj.once(Phaser.GameObjects.Events.DESTROY, () => {
+      cancelPress();
+      this.hide(obj);
+    });
   }
 
   /** Invisible hover area for things that are not objects of their own. */

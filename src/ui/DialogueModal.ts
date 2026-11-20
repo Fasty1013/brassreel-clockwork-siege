@@ -113,7 +113,7 @@ export class DialogueModal extends Phaser.GameObjects.Container {
     const line = this.story.lines[this.index];
     const who = SPEAKERS[line.speaker];
     this.nameText.setText(who.name).setColor(who.color);
-    this.counterText.setText(`${this.index + 1} / ${this.story.lines.length}   Пробел — дальше`);
+    this.counterText.setText(`${this.index + 1} / ${this.story.lines.length}   Пробел или касание — дальше`);
 
     this.portraitBox.removeAll(true);
     if (this.scene.textures.exists(who.portrait)) {

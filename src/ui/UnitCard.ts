@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { UnitInstance } from '@core/units/unitFactory';
 import { Tooltip } from './Tooltip';
+import { LONG_PRESS_MS } from './InfoTip';
 import { UNITS_DATA } from '@data/units';
 import { AnimationFX } from '../fx/AnimationFX';
 import { ParticleKit } from '../presentation/ParticleKit';
@@ -90,14 +91,32 @@ export class UnitCard extends Phaser.GameObjects.Container {
     this.setSize(68, 80);
     this.setInteractive({ draggable: true });
 
+    // mouse: hover shows the robot card; touch: a long press without dragging
+    let press: Phaser.Time.TimerEvent | null = null;
     this.on('pointerover', (pointer: Phaser.Input.Pointer) => {
-      if (!this.isDragging) tooltip.showUnit(this.unit, pointer.x, pointer.y);
+      if (!this.isDragging && !pointer.wasTouch) tooltip.showUnit(this.unit, pointer.x, pointer.y);
     });
-    this.on('pointerout', () => tooltip.hide());
+    this.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
+      if (!pointer.wasTouch) return;
+      press?.remove();
+      press = scene.time.delayedCall(LONG_PRESS_MS, () => {
+        if (!this.isDragging) tooltip.showUnit(this.unit, pointer.x, pointer.y);
+      });
+    });
+    const endPress = (): void => {
+      press?.remove();
+      press = null;
+      tooltip.hide();
+    };
+    this.on('pointerup', endPress);
+    this.on('pointerout', endPress);
 
     scene.input.setDraggable(this);
 
     this.on('dragstart', () => {
+      press?.remove(); // a drag is not a long press
+      press = null;
+      tooltip.hide();
       this.isDragging = true;
       this.stopIdleBobbing();
       this.originalX = this.x;
