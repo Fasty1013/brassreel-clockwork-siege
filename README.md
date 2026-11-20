@@ -4,6 +4,8 @@
 
 - **Играть онлайн:** https://fasty1013.github.io/brassreel-clockwork-siege/ — сайт обновляется при каждой отправке в ветку `main` (`.github/workflows/pages.yml`).
 - **На Windows:** `BRASSREEL.exe` (или `PLAY.bat`) в корне проекта, рядом нужна папка `dist`.
+- **На Android:** APK в пред-выпуске **android-latest** на странице Releases репозитория (собирается GitHub
+  при каждой отправке в `main`); подробно — [`docs/RELEASE.md`](docs/RELEASE.md).
 - **Версия:** 0.4.0. **Технологии:** Phaser 3, TypeScript, Vite, Vitest, Zod, шрифт Rubik.
 
 ---
