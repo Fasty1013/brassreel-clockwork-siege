@@ -84,12 +84,30 @@ export const BALANCE = {
   THREAT_REWARD_STEP: 0.5,
   /** after a stun, a boss ignores new stuns for this long (no stun-lock) */
   BOSS_STUN_IMMUNITY_S: 3,
+  /** after a knockback, an enemy cannot be knocked back again for this long (no knock-lock) */
+  KNOCKBACK_IMMUNITY_S: 3,
   /**
    * Robots with no enemy in their attack range walk toward the nearest one (at their own
    * moveSpeed) until it is in range: shooters stop at their range, melee robots step in front of it.
    * While walking they keep at least this many tiles from each other.
    */
   UNIT_SEPARATION: 0.6,
+  /** a shooter steps at most this many tiles off its cell to reach an enemy; melee robots hold their cell */
+  UNIT_LEASH: 1.5,
+  /** melee robots step at most this far off their cell (to reach an enemy pressing right next to them) */
+  MELEE_LEASH: 0.75,
+  /** a robot covers its own lane and this many lanes on each side (main attack and walking) */
+  LANE_REACH: 1,
+
+  // Enemy evolution (src/data/mutations.ts, src/core/waves/enemyEvolution.ts)
+  /** first wave whose enemies may carry mutations */
+  MUTATION_FIRST_WAVE: 3,
+  /** share of mutated enemies grows by this much per wave… */
+  MUTATION_CHANCE_PER_WAVE: 0.05,
+  /** …up to this */
+  MUTATION_CHANCE_MAX: 0.9,
+  /** from wave 11 a mutated enemy may carry a second mutation, this much more often per wave */
+  MUTATION_DOUBLE_PER_WAVE: 0.05,
 
   // Enemy growth. Robots get many times stronger over a run (levels,
   // evolutions, skill tree), so enemy stats are multiplied per wave. The
@@ -99,12 +117,15 @@ export const BALANCE = {
   // when robots started walking to enemies out of reach (the run got far easier: 65% → 97% wins).
   // Raised again ×1.125 hp / ×1.06 damage when all 20 engine cores and the heat bonus started working
   // (VeteranBot 86% → 66% wins).
+  // Lowered ×0.53 when enemies started to evolve (mutations), robots got a leash and lanes: the
+  // mutations are now the enemies' main strength, and placement decides the run
+  // (VeteranBot ≈42% wins, random placement ≈5%, everyone in one lane 0%).
   ENEMY_SCALE_ANCHORS: [
     { wave: 1, hp: 1, damage: 1 },
-    { wave: 10, hp: 19.7, damage: 5.9 },
-    { wave: 20, hp: 84.4, damage: 19 },
-    { wave: 21, hp: 56.3, damage: 14.2 },
-    { wave: 30, hp: 87.2, damage: 21.3 }
+    { wave: 10, hp: 10.6, damage: 3.1 },
+    { wave: 20, hp: 45.1, damage: 10.1 },
+    { wave: 21, hp: 30.1, damage: 7.5 },
+    { wave: 30, hp: 46.6, damage: 11.4 }
   ] as ReadonlyArray<{ wave: number; hp: number; damage: number }>,
 
   // Emergency Valve
@@ -123,7 +144,8 @@ export function enemyWaveScale(waveNumber: number): { hp: number; damage: number
   for (let i = 1; i < anchors.length; i++) {
     const a = anchors[i - 1];
     const b = anchors[i];
-    if (waveNumber <= b.wave) {
+    if (waveNumber === b.wave) return { hp: b.hp, damage: b.damage };
+    if (waveNumber < b.wave) {
       const t = (waveNumber - a.wave) / (b.wave - a.wave);
       return { hp: a.hp + (b.hp - a.hp) * t, damage: a.damage + (b.damage - a.damage) * t };
     }

@@ -9,6 +9,7 @@ import { CombatEngine } from '../combat/combatEngine';
 import { WaveController } from '../waves/waveController';
 import { CoreEngine } from '../cores/coreEngine';
 import { CoreEffects } from '../cores/coreEffects';
+import { EnemyEvolution } from '../waves/enemyEvolution';
 import { EconomyManager } from '../economy/economy';
 import { BALANCE } from '@data/balance';
 import { CORES_DATA } from '@data/cores';
@@ -392,12 +393,13 @@ export class RunReducer {
       case 'START_BATTLE': {
         if (state.phase !== 'PREP') return state;
         state.phase = 'BATTLE';
+        state.lastFormation = EnemyEvolution.analyzeFormation(state.deployedUnits);
         state.combatState = CombatEngine.initCombatState(state.deployedUnits, state.boilerHp, state.maxBoilerHp);
         SkillManager.applyCombatBuffs(state, state.combatState);
         CoreEffects.applyBattleStart(state, state.combatState);
         GadgetManager.applyBattleStart(state, state.combatState);
         CombatEngine.applyStartQuirks(state.combatState);
-        this.waveController = new WaveController(state.waveNumber, state.threat ?? 0);
+        this.waveController = new WaveController(state.waveNumber, state.threat ?? 0, state.evolution);
         this.waveController.initWaveSpawns(rng.combat);
         eventBus?.emit('wave_started', { waveNumber: state.waveNumber, actNumber: state.actNumber });
         return state;
@@ -554,6 +556,8 @@ export class RunReducer {
           state.heat.currentHeat = Math.max(0, state.heat.currentHeat - GadgetManager.coolingBonus(state));
           EconomyManager.addSteam(state.economy, BALANCE.STEAM_PER_WAVE);
           CoreEffects.onWaveStart(state, leftoverHolds);
+          // the enemies of the new wave evolve, partly against the last formation
+          state.evolution = EnemyEvolution.planWave(state.waveNumber, state.lastFormation, rng.combat);
 
           // Restore HP of surviving deployed units
           for (const u of state.deployedUnits) {

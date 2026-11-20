@@ -5,6 +5,7 @@ import { ENEMIES_DATA } from '@data/enemies';
 import { PRNG } from '../prng/sfc32';
 import type { CombatGadgetMods } from '../gadgets/gadgets';
 import { QUIRKS_DATA, QuirkDefinition } from '@data/quirks';
+import type { ActiveMutation } from '../waves/enemyEvolution';
 
 /** robots with an attack range up to this many tiles fight in melee */
 const MELEE_RANGE_MAX = 1.5;
@@ -23,15 +24,6 @@ const SQUEEZE_S = 0.8;
 const BLOCKED_RETARGET_S = 2;
 /** …and leaves the unreachable one alone for this long */
 const AVOID_TARGET_S = 3;
-
-/**
- * Spots around an enemy a melee robot can stand at: 8 directions, 0.85 tile out (within reach 1).
- * `penalty` (in tiles of extra walking) makes the front, on the boiler side, the favourite.
- */
-const MELEE_SPOTS = [0, 1, -1, 2, -2, 3, -3, 4].map((k) => {
-  const a = Math.PI + (k * Math.PI) / 4;
-  return { dx: Math.cos(a) * 0.85, dy: Math.sin(a) * 0.85, penalty: Math.abs(k) * 0.25 };
-});
 
 /** per-robot walking memory: which side it walks around allies on, and what it is stuck on */
 export interface WalkMemory {
@@ -111,6 +103,16 @@ export interface CombatEnemy {
   answered: boolean;
   /** how long it has been shooting at a defender without being hit back */
   unansweredSeconds: number;
+  /** evolution: mutations this enemy carries (EnemyEvolution.apply) */
+  mutations?: ActiveMutation[];
+  /** armored: share of robot damage that gets through */
+  damageTakenMult?: number;
+  /** leaper: jumps over the robot blocking its lane this many times */
+  leapsLeft?: number;
+  /** bomber: blows up on death, hurting robots around it */
+  deathBlast?: { mult: number; radius: number };
+  /** sniper: shoots the weakest robot in its lane instead of the nearest */
+  targetsWeakest?: boolean;
   statuses: {
     burnDps: number;
     burnDuration: number;
@@ -124,11 +126,13 @@ export interface CombatEnemy {
     vulnDuration?: number;
     /** bosses shrug off new stuns while this runs */
     stunImmune?: number;
+    /** seconds left before the enemy can be knocked back again (no knock-lock) */
+    knockImmune?: number;
   };
 }
 
 export interface CombatEvent {
-  type: 'attack' | 'projectile_hit' | 'damage' | 'death' | 'breach' | 'valve_used' | 'boss_phase';
+  type: 'attack' | 'projectile_hit' | 'damage' | 'death' | 'breach' | 'valve_used' | 'boss_phase' | 'leap' | 'blast';
   sourceId: string;
   targetId?: string;
   amount?: number;
@@ -308,8 +312,9 @@ export class CombatEngine {
       this.tickPeriodicQuirk(state, unit, dt);
       if (unit.statuses.stunDuration > 0) continue;
 
-      // Nobody to hit from here: walk toward the nearest enemy until one is in range.
-      // (a Portable Turret is bolted down)
+      // Placement decides: melee robots hold their cell (stepping at most MELEE_LEASH) and block the lane; a shooter
+      // steps at most UNIT_LEASH tiles off its cell, only toward an enemy it can reach from
+      // there, and walks back when there is none. (a Portable Turret is bolted down)
       if (!unit.isTurret) {
         if (!this.findBestEnemyTarget(unit, state.enemies)) {
           this.advanceUnit(unit, state, dt);
@@ -368,6 +373,14 @@ export class CombatEngine {
 
       // Check for blockers / targets in range
       const targetUnit = this.findDefenderInRange(enemy, state.units);
+      // leaper mutation: jumps over the robot that blocks its lane and lands behind it
+      if (targetUnit && (enemy.leapsLeft ?? 0) > 0 && targetUnit.x < enemy.x) {
+        enemy.leapsLeft = (enemy.leapsLeft ?? 0) - 1;
+        enemy.x = Math.max(0.2, targetUnit.x - 1);
+        enemy.attackCooldown = Math.max(enemy.attackCooldown, 0.5);
+        state.events.push({ type: 'leap', sourceId: enemy.id, targetId: targetUnit.id });
+        continue;
+      }
       if (targetUnit) {
         enemy.attackCooldown -= dt;
         if (enemy.attackCooldown <= 0) {
@@ -494,16 +507,14 @@ export class CombatEngine {
         const burnDmg = Math.round(e.statuses.burnDps * dt);
         e.hp -= burnDmg;
         e.statuses.burnDuration -= dt;
-        if (e.hp <= 0) {
-          e.isDead = true;
-          state.cogsEarned += this.bounty(state, e);
-        }
+        if (e.hp <= 0) this.killEnemy(state, e);
       }
       if (e.statuses.shockDuration > 0) e.statuses.shockDuration -= dt;
       if (e.statuses.stunDuration > 0) e.statuses.stunDuration -= dt;
       if (e.statuses.slowDuration > 0) e.statuses.slowDuration -= dt;
       if ((e.statuses.vulnDuration ?? 0) > 0) e.statuses.vulnDuration = (e.statuses.vulnDuration ?? 0) - dt;
       if ((e.statuses.stunImmune ?? 0) > 0) e.statuses.stunImmune = (e.statuses.stunImmune ?? 0) - dt;
+      if ((e.statuses.knockImmune ?? 0) > 0) e.statuses.knockImmune = (e.statuses.knockImmune ?? 0) - dt;
     }
   }
 
@@ -513,6 +524,8 @@ export class CombatEngine {
 
     for (const enemy of enemies) {
       if (enemy.isDead) continue;
+      // lanes: a robot covers its own lane and the neighbouring ones only
+      if (!this.inLanes(unit, enemy)) continue;
 
       // Distance calculation
       const dx = enemy.x - unit.x;
@@ -547,12 +560,25 @@ export class CombatEngine {
       if (w.avoidFor <= 0) w.avoidId = null;
     }
 
-    const enemy = this.findApproachTarget(unit, state.enemies, w.avoidId);
-    if (!enemy) return;
+    const home = this.homeOf(unit);
+    // shooters may step UNIT_LEASH off their cell, melee robots only MELEE_LEASH (they hold the lane)
+    const leash = unit.attackRange > MELEE_RANGE_MAX ? BALANCE.UNIT_LEASH : BALANCE.MELEE_LEASH;
+    // only enemies the robot can reach without leaving its leash
+    const reachable = state.enemies.filter(
+      (e) => !e.isDead && this.inLanes(unit, e) && Math.hypot(e.x - home.x, e.y - home.y) <= unit.attackRange + leash
+    );
+    const enemy = this.findApproachTarget(unit, reachable, w.avoidId);
+    if (!enemy) {
+      this.returnHome(unit, state, dt);
+      return;
+    }
 
-    const goal = unit.attackRange <= MELEE_RANGE_MAX
-      ? this.meleeApproachPoint(unit, enemy, state.units)
-      : { x: enemy.x, y: enemy.y };
+    // the point closest to home from which the enemy is in range (a hair inside)
+    const dHome = Math.hypot(enemy.x - home.x, enemy.y - home.y);
+    const along = Math.min(leash, Math.max(0, dHome - unit.attackRange + 0.05));
+    const goal = dHome > 1e-6
+      ? { x: home.x + ((enemy.x - home.x) / dHome) * along, y: home.y + ((enemy.y - home.y) / dHome) * along }
+      : home;
 
     const distGoal = Math.hypot(goal.x - unit.x, goal.y - unit.y);
     if (distGoal < 1e-3) return;
@@ -686,26 +712,28 @@ export class CombatEngine {
     return best;
   }
 
-  /** The closest free spot next to the enemy for a melee robot (front first, then flanks, then behind). */
-  private static meleeApproachPoint(unit: CombatUnit, enemy: CombatEnemy, units: CombatUnit[]): { x: number; y: number } {
-    let best: { x: number; y: number } | null = null;
-    let bestScore = Infinity;
-    for (const spot of MELEE_SPOTS) {
-      const x = clampFieldX(enemy.x + spot.dx);
-      const y = clampFieldY(enemy.y + spot.dy);
-      // the field edge can squeeze a spot out of reach
-      if (Math.hypot(enemy.x - x, enemy.y - y) > unit.attackRange) continue;
-      const taken = units.some(
-        (o) => o !== unit && !o.isDead && Math.hypot(o.x - x, o.y - y) < BALANCE.UNIT_SEPARATION
-      );
-      if (taken) continue;
-      const score = Math.hypot(x - unit.x, y - unit.y) + spot.penalty;
-      if (score < bestScore) {
-        bestScore = score;
-        best = { x, y };
-      }
-    }
-    return best ?? { x: enemy.x, y: enemy.y };
+  /** True if the enemy walks in the robot's lane or a neighbouring one (counted from the robot's cell). */
+  private static inLanes(unit: CombatUnit, enemy: CombatEnemy): boolean {
+    return Math.abs(enemy.y - this.homeOf(unit).y) <= BALANCE.LANE_REACH + 0.1;
+  }
+
+  /** The cell the robot was placed on (its post for the battle). */
+  private static homeOf(unit: CombatUnit): { x: number; y: number } {
+    const slot = unit.sourceUnit.deployedSlot;
+    return slot ? { x: slot.col + 0.5, y: slot.row + 0.5 } : { x: unit.x, y: unit.y };
+  }
+
+  /** Walks a robot that left its cell straight back to it (allies are not pushed through). */
+  private static returnHome(unit: CombatUnit, state: CombatSimulationState, dt: number): void {
+    const home = this.homeOf(unit);
+    const dist = Math.hypot(home.x - unit.x, home.y - unit.y);
+    if (dist < 1e-3) return;
+    let speed = unit.moveSpeed;
+    if (unit.statuses.slowDuration > 0) speed *= 1 - unit.statuses.slowRatio;
+    const step = Math.min(speed * dt, dist);
+    const nx = unit.x + ((home.x - unit.x) / dist) * step;
+    const ny = unit.y + ((home.y - unit.y) / dist) * step;
+    if (!this.crowdsAnotherUnit(unit, nx, ny, state.units) || dist <= step) this.placeUnit(unit, nx, ny);
   }
 
   /** True if standing at (x, y) would push the robot closer than allowed to another robot. */
@@ -729,9 +757,11 @@ export class CombatEngine {
       // In same row lane and within enemy attack range
       if (Math.abs(unit.y - enemy.y) < 0.6) {
         const dx = enemy.x - unit.x;
-        if (dx >= 0 && dx <= enemy.attackRange && dx < nearestDx) {
+        // a sniper picks the weakest robot in reach, the others the nearest
+        const key = enemy.targetsWeakest ? unit.hp + unit.shield : dx;
+        if (dx >= 0 && dx <= enemy.attackRange && key < nearestDx) {
           nearest = unit;
-          nearestDx = dx;
+          nearestDx = key;
         }
       }
     }
@@ -789,8 +819,10 @@ export class CombatEngine {
   ): void {
     if (enemy.isDead) return;
     if (fromAttack) enemy.answered = true;
-    const dmg = Math.max(1, Math.round(amount));
-    enemy.hp -= dmg;
+    const dmg = Math.max(1, Math.round(amount * (enemy.damageTakenMult ?? 1)));
+    const absorbed = Math.min(enemy.shield, dmg);
+    enemy.shield -= absorbed;
+    enemy.hp -= dmg - absorbed;
     state.events.push({ type: 'damage', sourceId: unit.id, targetId: enemy.id, amount: dmg });
     if (enemy.hp <= 0) this.killEnemy(state, enemy);
   }
@@ -801,6 +833,30 @@ export class CombatEngine {
     const bounty = this.bounty(state, enemy);
     state.cogsEarned += bounty;
     state.events.push({ type: 'death', sourceId: enemy.id, amount: bounty });
+    // bomber mutation: the blast hurts every robot around (armor helps, shields absorb)
+    if (enemy.deathBlast) {
+      const blast = enemy.damage * enemy.deathBlast.mult;
+      for (const u of state.units) {
+        if (u.isDead || Math.hypot(u.x - enemy.x, u.y - enemy.y) > enemy.deathBlast.radius) continue;
+        const net = Math.max(1, Math.round(blast - u.armor));
+        const absorbed = Math.min(u.shield, net);
+        u.shield -= absorbed;
+        u.hp -= net - absorbed;
+        state.events.push({ type: 'damage', sourceId: enemy.id, targetId: u.id, amount: net });
+        if (u.hp <= 0) {
+          u.isDead = true;
+          state.events.push({ type: 'death', sourceId: u.id });
+        }
+      }
+      state.events.push({ type: 'blast', sourceId: enemy.id, amount: Math.round(blast) });
+    }
+  }
+
+  /** Pushes an enemy back toward its side; afterwards it cannot be pushed again for a while. */
+  private static knockBack(enemy: CombatEnemy, tiles: number): void {
+    if ((enemy.statuses.knockImmune ?? 0) > 0) return;
+    enemy.x = Math.min(7.8, enemy.x + tiles);
+    enemy.statuses.knockImmune = BALANCE.KNOCKBACK_IMMUNITY_S;
   }
 
   /** Stun an enemy; a boss takes a short stun and then ignores stuns for a while. */
@@ -845,6 +901,8 @@ export class CombatEngine {
     if (state.gadgetMods && state.gadgetMods.surgeSeconds > 0) {
       rawDmg *= state.gadgetMods.surgeMultiplier;
     }
+    // armored mutation
+    rawDmg *= target.damageTakenMult ?? 1;
 
     // Quirks that change the main hit
     if (effect === 'crit_execute' && target.hp > target.maxHp * qp.thresholdPct) rawDmg *= qp.damageMult;
@@ -966,7 +1024,7 @@ export class CombatEngine {
         target.statuses.vulnDuration = qp.durationSeconds;
         break;
       case 'knockback':
-        if (!target.isBoss && target.hp > 0) target.x = Math.min(7.8, target.x + qp.tiles);
+        if (!target.isBoss && target.hp > 0) this.knockBack(target, qp.tiles);
         break;
       case 'chain_lightning': {
         let from = target;
@@ -994,7 +1052,7 @@ export class CombatEngine {
     // Recoil Buffer: melee hits push ordinary enemies back
     const knockback = state.gadgetMods?.knockbackTiles ?? 0;
     if (knockback > 0 && unit.attackRange <= 2 && !target.isBoss && target.hp > 0) {
-      target.x = Math.min(7.8, target.x + knockback);
+      this.knockBack(target, knockback);
     }
 
     if (target.hp <= 0) this.killEnemy(state, target);

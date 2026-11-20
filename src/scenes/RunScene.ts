@@ -27,6 +27,8 @@ import { CHAPTERS, STORY_SCENES, WAVE_LINES, chapterForWave } from '@data/story'
 import { DialogueModal } from '@ui/DialogueModal';
 import { EconomyManager } from '@core/economy/economy';
 import { CoreEffects } from '@core/cores/coreEffects';
+import { MUTATIONS_DATA } from '@data/mutations';
+import { EnemyEvolution } from '@core/waves/enemyEvolution';
 import { SkillTreeModal } from '@ui/SkillTreeModal';
 import { InfoTip } from '@ui/InfoTip';
 import { t } from '@data/i18n';
@@ -115,6 +117,9 @@ export class RunScene extends Phaser.Scene {
   private bossBarFill!: Phaser.GameObjects.Rectangle;
   private bossBarText!: Phaser.GameObjects.Text;
   private inspectionBanner!: Phaser.GameObjects.Container;
+  /** scouting line: the enemy mutations of the coming wave */
+  private scoutBanner!: Phaser.GameObjects.Container;
+  private scoutText!: Phaser.GameObjects.Text;
   private inspectionText!: Phaser.GameObjects.Text;
 
   // Wave Result Modal
@@ -179,6 +184,7 @@ export class RunScene extends Phaser.Scene {
     // Top Wave Ribbon Banner
     // where the run is in the campaign (click → campaign map)
     this.createWaveRibbon(winX + 125, 114);
+    this.createScoutBanner(winX + 125, 150);
 
     // Foreman Cogsworth in arch niche
     this.createForemanGuide(540, 138);
@@ -257,6 +263,45 @@ export class RunScene extends Phaser.Scene {
     const wave = this.state.waveNumber;
     const chapter = chapterForWave(wave);
     this.speechBubbleText?.setText(`${chapter.title} · волна ${wave}/30\n${WAVE_LINES[wave - 1] ?? ''}`);
+    this.refreshScout();
+  }
+
+  /** Scouting line under the campaign ribbon; hover it for what each mutation does and how to beat it. */
+  private createScoutBanner(x: number, y: number): void {
+    this.scoutBanner = this.add.container(x, y);
+    const bg = this.add.rectangle(0, 0, 560, 26, 0x2a1418);
+    bg.setStrokeStyle(2, 0x7a1f2b);
+    this.scoutText = this.add.text(0, 0, '', { fontSize: '15px', color: '#ffb4a2', fontStyle: 'bold' }).setOrigin(0.5);
+    this.scoutBanner.add([bg, this.scoutText]);
+    this.scoutBanner.setDepth(150);
+    InfoTip.of(this).attach(bg, t('mutation.scout'), () => {
+      const plan = this.state.evolution;
+      if (!plan || plan.mutations.length === 0) return t('mutation.none');
+      const lines = plan.mutations.map((m) => {
+        const def = MUTATIONS_DATA[m.id];
+        const key = Object.keys(def.params)[0];
+        const v = EnemyEvolution.param(m, key);
+        const shown = key.endsWith('Pct') ? Math.round(v * 100) : v;
+        const adapted = plan.adaptedTo.includes(m.id) ? ` (${t('mutation.adapted')})` : '';
+        return `${def.badge} ${t(def.nameKey)} ${'I'.repeat(m.tier)}${adapted}: ${t(def.descKey, { p: shown })}\n   → ${t(def.counterKey)}`;
+      });
+      return [...lines, t('mutation.chance', { p: Math.round(plan.chance * 100) })].join('\n');
+    });
+    this.scoutBanner.setVisible(false);
+  }
+
+  private refreshScout(): void {
+    if (!this.scoutBanner) return;
+    const plan = this.state.evolution;
+    if (!plan || plan.mutations.length === 0 || this.state.phase === 'BATTLE') {
+      this.scoutBanner.setVisible(false);
+      return;
+    }
+    const names = plan.mutations
+      .map((m) => `${MUTATIONS_DATA[m.id].badge} ${t(MUTATIONS_DATA[m.id].nameKey)} ${'I'.repeat(m.tier)}${plan.adaptedTo.includes(m.id) ? '!' : ''}`)
+      .join(' · ');
+    this.scoutText.setText(`РАЗВЕДКА: ${names} · ${t('mutation.chance', { p: Math.round(plan.chance * 100) })}`);
+    this.scoutBanner.setVisible(true);
   }
 
   /** Top-left gauge: the three parts of the Great Regulator, lit when recovered in this run. */
@@ -857,6 +902,7 @@ export class RunScene extends Phaser.Scene {
 
     // Switch to Battle Phase
     RunReducer.dispatch(this.state, { type: 'START_BATTLE' }, this.rng, this.eventBus);
+    this.scoutBanner?.setVisible(false);
     this.reelView.clearPaylines();
     this.gridView.setBattleMode(true);
     if (this.skullBtnPulseTween) this.skullBtnPulseTween.pause();
@@ -1129,6 +1175,15 @@ export class RunScene extends Phaser.Scene {
     container.add(hpBarBg);
     container.add(hpBarFill);
 
+    // evolved enemies wear their mutation badges above the health bar
+    const evolved = this.state.combatState?.enemies.find((e) => e.id === id)?.mutations ?? [];
+    if (evolved.length > 0) {
+      const badges = evolved.map((m) => MUTATIONS_DATA[m.id].badge).join('');
+      container.add(
+        this.add.text(0, barY - 14, badges, { fontSize: '16px', color: '#ff8a7a', fontStyle: 'bold', stroke: '#1f1610', strokeThickness: 3 }).setOrigin(0.5)
+      );
+    }
+
     // spawn pop-in
     container.setAlpha(0);
     this.tweens.add({ targets: container, alpha: 1, duration: 220 });
@@ -1139,7 +1194,11 @@ export class RunScene extends Phaser.Scene {
         const live = this.state.combatState?.enemies.find((e) => e.id === id);
         const hp = live ? `${Math.max(0, Math.ceil(live.hp))}/${live.maxHp}` : `${enemyDef.hp}`;
         const dmg = live ? live.damage : enemyDef.damage;
-        return `${t(enemyDef.descKey)}\nЗдоровье: ${hp} · Урон: ${dmg} · Броня: ${enemyDef.armor}`;
+        const muts = (live?.mutations ?? [])
+          .map((m) => `${MUTATIONS_DATA[m.id].badge} ${t(MUTATIONS_DATA[m.id].nameKey)} ${'I'.repeat(m.tier)}`)
+          .join(', ');
+        const shield = live && live.shield > 0 ? ` · Щит: ${Math.ceil(live.shield)}` : '';
+        return `${t(enemyDef.descKey)}\nЗдоровье: ${hp}${shield} · Урон: ${dmg} · Броня: ${enemyDef.armor}${muts ? `\nМутации: ${muts}` : ''}`;
       });
     }
     return { container, sprite, hpBarFill, hpW, key, flying, lastX: -1, attackingUntil: 0, bodyH };

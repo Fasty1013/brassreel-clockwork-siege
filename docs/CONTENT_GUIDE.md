@@ -72,6 +72,14 @@
 (`buff_fuse_aoe`, `buff_coil_jumps`) передаются в `combat.coreMods`. Новое ядро без обработчика ничего не делает —
 добавьте его и тест в `tests/core/coreEffects.test.ts`.
 
+### Мутация врага — `mutations.ts`
+`{ id, nameKey, descKey, badge, counterKey, params }`. `params` — числа по ступеням `[I, II, III]`
+(ступень = номер акта). Тексты `mutation.<id>.name/desc/counter` в ru/en; в `desc` `{p}` заменяется первым
+параметром ступени. Действие — в `EnemyEvolution.apply` (`src/core/waves/enemyEvolution.ts`) и, если нужно,
+в бою (`combatEngine.ts`). Мутация должна наказывать конкретную ошибку расстановки и иметь понятный ответ
+(`counter`). Если мутация должна подбираться против расстановки — добавьте вес в `EnemyEvolution.weights`.
+Тесты — `tests/combat/mutations.test.ts`.
+
 ### Навык — `skills.ts`
 `{ id, branch, tier, name, desc, effect, perRank, maxRank, costs, requires? }`. `effect` — один из видов
 в `SkillEffect`, применяется в `src/core/skills/skills.ts`. `{n}` в `desc` заменяется на `perRank`.

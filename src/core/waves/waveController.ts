@@ -3,6 +3,7 @@ import { BALANCE, enemyWaveScale } from '@data/balance';
 import { WaveDefinition } from '@data/schemas/waveSchema';
 import { CombatEngine, CombatSimulationState } from '../combat/combatEngine';
 import { PRNG } from '../prng/sfc32';
+import { EnemyEvolution, EvolutionPlan } from './enemyEvolution';
 
 export interface PendingSpawn {
   enemyId: string;
@@ -18,10 +19,12 @@ export class WaveController {
   private minEnemyXReached = 8.0;
 
   private threat: number;
+  private evolution?: EvolutionPlan;
 
-  constructor(waveNumber = 1, threat = 0) {
+  constructor(waveNumber = 1, threat = 0, evolution?: EvolutionPlan) {
     this.waveIndex = waveNumber - 1;
     this.threat = threat;
+    this.evolution = evolution;
   }
 
   /** Enemy stat multipliers for this wave and campaign threat level. */
@@ -68,7 +71,8 @@ export class WaveController {
     for (let i = this.pendingSpawns.length - 1; i >= 0; i--) {
       const spawn = this.pendingSpawns[i];
       if (combatState.elapsedSeconds >= spawn.spawnTime) {
-        CombatEngine.spawnEnemy(combatState, spawn.enemyId, spawn.row, this.spawnSequence++, this.scale());
+        const enemy = CombatEngine.spawnEnemy(combatState, spawn.enemyId, spawn.row, this.spawnSequence++, this.scale());
+        EnemyEvolution.apply(enemy, EnemyEvolution.rollFor(this.evolution, enemy.isBoss, rng), combatState.units);
         this.pendingSpawns.splice(i, 1);
       }
     }

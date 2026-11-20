@@ -5,6 +5,7 @@ import { HeatState, HeatManager } from '../heat/heat';
 import { EconomyState, EconomyManager } from '../economy/economy';
 import { CombatSimulationState } from '../combat/combatEngine';
 import { ConsumableStock, GadgetManager } from '../gadgets/gadgets';
+import type { EvolutionPlan, FormationReport } from '../waves/enemyEvolution';
 
 export type RunPhase = 'PREP' | 'BATTLE' | 'RESULT' | 'SHOP' | 'GAME_OVER' | 'VICTORY';
 
@@ -38,6 +39,10 @@ export interface RunState {
   consumables: ConsumableStock;
   /** spins in a row without a winning line (scrap press) */
   dryStreak: number;
+  /** enemy mutations planned for the current wave (shown before it) */
+  evolution?: EvolutionPlan;
+  /** formation of the last battle; the next waves evolve against it */
+  lastFormation?: FormationReport;
   /** spins of this wave that hit 2+ lines (Clockwork Relay core) */
   comboSpinsThisWave?: number;
   /** campaign threat level (0 = normal); enemies get stronger per level */

@@ -760,5 +760,41 @@
       "29": "Iron Colossus Vanguard",
       "30": "FINAL BOSS: The Iron Colossus"
     }
+  },
+  "mutation": {
+    "armored": {
+      "name": "Armored",
+      "desc": "Takes {p}% less damage.",
+      "counter": "focus fire: one strong hit beats many weak ones"
+    },
+    "shielded": {
+      "name": "Shielded",
+      "desc": "Starts the battle with a shield of {p}% of its health.",
+      "counter": "keep shooters where they can strip the shield from afar"
+    },
+    "leaper": {
+      "name": "Leaper",
+      "desc": "Jumps over the robot blocking its lane and lands behind it.",
+      "counter": "hold a lane with two: a fighter in front, a shooter behind"
+    },
+    "bomber": {
+      "name": "Bomber",
+      "desc": "Explodes on death, hurting robots nearby ({p}x its hit).",
+      "counter": "do not put robots on touching cells"
+    },
+    "flanker": {
+      "name": "Flanker",
+      "desc": "If a robot holds its lane, it moves to the nearest empty lane; {p}% faster.",
+      "counter": "cover every lane"
+    },
+    "sniper": {
+      "name": "Sniper",
+      "desc": "Shoots farther and picks the weakest robot in its lane.",
+      "counter": "cover fragile shooters, do not leave them alone in a lane"
+    },
+    "scout": "Scouting: this wave's enemies have evolved",
+    "adapted": "against your last formation",
+    "none": "Scouting: no mutations this wave",
+    "chance": "mutants ≈{p}%"
   }
 }
