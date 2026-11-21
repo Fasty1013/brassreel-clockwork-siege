@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import { SoundManager } from '../audio/SoundManager';
 import { InfoTip } from './InfoTip';
 import { fitBox, keyHint } from './TextStyles';
+import { FULL_W } from './Display';
 
 export class HUD extends Phaser.GameObjects.Container {
   private boilerText: Phaser.GameObjects.Text;
@@ -24,6 +25,10 @@ export class HUD extends Phaser.GameObjects.Container {
     // the counters sit between the gauge (left edge) and the buttons (right edge)
     const P = margin / 2;
     this.pillShift = P;
+
+    // one bar across the top of the screen holds the whole HUD, with a brass line under it
+    this.add(scene.add.rectangle(960, 26, FULL_W, 72, 0x17131f));
+    this.add(scene.add.rectangle(960, 62, FULL_W, 2, 0x7a4f2a));
 
     // Floating HUD Cartouche Pills spanning x: 480 to 1860 at y: 32
     // 1. Cogs (Gold) Pill

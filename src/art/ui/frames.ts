@@ -8,20 +8,22 @@ import Phaser from 'phaser';
 // ---------------------------------------------------------------- pixel kit
 // Same palette as the 9-slice panels in UISkin, so every frame reads as one set.
 const C = {
-  out: '#17121f',
-  ironHi: '#6a6280',
-  ironMid: '#3d3650',
-  iron: '#2f2b3c',
-  ironLo: '#1c1a26',
-  brassHi: '#ffe3a1',
-  brassLight: '#e0a45c',
-  brass: '#b57647',
-  brassLo: '#6b3f22',
+  out: '#0c0a10',
+  ironHi: '#524866',
+  ironMid: '#3b3350',
+  iron: '#1f1a29',
+  ironLo: '#17131f',
+  panelHi: '#2b2438',
+  brassHi: '#f2c98a',
+  brassLight: '#d9a362',
+  brass: '#c08a4e',
+  brassLo: '#7a4f2a',
   copper: '#8c5836',
-  paper: '#e7e0ef',
-  paperLo: '#bdb3cc',
-  red: '#c1121f',
-  redLo: '#6e0d18',
+  gold: '#f0b44c',
+  paper: '#efe8f4',
+  paperLo: '#c9bfd6',
+  red: '#c43241',
+  redLo: '#5e0f1a',
   redHi: '#ff8a7a',
   steelHi: '#e7e0ef',
   steel: '#a8a3b8',
@@ -58,16 +60,19 @@ function bevel(
   rect(ctx, x + o + 1, y + o + 1, w - 2 * o - 2, h - 2 * o - 2, fill);
 }
 
-/** Brass trim: outline, brass bevel, mid brass ring, dark inner line. Inner area left as `fill`. */
-function brassFrame(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, fill: string, rivets = true): void {
-  bevel(ctx, x, y, w, h, C.brassLight, C.brassLo, C.brass);
-  rect(ctx, x + 3, y + 3, w - 6, h - 6, C.out);
-  rect(ctx, x + 4, y + 4, w - 8, h - 8, fill);
-  if (rivets) {
-    for (const [rx, ry] of [[x + 2, y + 2], [x + w - 3, y + 2], [x + 2, y + h - 3], [x + w - 3, y + h - 3]]) {
-      rect(ctx, rx, ry, 1, 1, C.brassHi);
-    }
-  }
+/** Rounded plate in the theme: outline, one edge ring (lit top-left), flat fill; corners cut by 2 px. */
+function plate(
+  ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number,
+  edgeLight: string, edgeDark: string, fill: string, outline: string = C.out
+): void {
+  rect(ctx, x + 2, y, w - 4, h, outline);
+  rect(ctx, x, y + 2, w, h - 4, outline);
+  rect(ctx, x + 1, y + 1, w - 2, h - 2, outline);
+  rect(ctx, x + 2, y + 1, w - 4, h - 2, edgeDark);
+  rect(ctx, x + 1, y + 2, w - 2, h - 4, edgeDark);
+  rect(ctx, x + 2, y + 1, w - 4, 1, edgeLight);
+  rect(ctx, x + 1, y + 2, 1, h - 4, edgeLight);
+  rect(ctx, x + 2, y + 2, w - 4, h - 4, fill);
 }
 
 /** Integer-pixel disc; `shade` picks the colour from the offset to the centre. */
@@ -116,71 +121,28 @@ export class UIFrameArt {
   private static createParchmentWindow(mgr: Phaser.Textures.TextureManager): void {
     if (mgr.exists('ui_window_frame')) return;
 
+    // A slim brass frame (8 px native = 24 px on screen, exactly the backdrop's inset), shown
+    // as a nine-slice: dark outline, lit brass bevel, brass band, small corner caps
     const W = 472;
     const H = 308;
-    const canvas = document.createElement('canvas');
-    canvas.width = W;
-    canvas.height = H;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
+    const made = canvasOf(W, H);
+    if (!made) return;
+    const { canvas, ctx } = made;
 
-    ctx.imageSmoothingEnabled = false;
-
-    // Dark drop shadow behind window
-    ctx.fillStyle = '#0b090f';
-    ctx.fillRect(4, 4, W - 4, H - 4);
-
-    // Parchment outer border (10px wide)
-    ctx.fillStyle = '#f4ecd8'; // Antique beige
-    ctx.fillRect(0, 0, W - 4, H - 4);
-
-    // Inner brass beveled rim
-    ctx.strokeStyle = '#d4a373';
-    ctx.lineWidth = 3;
-    ctx.strokeRect(3, 3, W - 10, H - 10);
-
-    ctx.strokeStyle = '#3a2215';
-    ctx.lineWidth = 1;
-    ctx.strokeRect(8, 8, W - 20, H - 20);
-
-    // 4 Heavy Iron Corner Reinforcement Brackets
-    const bSize = 20;
-    const corners = [
-      { x: 0, y: 0 },
-      { x: W - 4 - bSize, y: 0 },
-      { x: 0, y: H - 4 - bSize },
-      { x: W - 4 - bSize, y: H - 4 - bSize }
-    ];
-
-    ctx.fillStyle = '#393047';
-    for (const c of corners) {
-      ctx.fillRect(c.x, c.y, bSize, bSize);
-      // Brass rivet in center of corner bracket
-      ctx.fillStyle = '#d4a373';
-      ctx.fillRect(c.x + 8, c.y + 8, 4, 4);
-      ctx.fillStyle = '#ffd166';
-      ctx.fillRect(c.x + 9, c.y + 9, 2, 2);
-      ctx.fillStyle = '#393047';
+    plate(ctx, 0, 0, W, H, C.brassHi, C.brassLo, C.brass);
+    rect(ctx, 3, 3, W - 6, 1, C.brassLight);
+    rect(ctx, 6, 6, W - 12, H - 12, C.brassLo);
+    rect(ctx, 7, 7, W - 14, H - 14, C.out);
+    // corner caps
+    for (const [cx, cy] of [[0, 0], [W - 14, 0], [0, H - 14], [W - 14, H - 14]]) {
+      plate(ctx, cx, cy, 14, 14, C.brassHi, C.brassLo, C.brass);
+      rect(ctx, cx + 6, cy + 6, 2, 2, C.brassHi);
     }
-
-    // Edge rivets every 40 px along perimeter
-    ctx.fillStyle = '#8c5836';
-    for (let x = 40; x < W - 40; x += 36) {
-      ctx.fillRect(x, 4, 3, 3);
-      ctx.fillRect(x, H - 11, 3, 3);
-    }
-    for (let y = 35; y < H - 35; y += 32) {
-      ctx.fillRect(4, y, 3, 3);
-      ctx.fillRect(W - 11, y, 3, 3);
-    }
-
-    // Cut out inner viewport so background shows through cleanly
-    ctx.clearRect(10, 10, W - 24, H - 24);
-
+    // the field shows through
+    ctx.clearRect(8, 8, W - 16, H - 16);
     mgr.addCanvas('ui_window_frame', canvas);
   }
 
-  // 2. Slot Machine Chassis Base
   private static createSlotChassis(mgr: Phaser.Textures.TextureManager): void {
     if (mgr.exists('ui_slot_chassis')) return;
     const W = 132;
@@ -189,37 +151,23 @@ export class UIFrameArt {
     if (!made) return;
     const { canvas, ctx } = made;
 
-    // iron cabinet with bevel and rivet columns
-    bevel(ctx, 0, 6, W, H - 6, C.ironHi, C.ironLo, C.iron);
-    for (let y = 52; y < H - 8; y += 16) {
-      rect(ctx, 3, y, 1, 1, C.brass);
-      rect(ctx, W - 4, y, 1, 1, C.brass);
-    }
-    // vertical panel seams
-    rect(ctx, 5, 48, 1, H - 56, C.ironLo);
-    rect(ctx, W - 6, 48, 1, H - 56, C.ironLo);
+    // cabinet: one dark plate with a brass edge (the same material as every panel)
+    plate(ctx, 0, 6, W, H - 6, C.brassHi, C.brassLo, C.iron);
+    rect(ctx, 2, 9, W - 4, 1, C.panelHi);
 
     // twin exhaust stacks
     for (const px of [18, W - 28]) {
-      bevel(ctx, px, 0, 10, 10, C.ironHi, C.ironLo, C.ironMid);
-      rect(ctx, px + 1, 7, 8, 2, C.brass);
-      rect(ctx, px + 1, 7, 8, 1, C.brassLight);
+      plate(ctx, px, 0, 10, 10, C.ironHi, C.out, C.ironMid);
+      rect(ctx, px + 2, 7, 6, 1, C.brass);
     }
 
-    // brass boiler crown with two rivet rows
-    brassFrame(ctx, 6, 5, W - 12, 40, C.copper, true);
-    rect(ctx, 10, 9, W - 20, 32, C.brass);
-    rect(ctx, 10, 9, W - 20, 3, C.brassLight);
-    rect(ctx, 10, 12, W - 20, 1, C.brassHi);
-    rect(ctx, 10, 37, W - 20, 4, C.brassLo);
-    for (let x = 14; x < W - 12; x += 8) {
-      rect(ctx, x, 15, 1, 1, C.brassHi);
-      rect(ctx, x, 34, 1, 1, C.brassLo);
-    }
+    // crown with the manometer
+    plate(ctx, 6, 6, W - 12, 38, C.brassHi, C.brassLo, C.brass);
+    rect(ctx, 9, 9, W - 18, 2, C.brassLight);
+    rect(ctx, 9, 36, W - 18, 4, C.copper);
 
-    // manometer: brass bezel, paper face, red needle
     const mx = W / 2;
-    const my = 25;
+    const my = 24;
     disc(ctx, mx, my, 12, (dx, dy, d) => (d > 11 ? C.out : d > 9.5 ? (dx + dy < 0 ? C.brassHi : C.brassLo) : C.paper));
     for (let a = 0; a < 8; a++) {
       const ang = Math.PI * (0.75 + a * 0.215);
@@ -228,21 +176,17 @@ export class UIFrameArt {
     for (let i = 0; i <= 6; i++) rect(ctx, Math.round(mx + i * 0.8), Math.round(my - i * 0.7), 1, 1, C.red);
     rect(ctx, mx - 1, my - 1, 2, 2, C.out);
 
-    // reel window: brass trim around the original recess (geometry kept for ReelView)
-    brassFrame(ctx, 4, 46, W - 8, 152, C.out, true);
-    rect(ctx, 8, 50, W - 16, 144, '#0b090f');
-    rect(ctx, 10, 52, W - 20, 140, C.paper);
-    rect(ctx, 10, 52, W - 20, 2, C.paperLo);
-    rect(ctx, 46, 52, 2, 140, C.ironMid);
-    rect(ctx, 84, 52, 2, 140, C.ironMid);
+    // reel window (geometry kept for ReelView): brass trim, paper strips
+    plate(ctx, 4, 46, W - 8, 152, C.brassHi, C.brassLo, C.brass);
+    rect(ctx, 7, 49, W - 14, 146, C.out);
+    rect(ctx, 9, 51, W - 18, 142, C.paper);
+    rect(ctx, 9, 51, W - 18, 2, C.paperLo);
+    rect(ctx, 46, 51, 2, 142, C.ironMid);
+    rect(ctx, 84, 51, 2, 142, C.ironMid);
 
-    // (the vent plate under the reels gave way to the big spin button, see ReelView)
-
-    // (the bottom of the cabinet sits behind the reserve shelf)
-
+    // (the spin button sits under the reels, the reserve shelf covers the cabinet's foot)
     mgr.addCanvas('ui_slot_chassis', canvas);
   }
-
 
   // 3. Articulated Red Ball Lever Arm
   private static createLever(mgr: Phaser.Textures.TextureManager): void {
@@ -386,32 +330,14 @@ export class UIFrameArt {
   // 6. Nudge Arrow Button (28x18)
   private static createNudgeArrow(mgr: Phaser.Textures.TextureManager): void {
     if (mgr.exists('ui_btn_nudge')) return;
-
     const W = 28;
     const H = 18;
-    const canvas = document.createElement('canvas');
-    canvas.width = W;
-    canvas.height = H;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-
-    ctx.imageSmoothingEnabled = false;
-
-    // Dark bevel
-    ctx.fillStyle = '#15121b';
-    ctx.fillRect(0, 0, W, H);
-    ctx.fillStyle = '#393047';
-    ctx.fillRect(1, 1, W - 2, H - 2);
-
-    // Downward triangle arrow
-    ctx.fillStyle = '#d4a373';
-    ctx.beginPath();
-    ctx.moveTo(7, 5);
-    ctx.lineTo(21, 5);
-    ctx.lineTo(14, 13);
-    ctx.closePath();
-    ctx.fill();
-
+    const made = canvasOf(W, H);
+    if (!made) return;
+    const { canvas, ctx } = made;
+    plate(ctx, 0, 0, W, H, C.ironHi, C.ironMid, C.iron);
+    // gold chevron pointing down
+    for (let i = 0; i < 6; i++) rect(ctx, 8 + i, 6 + i, 12 - 2 * i, 1, i === 0 ? '#ffe2a0' : C.gold);
     mgr.addCanvas('ui_btn_nudge', canvas);
   }
 
@@ -426,14 +352,11 @@ export class UIFrameArt {
       const made = canvasOf(W, H);
       if (!made) return;
       const { canvas, ctx } = made;
-      bevel(ctx, 0, 0, W, H, C.brassLight, C.brassLo, C.brass);
-      rect(ctx, 2, 2, W - 4, H - 4, C.out);
-      rect(ctx, 3, 3, W - 6, H - 6, '#1d1824');
-      rect(ctx, 3, 3, W - 6, 1, C.iron);
-      // icon socket
-      rect(ctx, 2, 2, 11, 9, C.ironLo);
-      rect(ctx, 13, 2, 1, 9, C.brassLo);
+      plate(ctx, 0, 0, W, H, C.brassHi, C.brassLo, C.iron);
+      rect(ctx, 2, 2, W - 4, 1, C.panelHi);
+      // icon on the left, a thin divider before the value
       sprite(ctx, 3, 2, icon, pal);
+      rect(ctx, 14, 3, 1, H - 6, C.ironMid);
       mgr.addCanvas(key, canvas);
     };
 
@@ -496,8 +419,8 @@ export class UIFrameArt {
     const made = canvasOf(W, H);
     if (!made) return;
     const { canvas, ctx } = made;
-    brassFrame(ctx, 0, 0, W, H, '#241e2c', true);
-    rect(ctx, 4, 4, W - 8, 1, C.iron);
+    plate(ctx, 0, 0, W, H, C.brassHi, C.brassLo, C.iron);
+    rect(ctx, 2, 2, W - 4, 1, C.panelHi);
     mgr.addCanvas('ui_speech_bubble', canvas);
   }
 

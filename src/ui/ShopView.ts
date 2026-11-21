@@ -162,11 +162,12 @@ export class ShopView extends Phaser.GameObjects.Container {
     this.rerollButton = this.actionButton(-205, 344, 330, 60, 'Обновить товары', CREAM, 'reroll', 0x6c757d, null);
     this.rerollButton.on('pointerdown', () => this.emit('reroll_shop'));
 
-    const closeBtn = scene.add.rectangle(205, 344, 390, 66, 0x1f1a27);
+    // the window's main action: gold, like «КРУТИТЬ» and «В БОЙ»
+    const closeBtn = scene.add.rectangle(205, 344, 390, 66, 0xd4a373);
     closeBtn.setStrokeStyle(3, 0xffd166);
     closeBtn.setInteractive({ useHandCursor: true });
     this.add(closeBtn);
-    this.add(fitBox(scene.add.text(205, 344, 'СЛЕДУЮЩАЯ ВОЛНА  ▶', { fontSize: '28px', color: GOLD }).setOrigin(0.5), 370, 60));
+    this.add(fitBox(scene.add.text(205, 344, 'СЛЕДУЮЩАЯ ВОЛНА  ▶', { fontSize: '28px', color: '#2a1a0c', fontStyle: 'bold' }).setOrigin(0.5), 370, 60));
     this.hover(closeBtn);
     closeBtn.on('pointerdown', () => this.emit('close_shop'));
 

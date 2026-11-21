@@ -184,7 +184,7 @@ export class RunScene extends Phaser.Scene {
     SoundManager.getInstance().startAmbientHum();
 
     // 2. Build Stone Shell & Grand Meadow Battle Window (matching Reference Slotbound)
-    this.add.rectangle(960, 540, FULL_W, 1080, 0x120f17);
+    this.add.rectangle(960, 540, FULL_W, 1080, 0x110e17);
 
     // Battle Window positioned at x: 1176, y: 540 (width 1416, height 924)
     const winX = 1176;
@@ -630,7 +630,8 @@ export class RunScene extends Phaser.Scene {
     // emblem, and the speed button of the same width above it, at the field's bottom-right corner
     // inside the window's right edge, right of the grid (the window grows by fieldGrow per side)
     const bx = 1758 + this.fieldGrow;
-    this.engageButton = this.add.rectangle(bx, 922, 160, 80, 0xd90429);
+    // gold, like «КРУТИТЬ»: the two main actions share one look
+    this.engageButton = this.add.rectangle(bx, 922, 160, 80, 0xf0b44c);
     this.engageButton.setStrokeStyle(3, 0xffd166);
     this.engageButton.setInteractive({ useHandCursor: true });
     this.engageIcon = this.add.image(bx - 50, 922, 'ui_btn_round_skull').setScale(1.15);
@@ -638,7 +639,7 @@ export class RunScene extends Phaser.Scene {
     this.engageButtonText = this.add.text(bx + 20, 922, `В БОЙ ▶${keyHint('Enter')}`, {
       fontFamily: 'monospace',
       fontSize: '26px',
-      color: '#fff4d6',
+      color: '#2a1a0c',
       fontStyle: 'bold'
     }).setOrigin(0.5);
     fitBox(this.engageButtonText, 96, 58);

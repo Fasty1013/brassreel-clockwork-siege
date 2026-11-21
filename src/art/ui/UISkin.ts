@@ -11,62 +11,96 @@ import Phaser from 'phaser';
  * style follows later `setFillStyle` / `setStrokeStyle` calls (hover, HOLD...).
  */
 
-export type PanelStyle = 'iron' | 'brass' | 'parchment' | 'red';
+export type PanelStyle = 'iron' | 'brass' | 'parchment' | 'paper' | 'red';
+
+/**
+ * «Midnight brass» — one palette for every panel, button and frame:
+ * dark plum panels, a single brass edge, gold for the main actions, crimson for danger.
+ * Corners are cut by two pixels (×3 = a soft 6 px rounding); no rivets on buttons.
+ */
+export const THEME = {
+  out: '#0c0a10',
+  panel: '#1f1a29',
+  panelHi: '#2b2438',
+  panelLo: '#17131f',
+  line: '#3b3350',
+  lineHi: '#524866',
+  brassHi: '#f2c98a',
+  brass: '#c08a4e',
+  brassLo: '#7a4f2a',
+  gold: '#f0b44c',
+  goldDeep: '#e3a23c',
+  goldHi: '#ffe2a0',
+  goldLo: '#a86a24',
+  goldOut: '#3b2412',
+  red: '#c43241',
+  redDeep: '#ad2836',
+  redHi: '#ff8a7a',
+  redLo: '#5e0f1a'
+} as const;
 
 const N = 12;
 const CORNER = 4;
 const SCALE = 3;
-const OUT = '#17121f';
+const T = THEME;
 
 type Painter = (x: number, y: number) => string | null;
 
 function edgeDist(x: number, y: number): number {
   return Math.min(x, y, N - 1 - x, N - 1 - y);
 }
-function isCorner(x: number, y: number): boolean {
-  return (x === 0 || x === N - 1) && (y === 0 || y === N - 1);
+/** The two-pixel cut at each corner (soft rounding). */
+function cut(x: number, y: number): boolean {
+  return Math.min(x, N - 1 - x) + Math.min(y, N - 1 - y) < 2;
 }
-/** Is (x,y) on the top or left side of ring `d` (light side of a bevel)? */
+/** Is (x,y) on the top or left side of ring `d` (the lit side)? */
 function topLeft(x: number, y: number, d: number): boolean {
   return (y === d && x < N - 1 - d) || (x === d && y < N - 1 - d);
 }
-function rivet(x: number, y: number, at: number): boolean {
-  return (x === at || x === N - 1 - at) && (y === at || y === N - 1 - at);
-}
 
 const PAINTERS: Record<PanelStyle, Painter> = {
+  // neutral panel: dark plum, a quiet lavender edge
   iron: (x, y) => {
-    if (isCorner(x, y)) return null;
+    if (cut(x, y)) return null;
     const d = edgeDist(x, y);
-    if (d === 0) return OUT;
-    if (d === 1) return topLeft(x, y, 1) ? '#6a6280' : '#1c1a26';
-    if (rivet(x, y, 2)) return '#b57647';
-    return '#2f2b3c';
+    if (d === 0) return T.out;
+    if (d === 1) return topLeft(x, y, 1) ? T.lineHi : T.line;
+    if (y === 2) return T.panelHi;
+    return T.panel;
   },
+  // framed panel / secondary button: one brass edge around the dark plate
   brass: (x, y) => {
-    if (isCorner(x, y)) return null;
+    if (cut(x, y)) return null;
     const d = edgeDist(x, y);
-    if (d === 0) return OUT;
-    if (d === 1) return topLeft(x, y, 1) ? '#e0a45c' : '#6b3f22';
-    if (d === 2) return rivet(x, y, 2) ? '#ffe3a1' : '#b57647';
-    if (d === 3) return OUT;
-    return '#241e2c';
+    if (d === 0) return T.out;
+    if (d === 1) return topLeft(x, y, 1) ? T.brassHi : T.brassLo;
+    if (d === 2) return T.out;
+    if (y === 3) return T.panelHi;
+    return T.panel;
   },
+  // main action: warm gold, lit top edge, deeper lower half
   parchment: (x, y) => {
-    if (isCorner(x, y)) return null;
+    if (cut(x, y)) return null;
     const d = edgeDist(x, y);
-    if (d === 0) return '#3b2416';
-    if (d === 1) return '#9a6638';
-    if (d === 2) return topLeft(x, y, 2) ? '#fff8e6' : '#d6c8a8';
-    return '#efe6d0';
+    if (d === 0) return T.goldOut;
+    if (d === 1) return topLeft(x, y, 1) ? T.goldHi : T.goldLo;
+    return y >= 7 ? T.goldDeep : T.gold;
   },
-  red: (x, y) => {
-    if (isCorner(x, y)) return null;
+  // light paper (reel cells, cards on paper): ivory with a soft lavender edge
+  paper: (x, y) => {
+    if (cut(x, y)) return null;
     const d = edgeDist(x, y);
-    if (d === 0) return OUT;
-    if (d === 1) return topLeft(x, y, 1) ? '#ff8a6a' : '#6e1220';
-    if (rivet(x, y, 2)) return '#ffd166';
-    return '#c22a33';
+    if (d === 0) return '#8f86a3';
+    if (d === 1) return topLeft(x, y, 1) ? '#ffffff' : '#cfc6dc';
+    return y >= 8 ? '#e9e3f0' : '#f3eef7';
+  },
+  // danger: crimson
+  red: (x, y) => {
+    if (cut(x, y)) return null;
+    const d = edgeDist(x, y);
+    if (d === 0) return T.out;
+    if (d === 1) return topLeft(x, y, 1) ? T.redHi : T.redLo;
+    return y >= 7 ? T.redDeep : T.red;
   }
 };
 
@@ -106,9 +140,15 @@ const isGold = (c: number): boolean => {
   return r > 0xc0 && g > 0x80 && b < 0xa0;
 };
 
+/** Grey-ish light colours are paper; warm saturated light colours are the gold action style. */
+const isNeutral = (c: number): boolean => {
+  const [r, g, b] = rgb(c);
+  return Math.max(r, g, b) - Math.min(r, g, b) < 50;
+};
+
 function pickStyle(fill: number, stroke: number | null): PanelStyle {
   if (isRed(fill)) return 'red';
-  if (lum(fill) > 0.6) return 'parchment';
+  if (lum(fill) > 0.6) return isNeutral(fill) ? 'paper' : 'parchment';
   if (stroke !== null && isRed(stroke) && lum(fill) > 0.25) return 'red';
   if (stroke !== null && isGold(stroke)) return 'brass';
   return 'iron';
