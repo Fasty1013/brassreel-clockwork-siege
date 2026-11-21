@@ -3,6 +3,7 @@ import { ReelSymbol, Grid3x3, SpinResult, ReelManager } from '@core/reels/reels'
 import { SoundManager } from '../audio/SoundManager';
 import { ParticleKit } from '../presentation/ParticleKit';
 import { InfoTip } from './InfoTip';
+import { fitBox } from './TextStyles';
 
 /** Symbols are 24px icons drawn at an integer ×3. */
 const SYM_SCALE = 3;
@@ -58,6 +59,7 @@ export class ReelView extends Phaser.GameObjects.Container {
       color: '#ffd166',
       fontStyle: 'bold'
     }).setOrigin(0.5);
+    fitBox(this.spinBadgeText, 70, 30);
     this.add(this.spinBadgeText);
 
     // Center: Spin Cost
@@ -71,6 +73,7 @@ export class ReelView extends Phaser.GameObjects.Container {
       color: '#5ae0d0',
       fontStyle: 'bold'
     }).setOrigin(0.5);
+    fitBox(this.costBadgeText, 86, 30);
     this.add(this.costBadgeText);
 
     // Right: Paytable Book Button
@@ -85,6 +88,7 @@ export class ReelView extends Phaser.GameObjects.Container {
       color: '#ffd166',
       fontStyle: 'bold'
     }).setOrigin(0.5);
+    fitBox(bookTxt, 78, 30);
     this.add(bookTxt);
 
     bookBtn.on('pointerdown', () => {
@@ -158,6 +162,7 @@ export class ReelView extends Phaser.GameObjects.Container {
         color: '#d8d2e0',
         fontStyle: 'bold'
       }).setOrigin(0.5);
+      fitBox(holdTxt, 86, 28);
       this.add(holdTxt);
       this.holdTexts.push(holdTxt);
 

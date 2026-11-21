@@ -3,6 +3,7 @@ import { GadgetDefinition } from '@data/schemas/gadgetSchema';
 import { ReelSymbol, SlotSymbol } from '@core/reels/reels';
 import { t } from '@data/i18n';
 import { InfoTip } from './InfoTip';
+import { fitBox } from './TextStyles';
 
 /** Prices of the reel and reroll buttons, computed by the core (discounts included). */
 export interface ShopPrices {
@@ -209,9 +210,10 @@ export class ShopView extends Phaser.GameObjects.Container {
       this.add(s.add.image(left + 18, y, iconKey).setScale(1.5));
       left += 48;
     }
-    const label = s.add.text(left, y, text, { fontSize: '22px', color }).setOrigin(0, 0.5);
+    const priceX = x + w / 2 - 92;
+    const label = fitBox(s.add.text(left, y, text, { fontSize: '22px', color }).setOrigin(0, 0.5), priceX - left - 12);
     this.add(label);
-    this.registerPrice(priceKey, x + w / 2 - 92, y, btn, label);
+    this.registerPrice(priceKey, priceX, y, btn, label);
     this.hover(btn);
     return btn;
   }

@@ -51,6 +51,7 @@ npm run build            # сборка в dist/
 npm run dev              # сервер разработки
 npm run sim -- --runs 1000 --bot veteran --waves 30   # баланс: таблица по волнам
 npm run build && CHROME_PATH=/путь/к/chrome npx tsx tools/qa/shot.ts out.png "<код>"
+npm run build && CHROME_PATH=/путь/к/chrome npx tsx tools/qa/screens.ts shots 844 390 3   # экраны на телефоне
 ```
 
 На Windows `BRASSREEL.exe` раздаёт папку `dist` и открывает игру окном браузера.

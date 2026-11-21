@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { SoundManager } from '../audio/SoundManager';
 import { InfoTip } from './InfoTip';
+import { keyHint } from './TextStyles';
 
 export class HUD extends Phaser.GameObjects.Container {
   private boilerText: Phaser.GameObjects.Text;
@@ -81,7 +82,7 @@ export class HUD extends Phaser.GameObjects.Container {
     this.valveButton.setInteractive({ useHandCursor: true });
     this.add(this.valveButton);
 
-    this.valveText = scene.add.text(1540, 32, 'КЛАПАН (V: -60%)', {
+    this.valveText = scene.add.text(1540, 32, `КЛАПАН${keyHint('V')} -60%`, {
       fontFamily: 'monospace',
       fontSize: '14px',
       color: '#ffd166',
@@ -98,7 +99,7 @@ export class HUD extends Phaser.GameObjects.Container {
     this.skillsButton.setStrokeStyle(2, 0xd4a373);
     this.skillsButton.setInteractive({ useHandCursor: true });
     this.add(this.skillsButton);
-    this.add(scene.add.text(1330, 32, 'ДРЕВО (T)', { fontSize: '16px', color: '#ffd166', fontStyle: 'bold' }).setOrigin(0.5));
+    this.add(scene.add.text(1330, 32, `ДРЕВО${keyHint('T')}`, { fontSize: '16px', color: '#ffd166', fontStyle: 'bold' }).setOrigin(0.5));
     this.skillsButton.on('pointerdown', () => this.emit('open_skills'));
 
     // 5c. Back to the main menu (the run is kept and can be continued)
@@ -106,7 +107,7 @@ export class HUD extends Phaser.GameObjects.Container {
     this.menuButton.setStrokeStyle(2, 0xd4a373);
     this.menuButton.setInteractive({ useHandCursor: true });
     this.add(this.menuButton);
-    this.add(scene.add.text(1714, 32, 'МЕНЮ (Esc)', { fontSize: '15px', color: '#ffd166', fontStyle: 'bold' }).setOrigin(0.5));
+    this.add(scene.add.text(1714, 32, `МЕНЮ${keyHint('Esc')}`, { fontSize: '15px', color: '#ffd166', fontStyle: 'bold' }).setOrigin(0.5));
     this.menuButton.on('pointerdown', () => this.emit('open_menu'));
 
     // 6. Sound Toggle Button

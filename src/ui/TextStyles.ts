@@ -34,6 +34,77 @@ const FONT_SCALE = 1;
 /** Smallest font size allowed anywhere in the UI. */
 export const MIN_FONT_PX = 15;
 
+/**
+ * Phones and small tablets show the 1920×1080 game at well under 60% of its size,
+ * so 15–18 px text ends up 5–7 px tall on the glass. There every small text grows
+ * (at least SMALL_SCREEN_MIN_PX); big titles are already readable and stay as they are.
+ * `?ui=phone` / `?ui=desktop` in the address forces one mode (screenshots, tests).
+ */
+export const SMALL_SCREEN_MIN_PX = 22;
+const SMALL_SCREEN_GROWTH = 1.15;
+const SMALL_SCREEN_LIMIT_PX = 30;
+
+function forcedMode(): string | null {
+  if (typeof window === 'undefined') return null;
+  return new URLSearchParams(window.location.search).get('ui');
+}
+
+export const SMALL_SCREEN: boolean = (() => {
+  const forced = forcedMode();
+  if (forced) return forced === 'phone';
+  if (typeof window === 'undefined') return false;
+  return Math.min(window.innerWidth / 1920, window.innerHeight / 1080) < 0.6;
+})();
+
+/** Touch screen as the main input: no keyboard, so no key hints in labels. */
+export const TOUCH_ONLY: boolean = (() => {
+  const forced = forcedMode();
+  if (forced) return forced === 'phone';
+  if (typeof window === 'undefined' || !window.matchMedia) return false;
+  return window.matchMedia('(pointer: coarse)').matches;
+})();
+
+/** « (T)» after a label on a computer, nothing on a touch screen. */
+export function keyHint(key: string): string {
+  return TOUCH_ONLY ? '' : ` (${key})`;
+}
+
+/** Font size actually used for a size asked for in 1920×1080 units. */
+export function uiFontSize(size: number): number {
+  let px = Math.round(size * FONT_SCALE);
+  if (SMALL_SCREEN && px < SMALL_SCREEN_LIMIT_PX) {
+    px = Math.min(SMALL_SCREEN_LIMIT_PX, Math.max(SMALL_SCREEN_MIN_PX, Math.round(px * SMALL_SCREEN_GROWTH)));
+  }
+  return Math.max(MIN_FONT_PX, px);
+}
+
+/**
+ * Keeps a one-line label inside its box (1920×1080 units): the font shrinks as
+ * far as needed, never below MIN_FONT_PX, and fits again on every setText.
+ * Small texts grow on phones (see uiFontSize), so labels in tight frames use this.
+ */
+export function fitBox<T extends Phaser.GameObjects.Text>(t: T, maxWidth: number, maxHeight = Infinity): T {
+  const base = parseInt(String(t.style.fontSize), 10);
+  if (Number.isNaN(base)) return t;
+  const fit = (): void => {
+    let size = base;
+    t.setFontSize(size);
+    while ((t.width > maxWidth || t.height > maxHeight) && size > MIN_FONT_PX) {
+      size--;
+      t.setFontSize(size);
+    }
+  };
+  const text = t as Phaser.GameObjects.Text;
+  const setText = text.setText.bind(text);
+  text.setText = (value: string | string[]) => {
+    setText(value);
+    fit();
+    return text;
+  };
+  fit();
+  return t;
+}
+
 function isLight(color: string): boolean {
   const m = /^#([0-9a-f]{6})$/i.exec(color.trim());
   if (!m) return true;
@@ -59,10 +130,8 @@ export function installTextDefaults(): void {
       next.fontStyle = `${next.fontStyle ?? ''} 500`.trim();
     }
     // readability floor: nothing smaller than MIN_FONT_PX, bold by default
-    let size = parseInt(String(next.fontSize ?? '16'), 10);
-    // one knob to tune the visual size of the whole UI font
-    if (!Number.isNaN(size) && next.fontFamily === UI_FONT) size = Math.round(size * FONT_SCALE);
-    if (!Number.isNaN(size)) next.fontSize = `${Math.max(MIN_FONT_PX, size)}px`;
+    const size = parseInt(String(next.fontSize ?? '16'), 10);
+    if (!Number.isNaN(size)) next.fontSize = `${next.fontFamily === UI_FONT ? uiFontSize(size) : Math.max(MIN_FONT_PX, size)}px`;
     // a stroke closes the small counters of pixel glyphs (С→О, 5→8): thin it out,
     // and give light text a hard drop shadow instead so it reads on any backdrop
     if (next.strokeThickness !== undefined && next.strokeThickness > 2) next.strokeThickness = 2;

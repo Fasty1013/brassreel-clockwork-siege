@@ -25,6 +25,7 @@ import { GadgetManager } from '@core/gadgets/gadgets';
 import { CampaignManager } from '@core/campaign/campaign';
 import { CHAPTERS, STORY_SCENES, WAVE_LINES, chapterForWave } from '@data/story';
 import { DialogueModal } from '@ui/DialogueModal';
+import { fitBox, keyHint } from '@ui/TextStyles';
 import { EconomyManager } from '@core/economy/economy';
 import { CoreEffects } from '@core/cores/coreEffects';
 import { MUTATIONS_DATA } from '@data/mutations';
@@ -478,6 +479,9 @@ export class RunScene extends Phaser.Scene {
     this.campaignWaveText = this.add.text(x + W / 2 - 14, y, 'ВОЛНА 1/30', {
       fontSize: '18px', color: '#f4ecd8', fontStyle: 'bold'
     }).setOrigin(1, 0.5);
+    // the ten pips take the middle of the ribbon: the labels keep to the ends
+    fitBox(this.campaignActText, 112, 40);
+    fitBox(this.campaignWaveText, 124, 40);
 
     this.campaignPips = [];
     const step = 28;
@@ -531,7 +535,7 @@ export class RunScene extends Phaser.Scene {
     // Speech plate (the foreman portrait used to sit under it, fully covered)
     const bubble = this.add.image(x + 195, y, 'ui_speech_bubble');
     bubble.setScale(3);
-    this.speechBubbleText = this.add.text(x + 195, y, 'Потяните рычаг Кузницы (Пробел) или расставьте автоматонов!', {
+    this.speechBubbleText = this.add.text(x + 195, y, `Потяните рычаг Кузницы${keyHint('Пробел')} или расставьте автоматонов!`, {
       fontFamily: 'monospace',
       fontSize: '16px',
       color: '#ffd166',
@@ -551,6 +555,7 @@ export class RunScene extends Phaser.Scene {
       fontSize: '15px',
       color: '#ffd166'
     }).setOrigin(0.5);
+    fitBox(this.benchTitle, 380, 22);
     InfoTip.of(this).attach(
       this.benchTitle,
       'Резерв',
@@ -596,7 +601,7 @@ export class RunScene extends Phaser.Scene {
     this.engageButton.setScale(2.8);
     this.engageButton.setInteractive({ useHandCursor: true });
 
-    this.engageButtonText = this.add.text(1760, 975, 'В БОЙ ▶ (Enter)', {
+    this.engageButtonText = this.add.text(1760, 975, `В БОЙ ▶${keyHint('Enter')}`, {
       fontFamily: 'monospace',
       fontSize: '14px',
       color: '#ffd166',
@@ -628,6 +633,7 @@ export class RunScene extends Phaser.Scene {
       color: '#ffd166',
       fontStyle: 'bold'
     }).setOrigin(0.5);
+    fitBox(this.speedButtonText, 114, 32);
 
     this.speedButton.on('pointerdown', () => {
       if (this.speedMultiplier === 1) this.speedMultiplier = 2;
@@ -895,7 +901,7 @@ export class RunScene extends Phaser.Scene {
           if (free[i]) this.deployUnit(u.instanceId, free[i][0], free[i][1]);
         });
       } else {
-        this.showFloatingText(960, 300, 'Сначала покрутите барабаны (Пробел) и призовите автоматонов!', '#ffd166');
+        this.showFloatingText(960, 300, `Сначала покрутите барабаны${keyHint('Пробел')} и призовите автоматонов!`, '#ffd166');
         return;
       }
     }
@@ -1226,7 +1232,7 @@ export class RunScene extends Phaser.Scene {
 
     if (this.skullBtnPulseTween) this.skullBtnPulseTween.resume();
     this.engageButton.clearTint();
-    this.engageButtonText.setText('В БОЙ ▶ (Enter)');
+    this.engageButtonText.setText(`В БОЙ ▶${keyHint('Enter')}`);
     if (this.speechBubbleText) {
       this.speechBubbleText.setText('Волна успешно отражена! Получена награда шестернями!');
     }
@@ -1284,7 +1290,7 @@ export class RunScene extends Phaser.Scene {
 
   private startPrepPhase(): void {
     this.engageButton.clearTint();
-    this.engageButtonText.setText('В БОЙ ▶ (Enter)');
+    this.engageButtonText.setText(`В БОЙ ▶${keyHint('Enter')}`);
 
     const currentWave = this.state.waveNumber;
     const act = this.state.actNumber;
@@ -1515,7 +1521,7 @@ export class RunScene extends Phaser.Scene {
           this.state.deployedUnits.length >= SkillManager.unitCap(this.state)
         ) {
           const cap = SkillManager.unitCap(this.state);
-          this.showFloatingText(dropX, dropY - 50, `Лимит роботов на поле: ${cap}. Повышается в древе навыков (T)`, '#ffb08a');
+          this.showFloatingText(dropX, dropY - 50, `Лимит роботов на поле: ${cap}. Повышается в древе навыков${keyHint('T')}`, '#ffb08a');
         } else {
           // place / move (an occupied cell swaps the two robots)
           RunReducer.dispatch(

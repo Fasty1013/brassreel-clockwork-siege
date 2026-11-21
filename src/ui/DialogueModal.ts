@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import { SPEAKERS, StoryScene } from '@data/story';
 import { SoundManager } from '../audio/SoundManager';
 import { text, UI } from './ModalKit';
+import { keyHint, TOUCH_ONLY } from './TextStyles';
 
 const CHAR_MS = 22;
 const PORTRAIT = 200;
@@ -81,7 +82,7 @@ export class DialogueModal extends Phaser.GameObjects.Container {
     });
     this.counterText = text(this, 740, 440, '', 17, UI.MUTED, { origin: [1, 0.5] });
 
-    const skip = scene.add.text(740, 160, 'Пропустить (Esc)', { fontSize: '18px', color: UI.MUTED }).setOrigin(1, 0.5);
+    const skip = scene.add.text(740, 160, `Пропустить${keyHint('Esc')}`, { fontSize: '18px', color: UI.MUTED }).setOrigin(1, 0.5);
     skip.setInteractive({ useHandCursor: true });
     skip.on('pointerdown', () => this.finish());
     this.add(skip);
@@ -113,7 +114,7 @@ export class DialogueModal extends Phaser.GameObjects.Container {
     const line = this.story.lines[this.index];
     const who = SPEAKERS[line.speaker];
     this.nameText.setText(who.name).setColor(who.color);
-    this.counterText.setText(`${this.index + 1} / ${this.story.lines.length}   Пробел или касание — дальше`);
+    this.counterText.setText(`${this.index + 1} / ${this.story.lines.length}   ${TOUCH_ONLY ? 'Касание' : 'Пробел или клик'} — дальше`);
 
     this.portraitBox.removeAll(true);
     if (this.scene.textures.exists(who.portrait)) {

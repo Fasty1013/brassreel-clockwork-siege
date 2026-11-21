@@ -5,6 +5,7 @@ import { CHAPTERS, STORY_SCENES, THREAT_LEVELS } from '@data/story';
 import { SoundManager } from '../audio/SoundManager';
 import { backdrop, button, card, panel, text, title, UI } from './ModalKit';
 import { DialogueModal } from './DialogueModal';
+import { fitBox } from './TextStyles';
 
 /**
  * Campaign «Великий Регулятор»: goal, chapters with their parts, threat level
@@ -60,11 +61,11 @@ export class CampaignModal extends Phaser.GameObjects.Container {
       const got = CampaignManager.hasPart(meta, ch.part.id);
       card(c, x, y, 450, 290, got);
       text(c, x, y - 118, ch.title, 23, UI.GOLD, { fontStyle: 'bold' });
-      text(c, x, y - 82, `Место: ${ch.place} · Босс: ${ch.boss}`, 17, UI.MUTED);
+      fitBox(text(c, x, y - 82, `Место: ${ch.place} · Босс: ${ch.boss}`, 17, UI.MUTED), 430);
       text(c, x, y - 30, ch.goal, 19, UI.CREAM, { align: 'center', wordWrap: { width: 400 } });
       c.add(this.scene.add.image(x - 110, y + 50, ch.part.icon).setScale(2.5).setAlpha(got ? 1 : 0.25));
       text(c, x - 70, y + 38, ch.part.name, 21, got ? UI.GOLD : UI.MUTED, { origin: [0, 0.5] });
-      text(c, x - 70, y + 64, got ? 'возвращён' : `у врага · награда ${ch.firstClearReward} очищ.`, 16, got ? UI.GREEN : UI.MUTED, { origin: [0, 0.5] });
+      fitBox(text(c, x - 70, y + 64, got ? 'возвращён' : `у врага · награда ${ch.firstClearReward} очищ.`, 16, got ? UI.GREEN : UI.MUTED, { origin: [0, 0.5] }), 285);
     });
 
     // threat levels

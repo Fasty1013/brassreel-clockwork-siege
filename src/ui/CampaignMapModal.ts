@@ -3,6 +3,7 @@ import { WAVES_DATA } from '@data/waves';
 import { ACTS, WAVES_PER_ACT } from '@data/acts';
 import { t } from '@data/i18n';
 import { backdrop, button, panel, text, title, UI } from './ModalKit';
+import { fitBox } from './TextStyles';
 
 const TILE_W = 132;
 const TILE_H = 112;
@@ -114,10 +115,11 @@ export class CampaignMapModal extends Phaser.GameObjects.Container {
           });
         }
         const name = t(def.titleKey).replace(/^(ФИНАЛЬНЫЙ БОСС|БОСС|Инспекция):\s*/, '');
-        text(c, x, ty + 14, name, 15, done ? UI.MUTED : UI.CREAM, {
+        // long single words («рельсотронов») and phone-size text must stay inside the tile
+        fitBox(text(c, x, ty + 14, name, 15, done ? UI.MUTED : UI.CREAM, {
           align: 'center',
           wordWrap: { width: TILE_W - 12 }
-        });
+        }), TILE_W - 8, TILE_H - 34);
         if (here) {
           text(c, x, ty + TILE_H / 2 + 14, 'ВЫ ЗДЕСЬ', 15, UI.GOLD, { fontStyle: 'bold' });
         }

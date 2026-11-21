@@ -1,9 +1,11 @@
 import Phaser from 'phaser';
 import { UI } from './ModalKit';
+import { SMALL_SCREEN } from './TextStyles';
 
 type Body = string | (() => string);
 
-const W = 380;
+// wider on phones, where the text is larger
+const W = SMALL_SCREEN ? 500 : 380;
 const PAD = 14;
 /** on touch screens a hint appears after holding a finger this long */
 export const LONG_PRESS_MS = 400;

@@ -347,6 +347,7 @@ npm test         # тесты
 npm run build    # сборка в dist (нужна для BRASSREEL.exe)
 npx tsx tools/qa/verifyPlayability.ts   # проверка: меню → барабаны → бой
 npx tsx tools/qa/shot.ts out.png "<код>"  # скриншот игры в полном разрешении
+npx tsx tools/qa/screens.ts <папка> 844 390 3   # все основные экраны на телефоне (UI=phone — в 1920×1080)
 npx tsx tools/qa/renderForge.ts <папка>   # листы со всеми фигурками
 npm run sim -- --runs 1000 --bot veteran --waves 30   # 1000 забегов ботом, таблица по волнам
 ```

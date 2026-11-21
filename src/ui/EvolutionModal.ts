@@ -4,6 +4,7 @@ import { QUIRKS_DATA } from '@data/quirks';
 import { t } from '@data/i18n';
 import { SpriteForge } from '../art/forge/SpriteForge';
 import { backdrop, button, card, panel, text, title, UI } from './ModalKit';
+import { fitBox } from './TextStyles';
 
 /**
  * Evolution choice (level 3 and 5): pick one of two new classes.
@@ -69,7 +70,7 @@ export class EvolutionModal extends Phaser.GameObjects.Container {
       const box = scene.add.rectangle(x, -12, 118, 66, 0x15121b);
       box.setStrokeStyle(2, 0x534764);
       c.add(box);
-      text(c, x, -28, label, 15, UI.MUTED);
+      fitBox(text(c, x, -28, label, 15, UI.MUTED), 110);
       text(c, x, 2, value, 26, UI.CREAM);
     });
 

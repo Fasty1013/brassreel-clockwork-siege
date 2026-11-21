@@ -4,8 +4,10 @@ import { t } from '@data/i18n';
 import { QUIRKS_DATA } from '@data/quirks';
 import { BALANCE } from '@data/balance';
 import { UI } from './ModalKit';
+import { fitBox, SMALL_SCREEN } from './TextStyles';
 
-const W = 400;
+// wider on phones, where the text is larger
+const W = SMALL_SCREEN ? 520 : 400;
 const PAD = 18;
 const INNER = W - PAD * 2;
 
@@ -70,15 +72,17 @@ export class Tooltip extends Phaser.GameObjects.Container {
       ['МОДУЛИ', `${unit.mods.length}`]
     ];
     const cellW = INNER / 3;
+    const cellH = SMALL_SCREEN ? 60 : 46;
     stats.forEach(([label, value], i) => {
       const cx = (i % 3) * cellW;
-      const cy = y + Math.floor(i / 3) * 52;
-      const box = s.add.rectangle(cx + cellW / 2, cy + 23, cellW - 8, 46, 0x15121b);
+      const cy = y + Math.floor(i / 3) * (cellH + 6);
+      const box = s.add.rectangle(cx + cellW / 2, cy + cellH / 2, cellW - 8, cellH, 0x15121b);
       this.content.add(box);
-      this.content.add(s.add.text(cx + cellW / 2, cy + 12, label, { fontSize: '15px', color: UI.MUTED }).setOrigin(0.5));
-      this.content.add(s.add.text(cx + cellW / 2, cy + 32, value, { fontSize: '20px', color: UI.CREAM }).setOrigin(0.5));
+      const labelText = s.add.text(cx + cellW / 2, cy + cellH * 0.27, label, { fontSize: '15px', color: UI.MUTED }).setOrigin(0.5);
+      this.content.add(fitBox(labelText, cellW - 14));
+      this.content.add(s.add.text(cx + cellW / 2, cy + cellH * 0.7, value, { fontSize: '20px', color: UI.CREAM }).setOrigin(0.5));
     });
-    y += 106;
+    y += 2 * (cellH + 6) + 2;
 
     // trait
     const quirkDef = QUIRKS_DATA[unit.quirkId];

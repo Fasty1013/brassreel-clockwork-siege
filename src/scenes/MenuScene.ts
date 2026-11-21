@@ -10,6 +10,10 @@ import { CHAPTERS, THREAT_LEVELS } from '@data/story';
 import type { RunState } from '@core/state/RunState';
 import { ACTS, WAVES_PER_ACT } from '@data/acts';
 import { WAVES_DATA } from '@data/waves';
+import { fitBox, TOUCH_ONLY } from '../ui/TextStyles';
+
+/** « [ПРОБЕЛ]» on the start button with a keyboard, nothing on a touch screen. */
+const spaceHint = (ru: boolean): string => (TOUCH_ONLY ? '' : ru ? ' [ПРОБЕЛ]' : ' [SPACE]');
 
 export class MenuScene extends Phaser.Scene {
   private startBtnText!: Phaser.GameObjects.Text;
@@ -93,8 +97,8 @@ export class MenuScene extends Phaser.Scene {
     const canResume = this.scene.isSleeping('RunScene');
     const startLabel = (ru: boolean): string =>
       canResume
-        ? ru ? 'ПРОДОЛЖИТЬ ЗАБЕГ [ПРОБЕЛ] ▶' : 'CONTINUE RUN [SPACE] ▶'
-        : ru ? 'В БОЙ [ПРОБЕЛ] ⚔' : 'START DEFENSE [SPACE] ⚔';
+        ? ru ? `ПРОДОЛЖИТЬ ЗАБЕГ${spaceHint(ru)} ▶` : `CONTINUE RUN${spaceHint(ru)} ▶`
+        : ru ? `В БОЙ${spaceHint(ru)} ⚔` : `START DEFENSE${spaceHint(ru)} ⚔`;
     if (canResume) {
       const run = (this.scene.get('RunScene') as Phaser.Scene & { state?: RunState }).state;
       if (run) {
@@ -183,7 +187,10 @@ export class MenuScene extends Phaser.Scene {
       newBtn.setInteractive({ useHandCursor: true });
       const idle = isRu ? 'НОВЫЙ ЗАБЕГ\n(текущий пропадёт)' : 'NEW RUN\n(current one is lost)';
       const sure = isRu ? 'ТОЧНО?\nНАЖМИТЕ ЕЩЁ РАЗ' : 'SURE?\nCLICK AGAIN';
-      const newTxt = this.add.text(width / 2 + 290, 540, idle, { fontSize: '16px', color: '#ff8a7a', fontStyle: 'bold', align: 'center' }).setOrigin(0.5);
+      const newTxt = fitBox(
+        this.add.text(width / 2 + 290, 540, idle, { fontSize: '16px', color: '#ff8a7a', fontStyle: 'bold', align: 'center' }).setOrigin(0.5),
+        284, 54
+      );
       let armedUntil = 0;
       newBtn.on('pointerdown', () => {
         if (this.time.now < armedUntil) {
@@ -270,17 +277,25 @@ export class MenuScene extends Phaser.Scene {
     const rulesBox = this.add.rectangle(width / 2, 820, 940, 150, 0x1b1714);
     rulesBox.setStrokeStyle(1, 0x495057);
 
-    this.add.text(width / 2, 765, isRu ? 'ИНСТРУКТАЖ МАСТЕРА:' : 'FOREMAN INSTRUCTIONS:', {
+    const rulesHead = this.add.text(width / 2, 765, isRu ? 'ИНСТРУКТАЖ МАСТЕРА:' : 'FOREMAN INSTRUCTIONS:', {
       fontFamily: 'monospace',
       fontSize: '15px',
       color: '#ffd166',
       fontStyle: 'bold'
     }).setOrigin(0.5);
 
-    this.add.text(
-      width / 2,
-      835,
-      isRu
+    // a touch screen has no keyboard: the rules name the lever and buttons instead
+    const rules = TOUCH_ONLY
+      ? isRu
+        ? '1. Рычаг крутит барабаны: 3 одинаковых символа в линию призывают робота в резерв.\n' +
+          '2. Перетащи роботов на луг; робот на такого же — слияние, уровень +1.\n' +
+          '3. Кнопка с черепом запускает волну. «Древо» — навыки на весь забег.\n' +
+          '4. Между волнами — мастерская. Выстой 30 волн и одолей трёх боссов!'
+        : '1. The lever spins the reels: 3 equal symbols on a line summon a robot to the reserve.\n' +
+          '2. Drag robots onto the meadow; drop one on its twin to merge it, level +1.\n' +
+          '3. The skull button starts the wave. «Tree» holds upgrades for the whole run.\n' +
+          '4. The workshop opens between waves. Survive 30 waves and beat three bosses!'
+      : isRu
         ? '1. Пробел крутит барабаны: 3 одинаковых символа в линию призывают робота в резерв.\n' +
           '2. Перетащи роботов на луг; робот на такого же — слияние, уровень +1.\n' +
           '3. Кнопка с черепом или ENTER запускает волну. T — древо навыков.\n' +
@@ -288,7 +303,11 @@ export class MenuScene extends Phaser.Scene {
         : '1. Space spins the reels: 3 equal symbols on a line summon a robot to the reserve.\n' +
           '2. Drag robots onto the meadow; drop one on its twin to merge it, level +1.\n' +
           '3. The skull button or ENTER starts the wave. T opens the skill tree.\n' +
-          '4. The workshop opens between waves. Survive 30 waves and beat three bosses!',
+          '4. The workshop opens between waves. Survive 30 waves and beat three bosses!';
+    const rulesText = this.add.text(
+      width / 2,
+      835,
+      rules,
       {
         fontFamily: 'sans-serif',
         fontSize: '15px',
@@ -297,13 +316,21 @@ export class MenuScene extends Phaser.Scene {
         align: 'center'
       }
     ).setOrigin(0.5);
+    // the box grows around the text (it is larger on phones), keeping its top edge
+    fitBox(rulesText, width - 200);
+    const boxW = Math.max(940, rulesText.width + 48);
+    const boxH = Math.max(150, rulesText.height + rulesHead.height + 34);
+    const boxTop = 745;
+    rulesBox.setSize(boxW, boxH).setPosition(width / 2, boxTop + boxH / 2);
+    rulesHead.setY(boxTop + 12 + rulesHead.height / 2);
+    rulesText.setY(rulesHead.y + rulesHead.height / 2 + 8 + rulesText.height / 2);
 
     // Footer info
-    this.add.text(width / 2, height - 30, 'BRASSREEL v0.4.0 • случайное зерно каждый забег (?seed=… повторяет забег) • TypeScript + Phaser 3', {
+    fitBox(this.add.text(width / 2, height - 30, 'BRASSREEL v0.4.0 • случайное зерно каждый забег (?seed=… повторяет забег) • TypeScript + Phaser 3', {
       fontFamily: 'monospace',
       fontSize: '13px',
       color: '#6c757d'
-    }).setOrigin(0.5);
+    }).setOrigin(0.5), width - 120, 34);
 
     // pixel-art 9-slice skin for every framed panel/button in the scene
     UISkin.install(this);

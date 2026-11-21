@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { fitBox } from './TextStyles';
 
 /**
  * ModalKit — shared building blocks for every pop-up window, so the shop,
@@ -81,7 +82,7 @@ export function button(
   bg.setStrokeStyle(kind === 'primary' ? 3 : 2, stroke);
   c.add(bg);
   const color = opts.disabled ? UI.MUTED : opts.color ?? (kind === 'danger' ? UI.RED : kind === 'plain' ? UI.CREAM : UI.GOLD);
-  const t = text(c, x, y, label, opts.size ?? 24, color);
+  const t = fitBox(text(c, x, y, label, opts.size ?? 24, color), w - 16, h - 4);
   if (!opts.disabled) {
     bg.setInteractive({ useHandCursor: true });
     bg.on('pointerover', () => bg.setScale(1.04));

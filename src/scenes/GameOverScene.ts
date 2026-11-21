@@ -5,6 +5,7 @@ import { SoundManager } from '../audio/SoundManager';
 import { ArchiveModal } from '../ui/ArchiveModal';
 import { CampaignManager } from '@core/campaign/campaign';
 import { CHAPTERS, THREAT_LEVELS, chapterForWave } from '@data/story';
+import { fitBox } from '../ui/TextStyles';
 
 export interface GameOverData {
   victory: boolean;
@@ -123,10 +124,10 @@ export class GameOverScene extends Phaser.Scene {
       const inRun = got.includes(c.part.id);
       const ever = CampaignManager.hasPart(meta, c.part.id);
       this.add.image(x - 70, 680, c.part.icon).setScale(2).setAlpha(inRun ? 1 : ever ? 0.6 : 0.2);
-      this.add.text(x - 40, 680, `${c.part.name}\n${inRun ? 'добыт в этом забеге' : ever ? 'добыт раньше' : 'у врага'}`, {
+      fitBox(this.add.text(x - 40, 680, `${c.part.name}\n${inRun ? 'добыт в этом забеге' : ever ? 'добыт раньше' : 'у врага'}`, {
         fontSize: '16px',
         color: inRun ? '#ffd166' : '#9a93ad'
-      }).setOrigin(0, 0.5);
+      }).setOrigin(0, 0.5), 200, 70);
     });
     let note = data.victory ? 'Кампания пройдена на этой угрозе.' : DEFEAT_LINES[Math.min(2, Math.ceil(data.wave / 10) - 1)];
     if (campaign.unlockedThreat !== null) {
@@ -139,12 +140,12 @@ export class GameOverScene extends Phaser.Scene {
     restartBtn.setStrokeStyle(3, 0xffd166);
     restartBtn.setInteractive({ useHandCursor: true });
 
-    this.add.text(width / 2 - 240, 840, 'НОВЫЙ ЗАБЕГ ▶', {
+    fitBox(this.add.text(width / 2 - 240, 840, 'НОВЫЙ ЗАБЕГ ▶', {
       fontFamily: 'monospace',
       fontSize: '16px',
       color: '#1f1610',
       fontStyle: 'bold'
-    }).setOrigin(0.5);
+    }).setOrigin(0.5), 194, 50);
 
     restartBtn.on('pointerdown', () => {
       SoundManager.getInstance().playButtonClick();
@@ -156,12 +157,12 @@ export class GameOverScene extends Phaser.Scene {
     archiveBtn.setStrokeStyle(2, 0xffd166);
     archiveBtn.setInteractive({ useHandCursor: true });
 
-    this.add.text(width / 2, 840, 'АРХИВ КУЗНИЦЫ ⚙️', {
+    fitBox(this.add.text(width / 2, 840, 'АРХИВ КУЗНИЦЫ ⚙️', {
       fontFamily: 'monospace',
       fontSize: '15px',
       color: '#ffd166',
       fontStyle: 'bold'
-    }).setOrigin(0.5);
+    }).setOrigin(0.5), 204, 50);
 
     archiveBtn.on('pointerdown', () => {
       SoundManager.getInstance().playButtonClick();
@@ -173,12 +174,12 @@ export class GameOverScene extends Phaser.Scene {
     menuBtn.setStrokeStyle(2, 0x8c5836);
     menuBtn.setInteractive({ useHandCursor: true });
 
-    this.add.text(width / 2 + 240, 840, 'ГЛАВНОЕ МЕНЮ', {
+    fitBox(this.add.text(width / 2 + 240, 840, 'ГЛАВНОЕ МЕНЮ', {
       fontFamily: 'monospace',
       fontSize: '16px',
       color: '#ced4da',
       fontStyle: 'bold'
-    }).setOrigin(0.5);
+    }).setOrigin(0.5), 194, 50);
 
     menuBtn.on('pointerdown', () => {
       SoundManager.getInstance().playButtonClick();
