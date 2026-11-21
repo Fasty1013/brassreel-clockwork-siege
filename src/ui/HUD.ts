@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
 import { SoundManager } from '../audio/SoundManager';
 import { InfoTip } from './InfoTip';
-import { keyHint } from './TextStyles';
+import { fitBox, keyHint } from './TextStyles';
 
 export class HUD extends Phaser.GameObjects.Container {
   private boilerText: Phaser.GameObjects.Text;
@@ -94,6 +94,7 @@ export class HUD extends Phaser.GameObjects.Container {
       color: '#ffd166',
       fontStyle: 'bold'
     }).setOrigin(0.5);
+    fitBox(this.valveText, 208, 32);
     this.add(this.valveText);
 
     this.valveButton.on('pointerdown', () => {
@@ -105,7 +106,7 @@ export class HUD extends Phaser.GameObjects.Container {
     this.skillsButton.setStrokeStyle(2, 0xd4a373);
     this.skillsButton.setInteractive({ useHandCursor: true });
     this.add(this.skillsButton);
-    this.add(scene.add.text(1330 + R, 32, `ДРЕВО${keyHint('T')}`, { fontSize: '16px', color: '#ffd166', fontStyle: 'bold' }).setOrigin(0.5));
+    this.add(fitBox(scene.add.text(1330 + R, 32, `ДРЕВО${keyHint('T')}`, { fontSize: '16px', color: '#ffd166', fontStyle: 'bold' }).setOrigin(0.5), 160, 32));
     this.skillsButton.on('pointerdown', () => this.emit('open_skills'));
 
     // 5c. Back to the main menu (the run is kept and can be continued)
@@ -113,7 +114,7 @@ export class HUD extends Phaser.GameObjects.Container {
     this.menuButton.setStrokeStyle(2, 0xd4a373);
     this.menuButton.setInteractive({ useHandCursor: true });
     this.add(this.menuButton);
-    this.add(scene.add.text(1714 + R, 32, `МЕНЮ${keyHint('Esc')}`, { fontSize: '15px', color: '#ffd166', fontStyle: 'bold' }).setOrigin(0.5));
+    this.add(fitBox(scene.add.text(1714 + R, 32, `МЕНЮ${keyHint('Esc')}`, { fontSize: '15px', color: '#ffd166', fontStyle: 'bold' }).setOrigin(0.5), 118, 32));
     this.menuButton.on('pointerdown', () => this.emit('open_menu'));
 
     // 6. Sound Toggle Button
@@ -149,6 +150,8 @@ export class HUD extends Phaser.GameObjects.Container {
     heat: number;
     wave: number;
     valveUsed: boolean;
+    /** the valve works only in battle: outside it the button is dimmed */
+    battle?: boolean;
     activeCores?: string[];
   }): void {
     this.boilerText.setText(`${data.boilerHp}/${data.maxBoilerHp}`);
@@ -170,13 +173,9 @@ export class HUD extends Phaser.GameObjects.Container {
       this.heatText.setColor('#2ec4b6');
     }
 
-    if (data.valveUsed) {
-      this.valveButton.setFillStyle(0x1a1512);
-      this.valveText.setColor('#6c757d');
-    } else {
-      this.valveButton.setFillStyle(0x2b221a);
-      this.valveText.setColor('#ffd166');
-    }
+    const valveReady = !data.valveUsed && data.battle !== false;
+    this.valveButton.setAlpha(valveReady ? 1 : 0.55);
+    this.valveText.setColor(valveReady ? '#ffd166' : '#8a8296');
   }
 
   /** Hover hints for every HUD element. */

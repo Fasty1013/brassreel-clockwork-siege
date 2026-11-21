@@ -81,6 +81,25 @@ export class InfoTip {
     });
   }
 
+  /**
+   * A hint that opens on a tap or click (buttons whose whole job is to explain something,
+   * like the paytable) and closes on the next tap anywhere.
+   */
+  public attachTap(obj: Phaser.GameObjects.GameObject, title: string, body: Body): void {
+    if (!obj.input) (obj as Phaser.GameObjects.Image).setInteractive({ useHandCursor: true });
+    obj.on('pointerdown', (p: Phaser.Input.Pointer) => {
+      if (this.owner === obj) {
+        this.hide(obj);
+        return;
+      }
+      this.show(obj, title, body, p);
+      // the tap that opened it must not close it: listen from the next frame
+      this.scene.time.delayedCall(0, () => {
+        this.scene.input.once('pointerdown', () => this.hide(obj));
+      });
+    });
+  }
+
   /** Invisible hover area for things that are not objects of their own. */
   public zone(x: number, y: number, w: number, h: number, title: string, body: Body, depth = 0): Phaser.GameObjects.Zone {
     const z = this.scene.add.zone(x, y, w, h).setDepth(depth);

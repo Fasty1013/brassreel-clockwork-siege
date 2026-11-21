@@ -109,7 +109,8 @@ export class RunScene extends Phaser.Scene {
   private spinButton?: Phaser.GameObjects.Rectangle;
   private spinButtonText?: Phaser.GameObjects.Text;
   private nudgeButtonText?: Phaser.GameObjects.Text;
-  private engageButton!: Phaser.GameObjects.Image;
+  private engageButton!: Phaser.GameObjects.Rectangle;
+  private engageIcon!: Phaser.GameObjects.Image;
   private engageButtonText!: Phaser.GameObjects.Text;
   private speedButton!: Phaser.GameObjects.Rectangle;
   private speedButtonText!: Phaser.GameObjects.Text;
@@ -574,14 +575,16 @@ export class RunScene extends Phaser.Scene {
     // Reserve shelf under the slot machine: two rows of five slots
     const shelfX = 224 - this.margin;
     const shelfY = 888;
-    const benchBg = this.add.rectangle(shelfX, shelfY, 400, 196, 0x18141f);
+    // a header strip above the slots, so the «РЕЗЕРВ» title sits inside the panel, not on its edge
+    const benchBg = this.add.rectangle(shelfX, shelfY - 8, 400, 212, 0x18141f);
     benchBg.setStrokeStyle(2, 0x3d3047);
 
-    this.benchTitle = this.add.text(shelfX, shelfY - 86, '', {
-      fontSize: '15px',
-      color: '#ffd166'
+    this.benchTitle = this.add.text(shelfX, shelfY - 98, '', {
+      fontSize: '16px',
+      color: '#ffd166',
+      fontStyle: 'bold'
     }).setOrigin(0.5);
-    fitBox(this.benchTitle, 380, 22);
+    fitBox(this.benchTitle, 380, 24);
     InfoTip.of(this).attach(
       this.benchTitle,
       'Резерв',
@@ -623,21 +626,27 @@ export class RunScene extends Phaser.Scene {
 
   private createBattleControls(): void {
     // Round Cast-Iron Skull Valve Button at bottom right of battle window
-    this.engageButton = this.add.image(1760 + this.margin, 920, 'ui_btn_round_skull');
-    this.engageButton.setScale(2.8);
+    // A big labelled «В БОЙ» button (the most important action after preparing) with the skull
+    // emblem, and the speed button of the same width above it, at the field's bottom-right corner
+    // inside the window's right edge, right of the grid (the window grows by fieldGrow per side)
+    const bx = 1758 + this.fieldGrow;
+    this.engageButton = this.add.rectangle(bx, 922, 160, 80, 0xd90429);
+    this.engageButton.setStrokeStyle(3, 0xffd166);
     this.engageButton.setInteractive({ useHandCursor: true });
+    this.engageIcon = this.add.image(bx - 50, 922, 'ui_btn_round_skull').setScale(1.15);
 
-    this.engageButtonText = this.add.text(1760 + this.margin, 975, `В БОЙ ▶${keyHint('Enter')}`, {
+    this.engageButtonText = this.add.text(bx + 20, 922, `В БОЙ ▶${keyHint('Enter')}`, {
       fontFamily: 'monospace',
-      fontSize: '14px',
-      color: '#ffd166',
+      fontSize: '26px',
+      color: '#fff4d6',
       fontStyle: 'bold'
     }).setOrigin(0.5);
+    fitBox(this.engageButtonText, 96, 58);
 
     this.skullBtnPulseTween = this.tweens.add({
       targets: this.engageButton,
-      scaleX: 3.0,
-      scaleY: 3.0,
+      scaleX: 1.04,
+      scaleY: 1.04,
       duration: 750,
       yoyo: true,
       repeat: -1,
@@ -645,21 +654,19 @@ export class RunScene extends Phaser.Scene {
     });
 
     this.engageButton.on('pointerdown', () => this.handleEngageClick());
-    this.engageButton.on('pointerover', () => this.engageButton.setScale(3.1));
-    this.engageButton.on('pointerout', () => this.engageButton.setScale(2.8));
 
     // Game Speed Button
-    this.speedButton = this.add.rectangle(1760 + this.margin, 835, 120, 34, 0x241d2c);
+    this.speedButton = this.add.rectangle(bx, 844, 160, 48, 0x241d2c);
     this.speedButton.setStrokeStyle(2, 0x8c5836);
     this.speedButton.setInteractive({ useHandCursor: true });
 
-    this.speedButtonText = this.add.text(1760 + this.margin, 835, 'СКОРОСТЬ: 1×', {
+    this.speedButtonText = this.add.text(bx, 844, 'СКОРОСТЬ: 1×', {
       fontFamily: 'monospace',
-      fontSize: '12px',
+      fontSize: '18px',
       color: '#ffd166',
       fontStyle: 'bold'
     }).setOrigin(0.5);
-    fitBox(this.speedButtonText, 114, 32);
+    fitBox(this.speedButtonText, 148, 42);
 
     this.speedButton.on('pointerdown', () => {
       if (this.speedMultiplier === 1) this.speedMultiplier = 2;
@@ -889,6 +896,7 @@ export class RunScene extends Phaser.Scene {
     this.isSpinning = true;
     this.spinButtonText?.setText('ВРАЩЕНИЕ...');
     this.spinButton?.setFillStyle(0x6c757d);
+    this.reelView.setSpinEnabled(false);
 
     // Dispatch spin
     RunReducer.dispatch(this.state, { type: 'SPIN' }, this.rng, this.eventBus);
@@ -938,7 +946,8 @@ export class RunScene extends Phaser.Scene {
     this.reelView.clearPaylines();
     this.gridView.setBattleMode(true);
     if (this.skullBtnPulseTween) this.skullBtnPulseTween.pause();
-    this.engageButton.setTint(0x555555);
+    this.engageButton.setAlpha(0.5).setScale(1);
+    this.engageIcon.setAlpha(0.5);
     this.engageButtonText.setText('БОЙ...');
     if (this.speechBubbleText) {
       this.speechBubbleText.setText('Орда мародёров наступает! Защищайте Котёл!');
@@ -1263,7 +1272,8 @@ export class RunScene extends Phaser.Scene {
     this.gridView.setBattleMode(false);
 
     if (this.skullBtnPulseTween) this.skullBtnPulseTween.resume();
-    this.engageButton.clearTint();
+    this.engageButton.setAlpha(1);
+    this.engageIcon.setAlpha(1);
     this.engageButtonText.setText(`В БОЙ ▶${keyHint('Enter')}`);
     if (this.speechBubbleText) {
       this.speechBubbleText.setText('Волна успешно отражена! Получена награда шестернями!');
@@ -1321,7 +1331,8 @@ export class RunScene extends Phaser.Scene {
   }
 
   private startPrepPhase(): void {
-    this.engageButton.clearTint();
+    this.engageButton.setAlpha(1);
+    this.engageIcon.setAlpha(1);
     this.engageButtonText.setText(`В БОЙ ▶${keyHint('Enter')}`);
 
     const currentWave = this.state.waveNumber;
@@ -1604,6 +1615,7 @@ export class RunScene extends Phaser.Scene {
       heat: this.state.heat.currentHeat,
       wave: this.state.waveNumber,
       valveUsed: this.state.combatState?.valveUsed ?? false,
+      battle: this.state.phase === 'BATTLE',
       activeCores: this.state.activeCores
     });
 
@@ -1615,6 +1627,8 @@ export class RunScene extends Phaser.Scene {
         this.state.freeSpinsLeft > 0,
         BALANCE.EXTRA_SPIN_STEAM_COST
       );
+      // spinning is for the preparation between waves
+      this.reelView.setSpinEnabled(this.state.phase === 'PREP' && !this.isSpinning);
     }
 
     // Campaign ribbon: act and wave

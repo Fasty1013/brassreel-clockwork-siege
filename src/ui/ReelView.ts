@@ -10,6 +10,15 @@ const SYM_SCALE = 3;
 
 const symKey = (symbol: string, gilded: boolean): string => `sym_${symbol}${gilded ? '_gilded' : ''}`;
 
+/** Shown by the «ВЫПЛАТЫ» button. */
+const PAYTABLE =
+  '3 одинаковых символа в ряд, в столбец или по диагонали — робот этой линейки в резерв:\n' +
+  'Шестерня — Страж-Бот (ближний бой)\nПружина — Стрело-Бот (дальний бой)\n' +
+  'Запал — Запал-Бот (взрывы по площади)\nКатушка — Искро-Бот (цепная молния)\n' +
+  'Ключ — Ремонт-Бот (лечит)\n' +
+  'Джокер заменяет любой символ. 3 короны — джекпот: легендарный робот.\n' +
+  'Позолоченный символ в тройке даёт робота с лучшими модулями.';
+
 export class ReelView extends Phaser.GameObjects.Container {
   private chassisImage: Phaser.GameObjects.Image;
   private leverSprite: Phaser.GameObjects.Sprite;
@@ -20,11 +29,14 @@ export class ReelView extends Phaser.GameObjects.Container {
   private nudgeButtons: Phaser.GameObjects.Image[] = [];
   private paylineGraphics: Phaser.GameObjects.Graphics;
   public isSpinning = false;
-  private tipTargets: { spins?: Phaser.GameObjects.Rectangle; cost?: Phaser.GameObjects.Rectangle; book?: Phaser.GameObjects.Rectangle } = {};
+  private tipTargets: { spins?: Phaser.GameObjects.Rectangle; book?: Phaser.GameObjects.Rectangle } = {};
 
-  // Header badges
+  // Header badge and the big spin button under the reels
   private spinBadgeText: Phaser.GameObjects.Text;
-  private costBadgeText: Phaser.GameObjects.Text;
+  private bookButton: Phaser.GameObjects.Rectangle;
+  private spinButton: Phaser.GameObjects.Rectangle;
+  private spinLabel: Phaser.GameObjects.Text;
+  private spinCostText: Phaser.GameObjects.Text;
 
   constructor(scene: Phaser.Scene, x: number, y: number) {
     super(scene, x, y);
@@ -47,52 +59,63 @@ export class ReelView extends Phaser.GameObjects.Container {
       }
     });
 
-    // 3. Badges above Reels
-    // Left: Spins remaining
-    const spinsBg = scene.add.rectangle(-90, -188, 76, 32, 0x18141f);
+    // 3. Above the reels: free spins left, and the paytable (opens on a tap)
+    const spinsBg = scene.add.rectangle(-78, -188, 104, 34, 0x18141f);
     spinsBg.setStrokeStyle(2, 0x3d3047);
     this.add(spinsBg);
     this.tipTargets.spins = spinsBg;
-    this.spinBadgeText = scene.add.text(-90, -188, '★ 3', {
+    this.spinBadgeText = scene.add.text(-78, -188, '★ 3', {
       fontFamily: 'monospace',
       fontSize: '18px',
       color: '#ffd166',
       fontStyle: 'bold'
     }).setOrigin(0.5);
-    fitBox(this.spinBadgeText, 70, 30);
+    fitBox(this.spinBadgeText, 96, 32);
     this.add(this.spinBadgeText);
 
-    // Center: Spin Cost
-    const costBg = scene.add.rectangle(0, -188, 92, 32, 0x18141f);
-    costBg.setStrokeStyle(2, 0x3d3047);
-    this.add(costBg);
-    this.tipTargets.cost = costBg;
-    this.costBadgeText = scene.add.text(0, -188, 'БЕСПЛ.', {
+    this.bookButton = scene.add.rectangle(64, -188, 164, 34, 0x2e2538);
+    this.bookButton.setStrokeStyle(2, 0xd4a373);
+    this.bookButton.setInteractive({ useHandCursor: true });
+    this.add(this.bookButton);
+    this.tipTargets.book = this.bookButton;
+    const bookTxt = scene.add.text(64, -188, 'ВЫПЛАТЫ ?', {
       fontFamily: 'monospace',
-      fontSize: '17px',
-      color: '#5ae0d0',
-      fontStyle: 'bold'
-    }).setOrigin(0.5);
-    fitBox(this.costBadgeText, 86, 30);
-    this.add(this.costBadgeText);
-
-    // Right: Paytable Book Button
-    const bookBtn = scene.add.rectangle(92, -188, 84, 32, 0x2e2538);
-    bookBtn.setStrokeStyle(2, 0xd4a373);
-    bookBtn.setInteractive({ useHandCursor: true });
-    this.add(bookBtn);
-    this.tipTargets.book = bookBtn;
-    const bookTxt = scene.add.text(92, -188, 'ВЫПЛАТЫ', {
-      fontFamily: 'monospace',
-      fontSize: '11px',
+      fontSize: '15px',
       color: '#ffd166',
       fontStyle: 'bold'
     }).setOrigin(0.5);
-    fitBox(bookTxt, 78, 30);
+    fitBox(bookTxt, 154, 32);
     this.add(bookTxt);
 
-    bookBtn.on('pointerdown', () => {
-      this.emit('open_paytable');
+    // 3b. The big spin button where the vent plate was: the main action of the machine,
+    // with its price (free spins left or steam) right on it
+    this.spinButton = scene.add.rectangle(0, 262, 324, 86, 0xd4a373);
+    this.spinButton.setStrokeStyle(3, 0xffd166);
+    this.spinButton.setInteractive({ useHandCursor: true });
+    this.add(this.spinButton);
+    this.spinLabel = scene.add.text(0, 248, 'КРУТИТЬ', {
+      fontFamily: 'monospace',
+      fontSize: '30px',
+      color: '#2a1a10',
+      fontStyle: 'bold'
+    }).setOrigin(0.5);
+    fitBox(this.spinLabel, 300, 44);
+    this.add(this.spinLabel);
+    this.spinCostText = scene.add.text(0, 282, 'бесплатно', {
+      fontFamily: 'monospace',
+      fontSize: '17px',
+      color: '#5b3a1e',
+      fontStyle: 'bold'
+    }).setOrigin(0.5);
+    fitBox(this.spinCostText, 300, 28);
+    this.add(this.spinCostText);
+    this.spinButton.on('pointerover', () => this.spinButton.setScale(1.03));
+    this.spinButton.on('pointerout', () => this.spinButton.setScale(1));
+    this.spinButton.on('pointerdown', () => {
+      if (!this.isSpinning) {
+        this.pullLever();
+        this.emit('spin_requested');
+      }
     });
 
     // 4. Parchment Surface for 3 Reel Strips
@@ -150,19 +173,19 @@ export class ReelView extends Phaser.GameObjects.Container {
       });
 
       // 7. Hold Button
-      const holdBtn = scene.add.rectangle(colX, 172, 90, 30, 0x241d2c);
+      const holdBtn = scene.add.rectangle(colX, 176, 88, 40, 0x241d2c);
       holdBtn.setStrokeStyle(1, 0x6c757d);
       holdBtn.setInteractive({ useHandCursor: true });
       this.add(holdBtn);
       this.holdButtons.push(holdBtn);
 
-      const holdTxt = scene.add.text(colX, 172, 'ДЕРЖАТЬ', {
+      const holdTxt = scene.add.text(colX, 176, 'ДЕРЖАТЬ', {
         fontFamily: 'monospace',
-        fontSize: '15px',
+        fontSize: '17px',
         color: '#d8d2e0',
         fontStyle: 'bold'
       }).setOrigin(0.5);
-      fitBox(holdTxt, 86, 28);
+      fitBox(holdTxt, 82, 36);
       this.add(holdTxt);
       this.holdTexts.push(holdTxt);
 
@@ -218,21 +241,23 @@ export class ReelView extends Phaser.GameObjects.Container {
     }
     tip.attach(this.leverSprite, 'Рычаг', 'Крутит барабаны (Пробел). Три одинаковых символа в ряд, столбец или по диагонали призывают робота на скамейку.');
     if (this.tipTargets.spins) tip.attach(this.tipTargets.spins, 'Бесплатные прокрутки', 'Сколько бесплатных прокруток осталось в этой волне. Восполняются каждую волну.');
-    if (this.tipTargets.cost) tip.attach(this.tipTargets.cost, 'Цена прокрутки', 'Сколько стоит следующая прокрутка. Когда бесплатные кончились, прокрутка стоит пар и добавляет жар.');
-    if (this.tipTargets.book) tip.attach(this.tipTargets.book, 'Таблица выплат', 'Показывает, какие комбинации что призывают.');
+    tip.attach(this.spinButton, 'Крутить', 'Крутит барабаны (то же, что рычаг и Пробел). Внизу кнопки — цена: бесплатные прокрутки этой волны, потом пар; платная прокрутка добавляет жар.');
+    if (this.tipTargets.book) tip.attachTap(this.tipTargets.book, 'Таблица выплат', PAYTABLE);
     this.nudgeButtons.forEach((btn) => tip.attach(btn, 'Сдвиг барабана', () => `Сдвигает этот барабан на один символ вниз без прокрутки. Осталось сдвигов: ${charges().nudges}.`));
     this.holdButtons.forEach((btn) => tip.attach(btn, 'Удержание барабана', () => `Барабан не крутится при следующей прокрутке, остальные крутятся. Осталось удержаний: ${charges().holds}.`));
   }
 
   public updateBadges(spinsLeft: number, isFree: boolean, cost: number): void {
     this.spinBadgeText.setText(`★ ${spinsLeft}`);
-    if (isFree) {
-      this.costBadgeText.setText('БЕСПЛ.');
-      this.costBadgeText.setColor('#2ec4b6');
-    } else {
-      this.costBadgeText.setText(`${cost} Пар`);
-      this.costBadgeText.setColor('#ffd166');
-    }
+    this.spinCostText.setText(isFree ? `бесплатно · осталось ${spinsLeft}` : `${cost} пар · + жар`);
+    this.spinCostText.setColor(isFree ? '#1f5f57' : '#7a2e1a');
+  }
+
+  /** The spin button looks pressed-out while the reels turn or a battle runs. */
+  public setSpinEnabled(enabled: boolean): void {
+    this.spinButton.setAlpha(enabled ? 1 : 0.5);
+    this.spinLabel.setAlpha(enabled ? 1 : 0.6);
+    this.spinCostText.setAlpha(enabled ? 1 : 0.6);
   }
 
   public setGrid(grid: Grid3x3): void {

@@ -236,12 +236,7 @@ export class UIFrameArt {
     rect(ctx, 46, 52, 2, 140, C.ironMid);
     rect(ctx, 84, 52, 2, 140, C.ironMid);
 
-    // ribbed vent plate
-    brassFrame(ctx, 8, 219, W - 16, 22, C.ironLo, false);
-    for (let rx = 13; rx < W - 13; rx += 4) {
-      rect(ctx, rx, 224, 2, 12, C.ironMid);
-      rect(ctx, rx, 224, 1, 12, C.ironHi);
-    }
+    // (the vent plate under the reels gave way to the big spin button, see ReelView)
 
     // (the bottom of the cabinet sits behind the reserve shelf)
 
