@@ -3,6 +3,7 @@ import { SPEAKERS, StoryScene } from '@data/story';
 import { SoundManager } from '../audio/SoundManager';
 import { text, UI } from './ModalKit';
 import { keyHint, TOUCH_ONLY } from './TextStyles';
+import { FULL_W } from './Display';
 
 const CHAR_MS = 22;
 const PORTRAIT = 200;
@@ -50,7 +51,7 @@ export class DialogueModal extends Phaser.GameObjects.Container {
     this.story = story;
     this.onDone = onDone;
 
-    const shade = scene.add.rectangle(0, 0, 1920, 1080, 0x07050a, 0.6);
+    const shade = scene.add.rectangle(0, 0, FULL_W, 1080, 0x07050a, 0.6);
     shade.setInteractive();
     shade.on('pointerdown', () => this.advance());
     this.add(shade);

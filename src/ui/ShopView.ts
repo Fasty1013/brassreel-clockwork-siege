@@ -4,6 +4,7 @@ import { ReelSymbol, SlotSymbol } from '@core/reels/reels';
 import { t } from '@data/i18n';
 import { InfoTip } from './InfoTip';
 import { fitBox } from './TextStyles';
+import { FULL_W } from './Display';
 
 /** Prices of the reel and reroll buttons, computed by the core (discounts included). */
 export interface ShopPrices {
@@ -81,7 +82,7 @@ export class ShopView extends Phaser.GameObjects.Container {
   constructor(scene: Phaser.Scene) {
     super(scene, 960, 540);
 
-    const overlay = scene.add.rectangle(0, 0, 1920, 1080, 0x07050a, 0.8);
+    const overlay = scene.add.rectangle(0, 0, FULL_W, 1080, 0x07050a, 0.8);
     overlay.setInteractive(); // blocks clicks underneath
     this.add(overlay);
 

@@ -52,8 +52,19 @@ async function main(): Promise<void> {
       await page.evaluateOnNewDocument(`document.addEventListener('DOMContentLoaded', () =>
         document.documentElement.style.setProperty('--safe-area-inset-left', '${process.env.CUTOUT}px'))`);
     }
-        await page.goto(`http://127.0.0.1:${PORT}/${process.env.UI ? `?ui=${process.env.UI}` : ''}`, { waitUntil: 'load' });
-    await wait(1800);
+    await page.goto(`http://127.0.0.1:${PORT}/${process.env.UI ? `?ui=${process.env.UI}` : ''}`, { waitUntil: 'load' });
+    // boot paints all the art; software rendering in a headless browser is slow
+    const waitScene = async (key: string): Promise<void> => {
+      for (let i = 0; i < 100; i++) {
+        const ok = await page.evaluate(`(() => { const s = window.game && window.game.scene.getScene('${key}'); return !!s && s.sys.settings.status === 5; })()`);
+        if (ok) return;
+        await wait(200);
+      }
+      throw new Error(`${key} did not start`);
+    };
+    await waitScene('MenuScene');
+    await wait(1200);
+    await waitScene('MenuScene');
 
     const shot = async (name: string) => {
       await wait(500);
@@ -68,8 +79,11 @@ async function main(): Promise<void> {
     /** Game coordinates (1920×1080) → page coordinates. */
     const toPage = (x: number, y: number) =>
       page.evaluate(`(() => {
-        const r = window.game.canvas.getBoundingClientRect();
-        return { x: r.left + ${x} * r.width / 1920, y: r.top + ${y} * r.height / 1080 };
+        const g = window.game;
+        const cam = g.scene.getScene('RunScene').cameras.main;
+        const r = g.canvas.getBoundingClientRect();
+        const k = r.width / g.canvas.width;
+        return { x: r.left + (${x} - cam.scrollX) * cam.zoom * k, y: r.top + (${y} - cam.scrollY) * cam.zoom * k };
       })()`) as Promise<{ x: number; y: number }>;
 
     await shot('01_menu');

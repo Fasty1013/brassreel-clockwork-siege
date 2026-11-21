@@ -14,6 +14,27 @@ export const BG_W = 342;
 export const BG_H = 219;
 export const BG_SCALE = 4;
 
+/**
+ * Extra art painted on each side (native px): wide screens show more of the field
+ * (up to 80 × 4 = 320 world px per side, a 2560-wide world). RunScene crops the
+ * texture to the width the screen needs (backdropCrop).
+ */
+export const BG_SIDE = 80;
+export const BG_FULL_W = BG_W + 2 * BG_SIDE;
+
+/** Painted span in the 342-wide design coordinates. */
+const X0 = -BG_SIDE;
+const X1 = BG_W + BG_SIDE;
+const SPAN = X1 - X0;
+/** Scattered details keep their density over the wider span. */
+const DENS = SPAN / BG_W;
+
+/** Crop of the wide texture for a world reaching `margin` px past 1920 on each side. */
+export function backdropCrop(margin: number): { x: number; w: number } {
+  const side = Math.max(0, Math.min(BG_SIDE, Math.floor(margin / BG_SCALE)));
+  return { x: BG_SIDE - side, w: BG_W + 2 * side };
+}
+
 /** Ground layout in native px (matches GridView at x=560,y=580 on screen). */
 const GRID_X = 17;
 const GRID_Y = 119;
@@ -21,6 +42,9 @@ const TILE_W = 35;
 const TILE_H = 18;
 const GRID_BOTTOM = GRID_Y + TILE_H * 5;
 const HORIZON = 112;
+/** Grid columns that cover the painted span (iron seams in act 3). */
+const COL0 = Math.floor((X0 - GRID_X) / TILE_W);
+const COL1 = Math.ceil((X1 - GRID_X) / TILE_W);
 
 type Ctx = CanvasRenderingContext2D;
 
@@ -50,12 +74,12 @@ function blob(ctx: Ctx, cx: number, cy: number, rx: number, ry: number, c: strin
 
 function skyBands(ctx: Ctx, colors: string[], bottom: number): void {
   const h = Math.ceil(bottom / colors.length);
-  colors.forEach((c, i) => r(ctx, 0, i * h, BG_W, h + 1, c));
+  colors.forEach((c, i) => r(ctx, X0, i * h, SPAN, h + 1, c));
   // dithered seams between bands
   for (let i = 1; i < colors.length; i++) {
     const y = i * h;
-    for (let x = 0; x < BG_W; x += 2) r(ctx, x + ((y >> 1) & 1), y - 1, 1, 1, colors[i]);
-    for (let x = 1; x < BG_W; x += 2) r(ctx, x, y, 1, 1, colors[i - 1]);
+    for (let x = X0; x < X1; x += 2) r(ctx, x + ((y >> 1) & 1), y - 1, 1, 1, colors[i]);
+    for (let x = X0 + 1; x < X1; x += 2) r(ctx, x, y, 1, 1, colors[i - 1]);
   }
 }
 
@@ -72,7 +96,7 @@ function cloud(ctx: Ctx, x: number, y: number, s: number, lit: string, mid: stri
 
 /** Rolling ridge line from `base` with sin-noise amplitude. */
 function ridge(ctx: Ctx, base: number, amp: number, freq: number, phase: number, c: string, rand?: () => number): void {
-  for (let x = 0; x < BG_W; x++) {
+  for (let x = X0; x < X1; x++) {
     const n = Math.sin(x * freq + phase) * amp + Math.sin(x * freq * 2.7 + phase * 1.3) * amp * 0.35;
     const top = Math.round(base - n - (rand ? rand() * 0.8 : 0));
     r(ctx, x, top, 1, HORIZON + 4 - top, c);
@@ -81,24 +105,24 @@ function ridge(ctx: Ctx, base: number, amp: number, freq: number, phase: number,
 
 /** Grid checker ground with a front lip and a far-edge strip. */
 function ground(ctx: Ctx, a: string, b: string, edge: string, edgeDark: string, lip: string): void {
-  r(ctx, 0, HORIZON, BG_W, BG_H - HORIZON, a);
+  r(ctx, X0, HORIZON, SPAN, BG_H - HORIZON, a);
   // far meadow strip between horizon and the grid
-  r(ctx, 0, HORIZON, BG_W, GRID_Y - HORIZON, edge);
-  r(ctx, 0, HORIZON, BG_W, 1, edgeDark);
+  r(ctx, X0, HORIZON, SPAN, GRID_Y - HORIZON, edge);
+  r(ctx, X0, HORIZON, SPAN, 1, edgeDark);
   for (let y = GRID_Y; y < GRID_BOTTOM; y++) {
-    for (let x = 0; x < BG_W; x++) {
+    for (let x = X0; x < X1; x++) {
       const col = Math.floor((x - GRID_X) / TILE_W);
       const row = Math.floor((y - GRID_Y) / TILE_H);
       if (((col + row) & 1) === 0) continue;
       r(ctx, x, y, 1, 1, b);
     }
   }
-  r(ctx, 0, GRID_BOTTOM, BG_W, BG_H - GRID_BOTTOM, lip);
+  r(ctx, X0, GRID_BOTTOM, SPAN, BG_H - GRID_BOTTOM, lip);
 }
 
 function tufts(ctx: Ctx, rand: () => number, n: number, c1: string, c2: string, y0 = GRID_Y, y1 = GRID_BOTTOM): void {
-  for (let i = 0; i < n; i++) {
-    const x = Math.floor(rand() * BG_W);
+  for (let i = 0; i < Math.round(n * DENS); i++) {
+    const x = Math.floor(X0 + rand() * SPAN);
     const y = Math.floor(y0 + rand() * (y1 - y0));
     r(ctx, x, y, 1, 2, c1);
     r(ctx, x + 1, y + 1, 1, 1, c2);
@@ -137,11 +161,11 @@ function smoke(ctx: Ctx, x: number, y: number, colors: string[], len: number, dr
 
 function fence(ctx: Ctx, post: string, postLit: string, rail: string, railDark: string): void {
   const y = GRID_BOTTOM + 1;
-  r(ctx, 0, y + 3, BG_W, 2, rail);
-  r(ctx, 0, y + 5, BG_W, 1, railDark);
-  r(ctx, 0, y + 9, BG_W, 2, rail);
-  r(ctx, 0, y + 11, BG_W, 1, railDark);
-  for (let x = 4; x < BG_W; x += 15) {
+  r(ctx, X0, y + 3, SPAN, 2, rail);
+  r(ctx, X0, y + 5, SPAN, 1, railDark);
+  r(ctx, X0, y + 9, SPAN, 2, rail);
+  r(ctx, X0, y + 11, SPAN, 1, railDark);
+  for (let x = 4 - 15 * Math.ceil(BG_SIDE / 15); x < X1; x += 15) {
     r(ctx, x, y, 3, 14, post);
     r(ctx, x, y, 1, 14, postLit);
     r(ctx, x, y - 1, 3, 1, postLit);
@@ -166,7 +190,7 @@ function paintAct1(ctx: Ctx): void {
   ridge(ctx, 92, 6, 0.035, 0.4, '#8cb9c9');
   // town skyline
   const skyline = '#6f8fa8';
-  for (let x = 6; x < BG_W - 10; x += 22 + Math.floor(rand() * 18)) {
+  for (let x = X0 + 6; x < X1 - 10; x += 22 + Math.floor(rand() * 18)) {
     factory(ctx, x, 100, 14 + Math.floor(rand() * 10), 8 + Math.floor(rand() * 10), skyline, null, rand, '#d2e2ec');
   }
   // clock tower
@@ -177,7 +201,7 @@ function paintAct1(ctx: Ctx): void {
   r(ctx, 138, 70, 1, 3, '#5e7a92');
   // near hills + tree line
   ridge(ctx, 104, 4, 0.05, 2.0, '#5f9a62');
-  for (let x = -4; x < BG_W; x += 7 + Math.floor(rand() * 6)) {
+  for (let x = X0 - 4; x < X1; x += 7 + Math.floor(rand() * 6)) {
     const h = 6 + Math.floor(rand() * 7);
     blob(ctx, x, HORIZON - h + 2, 4 + Math.floor(rand() * 3), h, '#3f7a4f');
     blob(ctx, x - 1, HORIZON - h, 2, 2, '#4f8f5c');
@@ -185,13 +209,13 @@ function paintAct1(ctx: Ctx): void {
   ground(ctx, '#62a64c', '#5a9b46', '#4f8f42', '#3a6f36', '#46803c');
   tufts(ctx, rand, 140, '#78bd5a', '#4f8f42');
   // flowers
-  for (let i = 0; i < 40; i++) {
-    const x = Math.floor(rand() * BG_W);
+  for (let i = 0; i < Math.round(40 * DENS); i++) {
+    const x = Math.floor(X0 + rand() * SPAN);
     const y = Math.floor(GRID_Y + rand() * (GRID_BOTTOM - GRID_Y));
     r(ctx, x, y, 1, 1, ['#ffe066', '#ffffff', '#ff9ec1'][i % 3]);
   }
   // dirt road on the far strip
-  for (let x = 0; x < BG_W; x++) {
+  for (let x = X0; x < X1; x++) {
     if ((x * 7) % 11 < 3) r(ctx, x, HORIZON + 3, 1, 1, '#8a7a4a');
   }
   fence(ctx, '#7a4a28', '#a8683a', '#8c5a32', '#5c3820');
@@ -210,7 +234,7 @@ function paintAct2(ctx: Ctx): void {
   r(ctx, 66, 55, 50, 1, '#7b906c');
   // far rusted refinery
   const far = '#425a4e';
-  for (let x = 150; x < BG_W; x += 26 + Math.floor(rand() * 12)) {
+  for (let x = 150; x < X1; x += 26 + Math.floor(rand() * 12)) {
     factory(ctx, x, 104, 16 + Math.floor(rand() * 8), 10 + Math.floor(rand() * 14), far, '#b4ff3a', rand, '#5f7258');
   }
   // giant broken pipe arcing across the sky
@@ -225,7 +249,7 @@ function paintAct2(ctx: Ctx): void {
   r(ctx, 126, 104, 8, 3, '#3d1f1c');
   r(ctx, 126, 104, 8, 1, '#a85a3a');
   // fog band
-  for (let x = 0; x < BG_W; x += 2) r(ctx, x, 96 + ((x >> 3) & 1), 2, 3, '#8a9c7a');
+  for (let x = X0; x < X1; x += 2) r(ctx, x, 96 + ((x >> 3) & 1), 2, 3, '#8a9c7a');
   // dead trees
   const dead = '#26322a';
   for (const tx of [26, 140, 232, 318]) {
@@ -246,13 +270,13 @@ function paintAct2(ctx: Ctx): void {
   }
   tufts(ctx, rand, 110, '#6f7a44', '#3c4528');
   // toxic bubbles
-  for (let i = 0; i < 18; i++) {
-    const x = Math.floor(rand() * BG_W);
+  for (let i = 0; i < Math.round(18 * DENS); i++) {
+    const x = Math.floor(X0 + rand() * SPAN);
     const y = Math.floor(GRID_Y + rand() * (GRID_BOTTOM - GRID_Y));
     r(ctx, x, y, 1, 1, '#8fd12e');
   }
   // reeds along the bottom
-  for (let x = 0; x < BG_W; x += 3) {
+  for (let x = X0; x < X1; x += 3) {
     const h = 4 + Math.floor(rand() * 6);
     r(ctx, x, BG_H - h, 1, h, '#4e5a2e');
     if (rand() < 0.3) r(ctx, x, BG_H - h - 2, 1, 2, '#7a3b2a');
@@ -267,7 +291,7 @@ function paintAct3(ctx: Ctx): void {
   const rand = rng(3303);
   skyBands(ctx, ['#1d0f1e', '#341424', '#5a1c28', '#8a2e2c', '#c25a32', '#e0873e'], HORIZON);
   // stars in the dark top
-  for (let i = 0; i < 30; i++) r(ctx, Math.floor(rand() * BG_W), Math.floor(rand() * 30), 1, 1, '#f4d6c8');
+  for (let i = 0; i < Math.round(30 * DENS); i++) r(ctx, Math.floor(X0 + rand() * SPAN), Math.floor(rand() * 30), 1, 1, '#f4d6c8');
   // blood moon
   blob(ctx, 60, 34, 12, 12, '#ff9a6a');
   blob(ctx, 62, 32, 9, 9, '#ffc49a');
@@ -295,10 +319,10 @@ function paintAct3(ctx: Ctx): void {
   ridge(ctx, 108, 5, 0.06, 0.7, '#2e1a1e', rand);
   ground(ctx, '#423d52', '#3a3648', '#2f2b3c', '#1c1a26', '#2b2733');
   // iron plate seams + rivets on the grid
-  for (let row = 0; row <= 5; row++) r(ctx, 0, GRID_Y + row * TILE_H, BG_W, 1, '#2b2733');
-  for (let col = 0; col <= 9; col++) r(ctx, GRID_X + col * TILE_W, GRID_Y, 1, TILE_H * 5, '#2b2733');
+  for (let row = 0; row <= 5; row++) r(ctx, X0, GRID_Y + row * TILE_H, SPAN, 1, '#2b2733');
+  for (let col = COL0; col <= COL1; col++) r(ctx, GRID_X + col * TILE_W, GRID_Y, 1, TILE_H * 5, '#2b2733');
   for (let row = 0; row < 5; row++) {
-    for (let col = -1; col < 9; col++) {
+    for (let col = COL0; col < COL1; col++) {
       const x = GRID_X + col * TILE_W;
       const y = GRID_Y + row * TILE_H;
       r(ctx, x + 2, y + 2, 1, 1, '#5a556e');
@@ -308,8 +332,8 @@ function paintAct3(ctx: Ctx): void {
     }
   }
   // glowing cracks
-  for (let i = 0; i < 9; i++) {
-    let x = Math.floor(rand() * BG_W);
+  for (let i = 0; i < Math.round(9 * DENS); i++) {
+    let x = Math.floor(X0 + rand() * SPAN);
     let y = Math.floor(GRID_Y + 3 + rand() * (GRID_BOTTOM - GRID_Y - 6));
     for (let k = 0; k < 6; k++) {
       r(ctx, x, y, 1, 1, k % 3 === 0 ? '#ffd166' : '#e2581a');
@@ -318,9 +342,9 @@ function paintAct3(ctx: Ctx): void {
     }
   }
   // ember sparks in the air
-  for (let i = 0; i < 26; i++) r(ctx, Math.floor(rand() * BG_W), Math.floor(40 + rand() * 70), 1, 1, '#ffb347');
+  for (let i = 0; i < Math.round(26 * DENS); i++) r(ctx, Math.floor(X0 + rand() * SPAN), Math.floor(40 + rand() * 70), 1, 1, '#ffb347');
   fence(ctx, '#3a3648', '#5a556e', '#4a4658', '#1c1a26');
-  for (let x = 4; x < BG_W; x += 15) r(ctx, x + 1, GRID_BOTTOM - 1, 1, 1, '#c9283a');
+  for (let x = 4 - 15 * Math.ceil(BG_SIDE / 15); x < X1; x += 15) r(ctx, x + 1, GRID_BOTTOM - 1, 1, 1, '#c9283a');
 }
 
 export const PAINTERS: Record<string, (ctx: Ctx) => void> = {
@@ -333,11 +357,13 @@ export function registerActBackdrops(tm: Phaser.Textures.TextureManager): void {
   for (const [key, paint] of Object.entries(PAINTERS)) {
     if (tm.exists(key)) continue;
     const canvas = document.createElement('canvas');
-    canvas.width = BG_W;
+    canvas.width = BG_FULL_W;
     canvas.height = BG_H;
     const ctx = canvas.getContext('2d');
     if (!ctx) continue;
     ctx.imageSmoothingEnabled = false;
+    // painters draw in the 342-wide design space; the side strips extend it both ways
+    ctx.translate(BG_SIDE, 0);
     paint(ctx);
     tm.addCanvas(key, canvas);
   }

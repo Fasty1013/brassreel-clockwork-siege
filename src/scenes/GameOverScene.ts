@@ -6,7 +6,7 @@ import { ArchiveModal } from '../ui/ArchiveModal';
 import { CampaignManager } from '@core/campaign/campaign';
 import { CHAPTERS, THREAT_LEVELS, chapterForWave } from '@data/story';
 import { fitBox } from '../ui/TextStyles';
-import { fitCamera, WORLD_H, WORLD_W } from '../ui/Display';
+import { FULL_W, fitCamera, sideMargin, WORLD_H, WORLD_W } from '../ui/Display';
 
 export interface GameOverData {
   victory: boolean;
@@ -63,9 +63,9 @@ export class GameOverScene extends Phaser.Scene {
 
     // Background overlay
     const bgColor = data.victory ? 0x0f241d : 0x240f0f;
-    this.add.rectangle(width / 2, height / 2, width, height, bgColor);
+    this.add.rectangle(width / 2, height / 2, FULL_W, height, bgColor);
 
-    const frame = this.add.rectangle(width / 2, height / 2, width - 200, height - 160);
+    const frame = this.add.rectangle(width / 2, height / 2, width + 2 * sideMargin(this) - 200, height - 160);
     frame.setStrokeStyle(4, data.victory ? 0xffd166 : 0xe63946);
 
     // Title

@@ -15,16 +15,22 @@ export class HUD extends Phaser.GameObjects.Container {
   private soundText: Phaser.GameObjects.Text;
   private skillsButton: Phaser.GameObjects.Rectangle;
   private menuButton: Phaser.GameObjects.Rectangle;
+  private pillShift = 0;
 
-  constructor(scene: Phaser.Scene) {
+  /** `margin`: how far the world reaches past 1920 on each side; the buttons keep to the right edge. */
+  constructor(scene: Phaser.Scene, margin = 0) {
     super(scene, 0, 0);
+    const R = margin;
+    // the counters sit between the gauge (left edge) and the buttons (right edge)
+    const P = margin / 2;
+    this.pillShift = P;
 
     // Floating HUD Cartouche Pills spanning x: 480 to 1860 at y: 32
     // 1. Cogs (Gold) Pill
-    const cogsPill = scene.add.image(580, 32, 'ui_hud_pill_gold');
+    const cogsPill = scene.add.image(580 + P, 32, 'ui_hud_pill_gold');
     cogsPill.setScale(3);
     this.add(cogsPill);
-    this.cogsText = scene.add.text(595, 32, '350', {
+    this.cogsText = scene.add.text(595 + P, 32, '350', {
       fontFamily: 'monospace',
       fontSize: '16px',
       color: '#ffd166',
@@ -33,10 +39,10 @@ export class HUD extends Phaser.GameObjects.Container {
     this.add(this.cogsText);
 
     // 2. Boiler HP (Hearts) Pill
-    const hpPill = scene.add.image(760, 32, 'ui_hud_pill_boiler');
+    const hpPill = scene.add.image(760 + P, 32, 'ui_hud_pill_boiler');
     hpPill.setScale(3);
     this.add(hpPill);
-    this.boilerText = scene.add.text(775, 32, '10/10', {
+    this.boilerText = scene.add.text(775 + P, 32, '10/10', {
       fontFamily: 'monospace',
       fontSize: '16px',
       color: '#ff6b6b',
@@ -45,10 +51,10 @@ export class HUD extends Phaser.GameObjects.Container {
     this.add(this.boilerText);
 
     // 3. Units Deployed Pill
-    const unitsPill = scene.add.image(940, 32, 'ui_hud_pill_units');
+    const unitsPill = scene.add.image(940 + P, 32, 'ui_hud_pill_units');
     unitsPill.setScale(3);
     this.add(unitsPill);
-    this.waveText = scene.add.text(955, 32, '3/5', {
+    this.waveText = scene.add.text(955 + P, 32, '3/5', {
       fontFamily: 'monospace',
       fontSize: '16px',
       color: '#a8dadc',
@@ -57,10 +63,10 @@ export class HUD extends Phaser.GameObjects.Container {
     this.add(this.waveText);
 
     // 4. Steam / Heat Manometer Pill
-    const steamPill = scene.add.image(1140, 32, 'ui_hud_pill_steam');
+    const steamPill = scene.add.image(1140 + P, 32, 'ui_hud_pill_steam');
     steamPill.setScale(3);
     this.add(steamPill);
-    this.steamText = scene.add.text(1125, 32, '3/5', {
+    this.steamText = scene.add.text(1125 + P, 32, '3/5', {
       fontFamily: 'monospace',
       fontSize: '15px',
       color: '#00b4d8',
@@ -68,7 +74,7 @@ export class HUD extends Phaser.GameObjects.Container {
     }).setOrigin(0.5);
     this.add(this.steamText);
 
-    this.heatText = scene.add.text(1175, 32, '0%', {
+    this.heatText = scene.add.text(1175 + P, 32, '0%', {
       fontFamily: 'monospace',
       fontSize: '15px',
       color: '#f77f00',
@@ -77,12 +83,12 @@ export class HUD extends Phaser.GameObjects.Container {
     this.add(this.heatText);
 
     // 5. Emergency Valve Button
-    this.valveButton = scene.add.rectangle(1540, 32, 220, 36, 0x2b221a);
+    this.valveButton = scene.add.rectangle(1540 + R, 32, 220, 36, 0x2b221a);
     this.valveButton.setStrokeStyle(2, 0xd4a373);
     this.valveButton.setInteractive({ useHandCursor: true });
     this.add(this.valveButton);
 
-    this.valveText = scene.add.text(1540, 32, `КЛАПАН${keyHint('V')} -60%`, {
+    this.valveText = scene.add.text(1540 + R, 32, `КЛАПАН${keyHint('V')} -60%`, {
       fontFamily: 'monospace',
       fontSize: '14px',
       color: '#ffd166',
@@ -95,29 +101,29 @@ export class HUD extends Phaser.GameObjects.Container {
     });
 
     // 5b. Skill tree button
-    this.skillsButton = scene.add.rectangle(1330, 32, 170, 36, 0x2b221a);
+    this.skillsButton = scene.add.rectangle(1330 + R, 32, 170, 36, 0x2b221a);
     this.skillsButton.setStrokeStyle(2, 0xd4a373);
     this.skillsButton.setInteractive({ useHandCursor: true });
     this.add(this.skillsButton);
-    this.add(scene.add.text(1330, 32, `ДРЕВО${keyHint('T')}`, { fontSize: '16px', color: '#ffd166', fontStyle: 'bold' }).setOrigin(0.5));
+    this.add(scene.add.text(1330 + R, 32, `ДРЕВО${keyHint('T')}`, { fontSize: '16px', color: '#ffd166', fontStyle: 'bold' }).setOrigin(0.5));
     this.skillsButton.on('pointerdown', () => this.emit('open_skills'));
 
     // 5c. Back to the main menu (the run is kept and can be continued)
-    this.menuButton = scene.add.rectangle(1714, 32, 128, 36, 0x2b221a);
+    this.menuButton = scene.add.rectangle(1714 + R, 32, 128, 36, 0x2b221a);
     this.menuButton.setStrokeStyle(2, 0xd4a373);
     this.menuButton.setInteractive({ useHandCursor: true });
     this.add(this.menuButton);
-    this.add(scene.add.text(1714, 32, `МЕНЮ${keyHint('Esc')}`, { fontSize: '15px', color: '#ffd166', fontStyle: 'bold' }).setOrigin(0.5));
+    this.add(scene.add.text(1714 + R, 32, `МЕНЮ${keyHint('Esc')}`, { fontSize: '15px', color: '#ffd166', fontStyle: 'bold' }).setOrigin(0.5));
     this.menuButton.on('pointerdown', () => this.emit('open_menu'));
 
     // 6. Sound Toggle Button
-    this.soundButton = scene.add.rectangle(1820, 32, 44, 36, 0x241d2c);
+    this.soundButton = scene.add.rectangle(1820 + R, 32, 44, 36, 0x241d2c);
     this.soundButton.setStrokeStyle(1, 0x8c5836);
     this.soundButton.setInteractive({ useHandCursor: true });
     this.add(this.soundButton);
 
     const initialMuted = SoundManager.getInstance().getMuted();
-    this.soundText = scene.add.text(1820, 32, initialMuted ? '🔇' : '🔊', {
+    this.soundText = scene.add.text(1820 + R, 32, initialMuted ? '🔇' : '🔊', {
       fontSize: '18px'
     }).setOrigin(0.5);
     this.add(this.soundText);
@@ -175,10 +181,10 @@ export class HUD extends Phaser.GameObjects.Container {
 
   /** Hover hints for every HUD element. */
   public attachTips(tip: InfoTip): void {
-    tip.zone(580, 32, 150, 40, 'Шестерни', 'Валюта забега. Даются за победу в волне и за убитых врагов. Тратятся в мастерской и в древе навыков.');
-    tip.zone(760, 32, 150, 40, 'Котёл', 'Прочность вашей базы. Каждый враг, дошедший до левого края, отнимает 1. Когда прочность кончится — забег проигран.');
-    tip.zone(940, 32, 150, 40, 'Роботы на поле', 'Сколько роботов стоит на поле и сколько можно поставить. Лимит повышается в древе навыков, ветка «Логистика».');
-    tip.zone(1140, 32, 150, 40, 'Пар и жар', 'Слева пар: тратится на прокрутки, когда бесплатные кончились (+2 за волну). Справа жар: растёт от платных прокруток, выше 60% барабаны могут заклинить.');
+    tip.zone(580 + this.pillShift, 32, 150, 40, 'Шестерни', 'Валюта забега. Даются за победу в волне и за убитых врагов. Тратятся в мастерской и в древе навыков.');
+    tip.zone(760 + this.pillShift, 32, 150, 40, 'Котёл', 'Прочность вашей базы. Каждый враг, дошедший до левого края, отнимает 1. Когда прочность кончится — забег проигран.');
+    tip.zone(940 + this.pillShift, 32, 150, 40, 'Роботы на поле', 'Сколько роботов стоит на поле и сколько можно поставить. Лимит повышается в древе навыков, ветка «Логистика».');
+    tip.zone(1140 + this.pillShift, 32, 150, 40, 'Пар и жар', 'Слева пар: тратится на прокрутки, когда бесплатные кончились (+2 за волну). Справа жар: растёт от платных прокруток, выше 60% барабаны могут заклинить.');
     tip.attach(this.skillsButton, 'Древо навыков', 'Постоянные улучшения на весь забег за шестерни: больше роботов на поле, здоровье, урон, прокрутки. Клавиша T.');
     tip.attach(this.valveButton, 'Аварийный клапан', 'Один раз за бой: замедляет всех врагов на 60% на 5 секунд. Клавиша V.');
     tip.attach(this.menuButton, 'Главное меню', 'Выйти в меню. Забег не пропадает: бой встаёт на паузу, в меню можно нажать «Продолжить забег». Клавиша Esc.');

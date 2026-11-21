@@ -26,7 +26,7 @@ import { CampaignManager } from '@core/campaign/campaign';
 import { CHAPTERS, STORY_SCENES, WAVE_LINES, chapterForWave } from '@data/story';
 import { DialogueModal } from '@ui/DialogueModal';
 import { fitBox, keyHint } from '@ui/TextStyles';
-import { fitCamera } from '@ui/Display';
+import { fitCamera, FULL_W, sideMargin } from '@ui/Display';
 import { EconomyManager } from '@core/economy/economy';
 import { CoreEffects } from '@core/cores/coreEffects';
 import { MUTATIONS_DATA } from '@data/mutations';
@@ -41,7 +41,7 @@ import { AnimationFX } from '../fx/AnimationFX';
 import { SteampunkAtmosphere } from '../fx/SteampunkAtmosphere';
 import { ParticleKit } from '../presentation/ParticleKit';
 import { SpriteForge } from '../art/forge/SpriteForge';
-import { actBackdropKey, BG_SCALE } from '../art/environment/actBackdrops';
+import { actBackdropKey, backdropCrop, BG_H, BG_SCALE } from '../art/environment/actBackdrops';
 import { fieldScale, playAttack as playForgeAttack, playLoop } from '../art/forge/play';
 
 interface EnemyVisual {
@@ -55,6 +55,8 @@ interface EnemyVisual {
   attackingUntil: number;
   /** height of the visible body in screen px (for hit/float text placement) */
   bodyH: number;
+  /** extra x while walking in from the right edge of a wide battlefield (eases to 0) */
+  enter: number;
 }
 
 /** Feet of a combatant sit this far below the tile centre. */
@@ -94,6 +96,8 @@ export class RunScene extends Phaser.Scene {
   private partIcons: Phaser.GameObjects.Image[] = [];
   private lastWaveReward = 0;
   private battleBg!: Phaser.GameObjects.Image;
+  /** How far the world reaches past the 1920 design on each side (wide screens); set in create(). */
+  private margin = 0;
 
   // Controls
   private spinButton?: Phaser.GameObjects.Rectangle;
@@ -139,6 +143,10 @@ export class RunScene extends Phaser.Scene {
 
   public create(): void {
     fitCamera(this);
+    // wide screens: the slot machine and reserve keep to the left edge, the battle buttons to the
+    // right one, and the battlefield grows into the space between (its grid stays where it was)
+    const m = sideMargin(this);
+    this.margin = m;
     // 1. Initialize deterministic run state & PRNG
     // Fresh random seed every run (the core stays deterministic for a given seed).
     // `?seed=12345` in the URL replays a specific run.
@@ -165,24 +173,24 @@ export class RunScene extends Phaser.Scene {
     SoundManager.getInstance().startAmbientHum();
 
     // 2. Build Stone Shell & Grand Meadow Battle Window (matching Reference Slotbound)
-    this.add.rectangle(960, 540, 1920, 1080, 0x120f17);
+    this.add.rectangle(960, 540, FULL_W, 1080, 0x120f17);
 
     // Battle Window positioned at x: 1176, y: 540 (width 1416, height 924)
     const winX = 1176;
     const winY = 540;
-    const winW = 1416;
+    const winW = 1416 + 2 * m;
     const winH = 924;
 
     // Meadow Backdrop
     // Act backdrop, painted at native res and shown at an exact ×4
     const bgKey = actBackdropKey(this.state.actNumber);
     this.battleBg = this.add.image(winX, winY, this.textures.exists(bgKey) ? bgKey : 'bg_meadow_day');
-    if (this.textures.exists(bgKey)) this.battleBg.setScale(BG_SCALE);
+    if (this.textures.exists(bgKey)) this.showBackdrop(bgKey);
     else this.battleBg.setDisplaySize(winW - 50, winH - 50);
 
     // Parchment/Brass Window Frame
-    const windowFrame = this.add.image(winX, winY, 'ui_window_frame');
-    windowFrame.setDisplaySize(winW, winH);
+    // nine-slice: the corner brackets keep their size when the window is wider than ×3 of the art
+    this.add.nineslice(winX, winY, 'ui_window_frame', undefined, winW / 3, winH / 3, 24, 24, 24, 24).setScale(3);
 
     // Top Wave Ribbon Banner
     // where the run is in the campaign (click → campaign map)
@@ -190,11 +198,11 @@ export class RunScene extends Phaser.Scene {
     this.createScoutBanner(winX + 125, 150);
 
     // Foreman Cogsworth in arch niche
-    this.createForemanGuide(540, 138);
+    this.createForemanGuide(540 - m, 138);
 
     // 3. Mount Sub-Views & Presentation Components
-    this.hud = new HUD(this);
-    this.reelView = new ReelView(this, 224, 460);
+    this.hud = new HUD(this, m);
+    this.reelView = new ReelView(this, 224 - m, 460);
     this.gridView = new GridView(this, 560, 580);
     this.tooltip = new Tooltip(this);
     this.shopView = new ShopView(this);
@@ -270,6 +278,12 @@ export class RunScene extends Phaser.Scene {
   }
 
   /** Scouting line under the campaign ribbon; hover it for what each mutation does and how to beat it. */
+  /** Act backdrop at ×4, cropped to the battle window's width (wider on wide screens). */
+  private showBackdrop(key: string): void {
+    const crop = backdropCrop(this.margin);
+    this.battleBg.setTexture(key).setScale(BG_SCALE).setCrop(crop.x, 0, crop.w, BG_H);
+  }
+
   private createScoutBanner(x: number, y: number): void {
     this.scoutBanner = this.add.container(x, y);
     const bg = this.add.rectangle(0, 0, 560, 26, 0x2a1418);
@@ -309,7 +323,7 @@ export class RunScene extends Phaser.Scene {
 
   /** Top-left gauge: the three parts of the Great Regulator, lit when recovered in this run. */
   private createRegulatorGauge(): void {
-    const x0 = 40;
+    const x0 = 40 - this.margin;
     const y = 30;
     const label = this.add.text(x0, y, 'РЕГУЛЯТОР', { fontSize: '17px', color: '#ffd166' }).setOrigin(0, 0.5);
     this.partIcons = CHAPTERS.map((c, i) => {
@@ -548,7 +562,7 @@ export class RunScene extends Phaser.Scene {
 
   private createBenchArea(): void {
     // Reserve shelf under the slot machine: two rows of five slots
-    const shelfX = 224;
+    const shelfX = 224 - this.margin;
     const shelfY = 888;
     const benchBg = this.add.rectangle(shelfX, shelfY, 400, 196, 0x18141f);
     benchBg.setStrokeStyle(2, 0x3d3047);
@@ -599,11 +613,11 @@ export class RunScene extends Phaser.Scene {
 
   private createBattleControls(): void {
     // Round Cast-Iron Skull Valve Button at bottom right of battle window
-    this.engageButton = this.add.image(1760, 920, 'ui_btn_round_skull');
+    this.engageButton = this.add.image(1760 + this.margin, 920, 'ui_btn_round_skull');
     this.engageButton.setScale(2.8);
     this.engageButton.setInteractive({ useHandCursor: true });
 
-    this.engageButtonText = this.add.text(1760, 975, `В БОЙ ▶${keyHint('Enter')}`, {
+    this.engageButtonText = this.add.text(1760 + this.margin, 975, `В БОЙ ▶${keyHint('Enter')}`, {
       fontFamily: 'monospace',
       fontSize: '14px',
       color: '#ffd166',
@@ -625,11 +639,11 @@ export class RunScene extends Phaser.Scene {
     this.engageButton.on('pointerout', () => this.engageButton.setScale(2.8));
 
     // Game Speed Button
-    this.speedButton = this.add.rectangle(1760, 835, 120, 34, 0x241d2c);
+    this.speedButton = this.add.rectangle(1760 + this.margin, 835, 120, 34, 0x241d2c);
     this.speedButton.setStrokeStyle(2, 0x8c5836);
     this.speedButton.setInteractive({ useHandCursor: true });
 
-    this.speedButtonText = this.add.text(1760, 835, 'СКОРОСТЬ: 1×', {
+    this.speedButtonText = this.add.text(1760 + this.margin, 835, 'СКОРОСТЬ: 1×', {
       fontFamily: 'monospace',
       fontSize: '12px',
       color: '#ffd166',
@@ -691,7 +705,7 @@ export class RunScene extends Phaser.Scene {
   private createWaveResultOverlay(): void {
     this.waveResultContainer = this.add.container(960, 540);
 
-    const overlay = this.add.rectangle(0, 0, 1920, 1080, 0x000000, 0.7);
+    const overlay = this.add.rectangle(0, 0, FULL_W, 1080, 0x000000, 0.7);
     overlay.setInteractive();
     this.waveResultContainer.add(overlay);
 
@@ -815,7 +829,7 @@ export class RunScene extends Phaser.Scene {
 
     this.eventBus.on('bench_overflow', (data) => {
       const name = t(UNITS_DATA[data.unitDefId]?.nameKey ?? '') || 'Робот';
-      this.showFloatingText(224, 760, `Резерв полон: ${name} → +${data.cogs} шест.`, '#ffd166');
+      this.showFloatingText(224 - this.margin, 760, `Резерв полон: ${name} → +${data.cogs} шест.`, '#ffd166');
     });
 
     // Smelt text floater & fusion vortex
@@ -858,7 +872,7 @@ export class RunScene extends Phaser.Scene {
 
     // Check if extra spin and can't afford steam
     if (this.state.freeSpinsLeft <= 0 && this.state.economy.steam < BALANCE.EXTRA_SPIN_STEAM_COST) {
-      this.showFloatingText(240, 500, 'Недостаточно Пара!', '#e63946');
+      this.showFloatingText(240 - this.margin, 500, 'Недостаточно Пара!', '#e63946');
       return;
     }
 
@@ -1141,7 +1155,7 @@ export class RunScene extends Phaser.Scene {
         this.enemyVisuals.set(enemy.id, visual);
       }
 
-      const colX = this.gridView.x + enemy.x * this.gridView.tileWidth + this.gridView.tileWidth / 2;
+      const colX = this.gridView.x + enemy.x * this.gridView.tileWidth + this.gridView.tileWidth / 2 + visual.enter;
       const footY = this.gridView.y + enemy.row * this.gridView.tileHeight + this.gridView.tileHeight / 2 + FOOT_DY;
       const moving = Math.abs(enemy.x - visual.lastX) > 0.0005;
       visual.lastX = enemy.x;
@@ -1223,7 +1237,13 @@ export class RunScene extends Phaser.Scene {
         return `${t(enemyDef.descKey)}\nЗдоровье: ${hp}${shield} · Урон: ${dmg} · Броня: ${enemyDef.armor}${muts ? `\nМутации: ${muts}` : ''}`;
       });
     }
-    return { container, sprite, hpBarFill, hpW, key, flying, lastX: -1, attackingUntil: 0, bodyH };
+    const visual: EnemyVisual = { container, sprite, hpBarFill, hpW, key, flying, lastX: -1, attackingUntil: 0, bodyH, enter: 0 };
+    // on a wide battlefield the spawn point is far from the edge: walk in from it
+    if (this.margin > 0) {
+      visual.enter = this.margin + 40;
+      this.tweens.add({ targets: visual, enter: 0, duration: 700, ease: 'Sine.easeOut' });
+    }
+    return visual;
   }
 
   private handleWaveVictory(): void {
@@ -1298,7 +1318,8 @@ export class RunScene extends Phaser.Scene {
     const act = this.state.actNumber;
     const bgKey = actBackdropKey(act);
     if (this.battleBg && this.textures.exists(bgKey) && this.battleBg.texture.key !== bgKey) {
-      this.battleBg.setTexture(bgKey).setScale(BG_SCALE);
+      this.battleBg.setTexture(bgKey);
+      this.showBackdrop(bgKey);
       this.cameras.main.flash(500, 255, 240, 200);
     }
     this.waveInfoText.setText(`Волна ${currentWave} / 30 [АКТ ${act}]\nПодготовьте позиции и крутите горн-слот!`);
@@ -1464,7 +1485,7 @@ export class RunScene extends Phaser.Scene {
     this.reelView.attachTips(tip, () => ({ holds: this.state.holdsLeft, nudges: this.state.nudgesLeft }));
     tip.attach(this.engageButton, 'В бой', 'Начинает волну (Enter). Во время боя роботов переставлять нельзя.');
     tip.attach(this.speedButton, 'Скорость боя', 'Переключает скорость сражения: 1×, 2×, 4×.');
-    tip.zone(224, 806, 380, 30, 'Резерв роботов', 'Сюда попадают призванные роботы. Перетащите робота на любую клетку поля. Робота на робота той же линейки и уровня — слияние.');
+    tip.zone(224 - this.margin, 806, 380, 30, 'Резерв роботов', 'Сюда попадают призванные роботы. Перетащите робота на любую клетку поля. Робота на робота той же линейки и уровня — слияние.');
   }
 
   /** Merge two units (same line + same level -> level + 1) or explain why not. */
@@ -1543,7 +1564,7 @@ export class RunScene extends Phaser.Scene {
           // SMELT on bench
           this.tryMerge(benchTarget.instanceId, droppedCard.unit.instanceId);
         } else if (droppedCard.unit.deployedSlot && this.state.reserveBench.length >= BALANCE.BENCH_CAP) {
-          this.showFloatingText(224, 780, 'Скамейка полна', '#ff8a7a');
+          this.showFloatingText(224 - this.margin, 780, 'Скамейка полна', '#ff8a7a');
         } else if (droppedCard.unit.deployedSlot) {
           // UNDEPLOY
           RunReducer.dispatch(

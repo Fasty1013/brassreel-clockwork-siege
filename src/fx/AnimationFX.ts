@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { FULL_W } from '../ui/Display';
 
 /**
  * Procedural Animation & Visual Feedback Engine
@@ -167,7 +168,7 @@ export class AnimationFX {
     scene.cameras.main.shake(450, 0.018);
 
     // 2. Whiteout steam haze veil
-    const steamHaze = scene.add.rectangle(960, 540, 1920, 1080, 0xe0e6ed, 0.45);
+    const steamHaze = scene.add.rectangle(960, 540, FULL_W, 1080, 0xe0e6ed, 0.45);
     steamHaze.setDepth(90);
 
     scene.tweens.add({

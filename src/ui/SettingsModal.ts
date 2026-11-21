@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
 import { SoundManager } from '../audio/SoundManager';
 import { backdrop, button, panel, section, text, title, UI } from './ModalKit';
-import { AUTO, chooseResolution, RESOLUTIONS, resolutionSetting, resolveResolution, screenBoxPixels } from './Display';
+import { AUTO, chooseResolution, presetCanvas, RESOLUTIONS, resolutionSetting, resolveResolution, screenBoxPixels } from './Display';
 import { fitBox } from './TextStyles';
 
 const STEPS = 10;
@@ -104,13 +104,17 @@ export class SettingsModal extends Phaser.GameObjects.Container {
   private buildScreen(c: Phaser.GameObjects.Container, y: number): void {
     const game = this.scene.game;
     const setting = resolutionSetting();
-    const auto = resolveResolution(AUTO);
+    const auto = presetCanvas(resolveResolution(AUTO));
     section(c, ROW_X, y, W, 'ЭКРАН', 'качество картинки: больше — чётче, меньше — быстрее');
 
     text(c, ROW_X, y + 72, 'Разрешение', 24, UI.CREAM, { origin: [0, 0.5] });
     const options: Array<{ id: string; label: string }> = [
       { id: AUTO, label: `Авто · ${auto.w}×${auto.h}` },
-      ...RESOLUTIONS.map((r) => ({ id: r.id, label: `${r.w}×${r.h}` }))
+      // sizes follow the screen's shape (a 20:9 phone: 2400×1080 instead of 1920×1080)
+      ...RESOLUTIONS.map((r) => {
+        const c = presetCanvas(r);
+        return { id: r.id, label: `${c.w}×${c.h}` };
+      })
     ];
     options.forEach((o, i) => {
       const col = i % 3;

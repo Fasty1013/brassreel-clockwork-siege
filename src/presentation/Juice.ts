@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { FULL_W } from '../ui/Display';
 
 /**
  * Game Juice & Screen Impact Engine
@@ -48,9 +49,8 @@ export class Juice {
    */
   public static dimScreen(scene: Phaser.Scene, targetAlpha = 0.45, durationMs = 180): void {
     if (!this.dimMask || !this.dimMask.active) {
-      this.dimMask = scene.add.rectangle(320, 180, 640, 360, 0x0b090f, 0);
+      this.dimMask = scene.add.rectangle(960, 540, FULL_W, 1080, 0x0b090f, 0);
       this.dimMask.setDepth(400);
-      this.dimMask.setScrollFactor(0);
     }
 
     this.dimMask.setVisible(true);

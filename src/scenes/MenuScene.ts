@@ -12,7 +12,7 @@ import type { RunState } from '@core/state/RunState';
 import { ACTS, WAVES_PER_ACT } from '@data/acts';
 import { WAVES_DATA } from '@data/waves';
 import { fitBox, TOUCH_ONLY } from '../ui/TextStyles';
-import { fitCamera, WORLD_H, WORLD_W } from '../ui/Display';
+import { FULL_W, fitCamera, sideMargin, WORLD_H, WORLD_RESIZE, WORLD_W } from '../ui/Display';
 
 /** « [ПРОБЕЛ]» on the start button with a keyboard, nothing on a touch screen. */
 const spaceHint = (ru: boolean): string => (TOUCH_ONLY ? '' : ru ? ' [ПРОБЕЛ]' : ' [SPACE]');
@@ -31,29 +31,37 @@ export class MenuScene extends Phaser.Scene {
 
   public create(): void {
     fitCamera(this);
+    // the screen changed shape (cut-out reported late, window resized): lay the menu out again
+    const relayout = (): void => {
+      if (this.scene.isActive() && !this.anyModalOpen()) this.scene.restart();
+    };
+    this.game.events.on(WORLD_RESIZE, relayout);
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => this.game.events.off(WORLD_RESIZE, relayout));
     const width = WORLD_W;
     const height = WORLD_H;
 
     // Background gradient / dark casino chamber
-    this.add.rectangle(width / 2, height / 2, width, height, 0x14100c);
+    // the world may be wider than 1920 (wide phones): background and frame span it all
+    const m = sideMargin(this);
+    this.add.rectangle(width / 2, height / 2, FULL_W, height, 0x14100c);
 
     // Decorative rotating background gears
-    const gear1 = this.add.sprite(180, 200, 'sym_cog').setScale(3.5).setAlpha(0.18);
-    const gear2 = this.add.sprite(width - 200, 260, 'sym_cog').setScale(4.5).setAlpha(0.18);
+    const gear1 = this.add.sprite(180 - m, 200, 'sym_cog').setScale(3.5).setAlpha(0.18);
+    const gear2 = this.add.sprite(width - 200 + m, 260, 'sym_cog').setScale(4.5).setAlpha(0.18);
     const gear3 = this.add.sprite(width / 2 - 400, height - 180, 'sym_cog').setScale(3.0).setAlpha(0.15);
     const gear4 = this.add.sprite(width / 2 + 450, height - 160, 'sym_cog').setScale(3.2).setAlpha(0.15);
     this.gears = [gear1, gear2, gear3, gear4];
 
     // Marquee Frame
-    const border = this.add.rectangle(width / 2, height / 2, width - 80, height - 80);
+    const border = this.add.rectangle(width / 2, height / 2, width + 2 * m - 80, height - 80);
     border.setStrokeStyle(3, 0xd4a373, 0.5);
 
     // Sound toggle at top right
-    const soundBtn = this.add.rectangle(width - 70, 50, 48, 40, 0x2b221a);
+    const soundBtn = this.add.rectangle(width - 70 + m, 50, 48, 40, 0x2b221a);
     soundBtn.setStrokeStyle(1, 0x8c5836);
     soundBtn.setInteractive({ useHandCursor: true });
 
-    const soundText = this.add.text(width - 70, 50, SoundManager.getInstance().getMuted() ? '🔇' : '🔊', {
+    const soundText = this.add.text(width - 70 + m, 50, SoundManager.getInstance().getMuted() ? '🔇' : '🔊', {
       fontSize: '20px'
     }).setOrigin(0.5);
 

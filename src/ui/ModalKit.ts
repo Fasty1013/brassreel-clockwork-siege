@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import { fitBox } from './TextStyles';
+import { FULL_W } from './Display';
 
 /**
  * ModalKit — shared building blocks for every pop-up window, so the shop,
@@ -19,7 +20,7 @@ export const UI = {
 type Parent = Phaser.GameObjects.Container;
 
 export function backdrop(c: Parent, alpha = 0.8): Phaser.GameObjects.Rectangle {
-  const r = c.scene.add.rectangle(0, 0, 1920, 1080, 0x07050a, alpha);
+  const r = c.scene.add.rectangle(0, 0, FULL_W, 1080, 0x07050a, alpha);
   r.setInteractive(); // blocks clicks underneath
   c.add(r);
   return r;

@@ -11,7 +11,7 @@ import { UIFrameArt } from '../art/ui/frames';
 import { registerForgeArt } from '../art/forge';
 import { registerActBackdrops } from '../art/environment/actBackdrops';
 import { registerPanelTextures } from '../art/ui/UISkin';
-import { fitCamera, WORLD_H, WORLD_W } from '../ui/Display';
+import { FULL_W, fitCamera, WORLD_H, WORLD_W } from '../ui/Display';
 
 export class BootScene extends Phaser.Scene {
   constructor() {
@@ -41,7 +41,7 @@ export class BootScene extends Phaser.Scene {
     const width = WORLD_W;
     const height = WORLD_H;
 
-    this.add.rectangle(width / 2, height / 2, width, height, 0x14100c);
+    this.add.rectangle(width / 2, height / 2, FULL_W, height, 0x14100c);
 
     this.add.text(width / 2, height / 2 - 40, 'BRASSREEL: CLOCKWORK SIEGE', {
       fontFamily: 'monospace',

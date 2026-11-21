@@ -1,25 +1,24 @@
 import Phaser from 'phaser';
+import {
+  canvasSize, MIN_WORLD_W, pickResolution, RESOLUTIONS, WORLD_H, worldWidthFor, type Resolution
+} from './resolutions';
 
 /**
- * Render resolution of the game.
+ * Screen, world and render resolution.
  *
- * Every scene is laid out in a fixed 1920×1080 world. The canvas itself can be
- * smaller or larger (the «resolution» setting): the main camera of each scene is
- * zoomed so the whole world always fills the canvas, and the canvas is then fitted
- * into the screen (`Phaser.Scale.FIT`, bars in index.html, camera cut-outs kept
- * clear by the safe-area padding).
+ * Scenes are designed for 1920×1080 (WORLD_W). The world is 1080 tall and as wide as
+ * the screen's shape asks (worldWidthFor: 1920 for 16:9 up to 2560 for 21:9), so a
+ * 20:9 phone is filled edge to edge: each scene puts its full-screen backgrounds across
+ * the whole width and pins side elements to the edges (sideMargin / leftEdge / rightEdge);
+ * the 1920 design stays centred.
  *
- * «Auto» picks the preset that matches the real pixels of the screen area the game
- * gets: a 2400×1080 phone gets 1920×1080, a 1600×720 one 1280×720, a 1440p monitor
- * 2560×1440. It is picked again when the window or the phone turns.
+ * The canvas has the world's shape; its height is the «resolution» setting (auto: the
+ * screen's real pixels). The page keeps the canvas clear of camera cut-outs with the
+ * safe-area padding in index.html, so the world fills exactly the area left beside a cut-out.
  */
 
 export const WORLD_W = 1920;
-export const WORLD_H = 1080;
-
-import { pickResolution, RESOLUTIONS, type Resolution } from './resolutions';
-
-export { RESOLUTIONS, type Resolution };
+export { WORLD_H, RESOLUTIONS, type Resolution };
 
 export const AUTO = 'auto';
 const STORAGE_KEY = 'brassreel_resolution';
@@ -46,21 +45,28 @@ export function resolutionSetting(): string {
   return saved && RESOLUTIONS.some((r) => r.id === saved) ? saved : AUTO;
 }
 
-/**
- * Real pixels of the 16:9 box the game gets on this screen: the page area left
- * after the camera cut-out padding, times the device pixel ratio.
- */
-export function screenBoxPixels(): { w: number; h: number } {
+/** CSS size of the page area the game gets (after the cut-out padding). */
+function gameArea(): { w: number; h: number } {
   if (typeof window === 'undefined') return { w: WORLD_W, h: WORLD_H };
   const box = document.getElementById('game-container');
-  const cssW = box?.clientWidth || window.innerWidth;
-  const cssH = box?.clientHeight || window.innerHeight;
-  const dpr = window.devicePixelRatio || 1;
-  const h = Math.min(cssH, (cssW * 9) / 16) * dpr;
-  return { w: Math.round((h * 16) / 9), h: Math.round(h) };
+  return { w: box?.clientWidth || window.innerWidth, h: box?.clientHeight || window.innerHeight };
 }
 
-/** Largest preset that is not bigger than the screen box (the smallest one on tiny screens). */
+/** World width this screen asks for. */
+export function screenWorldWidth(): number {
+  const a = gameArea();
+  return worldWidthFor(a.w, a.h);
+}
+
+/** Real pixels of the area the game is shown in (CSS size × device pixel ratio, world shape). */
+export function screenBoxPixels(): { w: number; h: number } {
+  const a = gameArea();
+  const dpr = typeof window === 'undefined' ? 1 : window.devicePixelRatio || 1;
+  const ww = worldWidth;
+  const h = Math.min(a.h, (a.w * WORLD_H) / ww) * dpr;
+  return { w: Math.round((h * ww) / WORLD_H), h: Math.round(h) };
+}
+
 export function autoResolution(): Resolution {
   return pickResolution(screenBoxPixels().h);
 }
@@ -69,34 +75,59 @@ export function resolveResolution(setting = resolutionSetting()): Resolution {
   return RESOLUTIONS.find((r) => r.id === setting) ?? autoResolution();
 }
 
-/** World → canvas scale of the current canvas. */
-export function worldZoom(game?: Phaser.Game): number {
-  const w = game ? game.scale.gameSize.width : resolveResolution().w;
-  return w / WORLD_W;
+/** Canvas size of a preset at the current world shape (for labels in the settings). */
+export function presetCanvas(r: Resolution): { w: number; h: number } {
+  return canvasSize(r, worldWidth);
 }
 
-/** Text is rasterised this much finer, so it stays sharp on canvases larger than the world. */
+let worldWidth = MIN_WORLD_W;
+let currentZoom = 1;
+
+/** Text is rasterised this much finer, so it stays sharp on canvases taller than 1080. */
 export function textResolution(): number {
   return Math.max(1, currentZoom);
 }
 
-let currentZoom = 1;
-const fitted = new Set<Phaser.Scene>();
+// ------------------------------------------------------------ scenes
 
-/** Call at the start of a scene's create(): the camera shows the 1920×1080 world on any canvas size. */
+/** World width each scene was laid out for (fixed at its create()). */
+const layoutWidth = new Map<Phaser.Scene, number>();
+
+/**
+ * Call at the start of a scene's create(): the scene is laid out for the current world
+ * width, and its camera shows that world on any canvas size.
+ */
 export function fitCamera(scene: Phaser.Scene): void {
-  fitted.add(scene);
+  layoutWidth.set(scene, worldWidth);
   // a stopped scene loses its cameras; it is fitted again on its next create()
-  scene.events.once(Phaser.Scenes.Events.SHUTDOWN, () => fitted.delete(scene));
-  scene.events.once(Phaser.Scenes.Events.DESTROY, () => fitted.delete(scene));
+  scene.events.once(Phaser.Scenes.Events.SHUTDOWN, () => layoutWidth.delete(scene));
+  scene.events.once(Phaser.Scenes.Events.DESTROY, () => layoutWidth.delete(scene));
   applyZoom(scene);
 }
+
+/** How far the world reaches past the 1920 design on each side, for this scene. */
+export function sideMargin(scene: Phaser.Scene): number {
+  return ((layoutWidth.get(scene) ?? worldWidth) - WORLD_W) / 2;
+}
+
+/** World x of the screen's left / right edge in this scene. */
+export const leftEdge = (scene: Phaser.Scene): number => -sideMargin(scene);
+export const rightEdge = (scene: Phaser.Scene): number => WORLD_W + sideMargin(scene);
+
+/** Wide enough for any full-screen background or shade (centred at x = 960). */
+export const FULL_W = 2 * WORLD_W;
 
 function applyZoom(scene: Phaser.Scene): void {
   const cam = scene.cameras?.main;
   if (!cam) return;
-  cam.setSize(scene.scale.gameSize.width, scene.scale.gameSize.height);
-  cam.setOrigin(0, 0).setScroll(0, 0).setZoom(scene.scale.gameSize.width / WORLD_W);
+  const cw = scene.scale.gameSize.width;
+  const ch = scene.scale.gameSize.height;
+  const sceneW = layoutWidth.get(scene) ?? worldWidth;
+  // the scene's world fits whole; if the screen changed shape since it was laid out, it is centred
+  const zoom = Math.min(cw / sceneW, ch / WORLD_H);
+  cam.setSize(cw, ch);
+  cam.setOrigin(0, 0).setZoom(zoom);
+  cam.setScroll(WORLD_W / 2 - cw / zoom / 2, WORLD_H / 2 - ch / zoom / 2);
 }
 
 /** Pointer position in world coordinates (pointer.x / y are canvas pixels). */
@@ -112,13 +143,15 @@ function retuneTexts(list: Phaser.GameObjects.GameObject[], res: number): void {
   }
 }
 
-/** Switch the canvas to another size at once, keeping every scene (a paused run too). */
+/** Resize the canvas to a preset at the current world shape, keeping every scene (a paused run too). */
 export function setRenderSize(game: Phaser.Game, r: Resolution): void {
-  currentZoom = r.w / WORLD_W;
-  if (game.scale.gameSize.width === r.w && game.scale.gameSize.height === r.h) return;
-  game.scale.setGameSize(r.w, r.h);
+  const size = canvasSize(r, worldWidth);
+  currentZoom = size.h / WORLD_H;
+  if (game.scale.gameSize.width !== size.w || game.scale.gameSize.height !== size.h) {
+    game.scale.setGameSize(size.w, size.h);
+  }
   const res = textResolution();
-  for (const scene of fitted) {
+  for (const scene of layoutWidth.keys()) {
     applyZoom(scene);
     retuneTexts(scene.children.list, res);
   }
@@ -133,24 +166,34 @@ export function chooseResolution(game: Phaser.Game, setting: string): Resolution
 }
 
 /** Canvas size for the game config, before the game exists. */
-export function initialRenderSize(): Resolution {
-  const r = resolveResolution();
-  currentZoom = r.w / WORLD_W;
-  return r;
+export function initialRenderSize(): { w: number; h: number } {
+  worldWidth = screenWorldWidth();
+  const size = canvasSize(resolveResolution(), worldWidth);
+  currentZoom = size.h / WORLD_H;
+  return size;
 }
 
-/** In «auto», follow the window: a turned phone, a resized browser, a moved window. */
+/** Emitted on game.events when the world width changes; scenes that can re-lay themselves out do. */
+export const WORLD_RESIZE = 'world-resize';
+
+/**
+ * Follow the screen: a turned phone, a resized or moved window, a cut-out reported late
+ * by the Android app. The world takes the new shape and the canvas the new size.
+ */
 export function followScreen(game: Phaser.Game): void {
   let timer: number | undefined;
   const refit = (): void => {
     window.clearTimeout(timer);
     timer = window.setTimeout(() => {
-      if (resolutionSetting() === AUTO) setRenderSize(game, autoResolution());
-    }, 200);
+      const w = screenWorldWidth();
+      const changed = w !== worldWidth;
+      worldWidth = w;
+      setRenderSize(game, resolveResolution());
+      if (changed) game.events.emit(WORLD_RESIZE, w);
+    }, 150);
   };
   window.addEventListener('resize', refit);
   window.addEventListener('orientationchange', refit);
-  // the cut-out padding can change without a window resize (the Android app reports it late)
   const box = document.getElementById('game-container');
   if (box && typeof ResizeObserver !== 'undefined') new ResizeObserver(refit).observe(box);
 }
