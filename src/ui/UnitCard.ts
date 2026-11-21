@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import { UnitInstance } from '@core/units/unitFactory';
 import { Tooltip } from './Tooltip';
 import { LONG_PRESS_MS } from './InfoTip';
+import { worldPoint } from './Display';
 import { UNITS_DATA } from '@data/units';
 import { AnimationFX } from '../fx/AnimationFX';
 import { ParticleKit } from '../presentation/ParticleKit';
@@ -94,13 +95,13 @@ export class UnitCard extends Phaser.GameObjects.Container {
     // mouse: hover shows the robot card; touch: a long press without dragging
     let press: Phaser.Time.TimerEvent | null = null;
     this.on('pointerover', (pointer: Phaser.Input.Pointer) => {
-      if (!this.isDragging && !pointer.wasTouch) tooltip.showUnit(this.unit, pointer.x, pointer.y);
+      if (!this.isDragging && !pointer.wasTouch) this.showTip(tooltip, pointer);
     });
     this.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
       if (!pointer.wasTouch) return;
       press?.remove();
       press = scene.time.delayedCall(LONG_PRESS_MS, () => {
-        if (!this.isDragging) tooltip.showUnit(this.unit, pointer.x, pointer.y);
+        if (!this.isDragging) this.showTip(tooltip, pointer);
       });
     });
     const endPress = (): void => {
@@ -144,6 +145,12 @@ export class UnitCard extends Phaser.GameObjects.Container {
     scene.add.existing(this);
     this.applyLayout();
     this.startIdleBobbing();
+  }
+
+  /** Robot card next to the finger / cursor (in world coordinates, whatever the canvas size). */
+  private showTip(tooltip: Tooltip, pointer: Phaser.Input.Pointer): void {
+    const at = worldPoint(this.scene, pointer);
+    tooltip.showUnit(this.unit, at.x, at.y);
   }
 
   private benchScale(): number {

@@ -26,6 +26,7 @@ import { CampaignManager } from '@core/campaign/campaign';
 import { CHAPTERS, STORY_SCENES, WAVE_LINES, chapterForWave } from '@data/story';
 import { DialogueModal } from '@ui/DialogueModal';
 import { fitBox, keyHint } from '@ui/TextStyles';
+import { fitCamera } from '@ui/Display';
 import { EconomyManager } from '@core/economy/economy';
 import { CoreEffects } from '@core/cores/coreEffects';
 import { MUTATIONS_DATA } from '@data/mutations';
@@ -137,6 +138,7 @@ export class RunScene extends Phaser.Scene {
   }
 
   public create(): void {
+    fitCamera(this);
     // 1. Initialize deterministic run state & PRNG
     // Fresh random seed every run (the core stays deterministic for a given seed).
     // `?seed=12345` in the URL replays a specific run.

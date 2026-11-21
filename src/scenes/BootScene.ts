@@ -11,6 +11,7 @@ import { UIFrameArt } from '../art/ui/frames';
 import { registerForgeArt } from '../art/forge';
 import { registerActBackdrops } from '../art/environment/actBackdrops';
 import { registerPanelTextures } from '../art/ui/UISkin';
+import { fitCamera, WORLD_H, WORLD_W } from '../ui/Display';
 
 export class BootScene extends Phaser.Scene {
   constructor() {
@@ -18,6 +19,7 @@ export class BootScene extends Phaser.Scene {
   }
 
   public preload(): void {
+    fitCamera(this);
     // 1. Initialize Hybrid Progressive Asset Loader (procedural baseline + overrides)
     AssetLoader.init(this);
 
@@ -36,8 +38,8 @@ export class BootScene extends Phaser.Scene {
     registerActBackdrops(this.textures);
     registerPanelTextures(this.textures);
 
-    const width = this.cameras.main.width;
-    const height = this.cameras.main.height;
+    const width = WORLD_W;
+    const height = WORLD_H;
 
     this.add.rectangle(width / 2, height / 2, width, height, 0x14100c);
 

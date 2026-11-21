@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { textResolution } from './Display';
 
 /**
  * Single source of truth for UI typography.
@@ -135,6 +136,8 @@ export function installTextDefaults(): void {
     // a stroke closes the small counters of pixel glyphs (С→О, 5→8): thin it out,
     // and give light text a hard drop shadow instead so it reads on any backdrop
     if (next.strokeThickness !== undefined && next.strokeThickness > 2) next.strokeThickness = 2;
+    // finer raster on canvases larger than the 1920×1080 world (see Display.ts)
+    if (next.resolution === undefined) next.resolution = textResolution();
     if (!next.shadow && isLight(String(next.color ?? '#ffffff'))) {
       next.shadow = { offsetX: 2, offsetY: 2, color: '#0b0910', blur: 0, fill: true, stroke: false };
     }

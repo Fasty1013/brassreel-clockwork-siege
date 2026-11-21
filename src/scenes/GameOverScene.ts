@@ -6,6 +6,7 @@ import { ArchiveModal } from '../ui/ArchiveModal';
 import { CampaignManager } from '@core/campaign/campaign';
 import { CHAPTERS, THREAT_LEVELS, chapterForWave } from '@data/story';
 import { fitBox } from '../ui/TextStyles';
+import { fitCamera, WORLD_H, WORLD_W } from '../ui/Display';
 
 export interface GameOverData {
   victory: boolean;
@@ -34,8 +35,9 @@ export class GameOverScene extends Phaser.Scene {
   }
 
   public create(data: GameOverData): void {
-    const width = this.cameras.main.width;
-    const height = this.cameras.main.height;
+    fitCamera(this);
+    const width = WORLD_W;
+    const height = WORLD_H;
 
     // Record meta progress
     const meta = MetaManager.load();

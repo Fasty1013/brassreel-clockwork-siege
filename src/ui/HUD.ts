@@ -123,9 +123,13 @@ export class HUD extends Phaser.GameObjects.Container {
     this.add(this.soundText);
 
     this.soundButton.on('pointerdown', () => {
-      const isMuted = SoundManager.getInstance().toggleMute();
-      this.soundText.setText(isMuted ? '🔇' : '🔊');
+      SoundManager.getInstance().toggleMute();
     });
+    // the icon follows the M key and the settings window too
+    const offSound = SoundManager.getInstance().onChange(() => {
+      if (this.soundText.active) this.soundText.setText(SoundManager.getInstance().getMuted() ? '🔇' : '🔊');
+    });
+    this.once(Phaser.GameObjects.Events.DESTROY, offSound);
 
     scene.add.existing(this);
   }

@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import '@fontsource/rubik/500.css';
 import '@fontsource/rubik/700.css';
 import { installTextDefaults, loadUiFont } from './ui/TextStyles';
+import { followScreen, initialRenderSize } from './ui/Display';
 import { BootScene } from './scenes/BootScene';
 import { MenuScene } from './scenes/MenuScene';
 import { RunScene } from './scenes/RunScene';
@@ -17,11 +18,14 @@ const isRefBenchmark = typeof window !== 'undefined' && window.location.search.i
 
 installTextDefaults();
 
+// the canvas size is the «resolution» setting (auto: the screen's real pixels); scenes stay 1920×1080
+const render = initialRenderSize();
+
 const config: Phaser.Types.Core.GameConfig = {
   type: Phaser.AUTO,
   parent: 'game-container',
-  width: 1920,
-  height: 1080,
+  width: render.w,
+  height: render.h,
   pixelArt: true,
   roundPixels: true,
   antialias: false,
@@ -44,11 +48,12 @@ void loadUiFont().then(() => {
   const game = new Phaser.Game(config);
   (window as any).game = game;
   keepCanvasSharp(game);
+  followScreen(game);
 });
 
 /**
- * Nearest-neighbour scaling keeps pixel art crisp when the game is shown at
- * full size or larger, but when the window is smaller than 1920×1080 it drops
+ * Nearest-neighbour scaling keeps pixel art crisp when the canvas is shown at
+ * a whole multiple of its size, but at any other scale it drops or doubles
  * whole rows of pixels and tears text apart. Smooth scaling is used then.
  */
 function keepCanvasSharp(game: Phaser.Game): void {
@@ -56,10 +61,14 @@ function keepCanvasSharp(game: Phaser.Game): void {
     const canvas = game.canvas;
     if (!canvas) return;
     const shown = canvas.getBoundingClientRect().width * (window.devicePixelRatio || 1);
-    canvas.style.imageRendering = shown >= game.scale.width - 1 ? 'pixelated' : 'auto';
+    // pixel-exact only at whole multiples (×1, ×2…): a 1.5× stretch makes uneven pixel rows
+    const ratio = shown / game.scale.width;
+    const whole = ratio >= 0.99 && Math.abs(ratio - Math.round(ratio)) < 0.02;
+    canvas.style.imageRendering = whole ? 'pixelated' : 'auto';
   };
   game.events.once(Phaser.Core.Events.READY, apply);
   game.scale.on(Phaser.Scale.Events.RESIZE, apply);
+  game.scale.on(Phaser.Scale.Events.ENTER_FULLSCREEN, () => setTimeout(apply, 100));
   window.addEventListener('resize', () => setTimeout(apply, 50));
   apply();
 }

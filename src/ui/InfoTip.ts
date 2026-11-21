@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { UI } from './ModalKit';
 import { SMALL_SCREEN } from './TextStyles';
+import { WORLD_H, WORLD_W, worldPoint } from './Display';
 
 type Body = string | (() => string);
 
@@ -59,7 +60,7 @@ export class InfoTip {
       if (!p.wasTouch) this.show(obj, title, body, p);
     });
     obj.on('pointermove', (p: Phaser.Input.Pointer) => {
-      if (this.owner === obj) this.place(p.x, p.y);
+      if (this.owner === obj) this.placeAt(p);
     });
     obj.on('pointerout', () => {
       cancelPress();
@@ -95,12 +96,18 @@ export class InfoTip {
     this.body.setY(this.title.y + this.title.height + 6);
     this.bg.setSize(W, this.body.y + this.body.height + PAD);
     this.box.setVisible(true);
-    this.place(p.x, p.y);
+    this.placeAt(p);
+  }
+
+  private placeAt(p: Phaser.Input.Pointer): void {
+    const at = worldPoint(this.scene, p);
+    this.place(at.x, at.y);
   }
 
   private place(px: number, py: number): void {
     const h = this.bg.height;
-    const { width, height } = this.scene.scale;
+    const width = WORLD_W;
+    const height = WORLD_H;
     let x = px + 22;
     let y = py + 26;
     if (x + W > width - 8) x = px - W - 16;

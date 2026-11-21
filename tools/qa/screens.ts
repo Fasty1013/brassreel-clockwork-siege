@@ -6,6 +6,8 @@
  * Saves the menu, story, prep, robot card, skill tree, campaign map, battle, shop, evolution,
  * core draft, the menu with a paused run, archive, campaign and game over.
  * UI=phone or UI=desktop forces the text mode (`?ui=` in the address), e.g. phone text at 1920×1080.
+ * RES=1280x720 (or another preset) sets the resolution setting before the page loads; CUTOUT=40 fakes
+ * a 40 px camera cut-out on the left (the --safe-area-inset-left the Android app passes).
  */
 import puppeteer from 'puppeteer-core';
 import http from 'http';
@@ -43,7 +45,14 @@ async function main(): Promise<void> {
     const touch = Number(w) < 1100;
     await page.setViewport({ width: Number(w), height: Number(h), deviceScaleFactor: Number(dpr), hasTouch: touch, isMobile: touch });
     page.on('pageerror', (e: unknown) => console.error('PAGE ERROR:', (e as Error)?.message ?? e));
-    await page.goto(`http://127.0.0.1:${PORT}/${process.env.UI ? `?ui=${process.env.UI}` : ''}`, { waitUntil: 'load' });
+    if (process.env.RES) {
+      await page.evaluateOnNewDocument(`localStorage.setItem('brassreel_resolution', '${process.env.RES}')`);
+    }
+    if (process.env.CUTOUT) {
+      await page.evaluateOnNewDocument(`document.addEventListener('DOMContentLoaded', () =>
+        document.documentElement.style.setProperty('--safe-area-inset-left', '${process.env.CUTOUT}px'))`);
+    }
+        await page.goto(`http://127.0.0.1:${PORT}/${process.env.UI ? `?ui=${process.env.UI}` : ''}`, { waitUntil: 'load' });
     await wait(1800);
 
     const shot = async (name: string) => {
@@ -64,6 +73,9 @@ async function main(): Promise<void> {
       })()`) as Promise<{ x: number; y: number }>;
 
     await shot('01_menu');
+    await page.evaluate(`window.game.scene.getScene('MenuScene').settingsModal.open()`);
+    await shot('01b_settings');
+    await page.evaluate(`window.game.scene.getScene('MenuScene').settingsModal.hide()`);
     await page.evaluate(`window.game.scene.getScene('MenuScene').scene.start('RunScene')`);
     await wait(1500);
     await shot('02_story');

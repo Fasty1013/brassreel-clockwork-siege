@@ -4,6 +4,7 @@ import { setLocale, getLocale } from '@data/i18n';
 import { SoundManager } from '../audio/SoundManager';
 import { ArchiveModal } from '../ui/ArchiveModal';
 import { CampaignModal } from '../ui/CampaignModal';
+import { SettingsModal } from '../ui/SettingsModal';
 import { MetaManager } from '@core/meta/metaManager';
 import { CampaignManager } from '@core/campaign/campaign';
 import { CHAPTERS, THREAT_LEVELS } from '@data/story';
@@ -11,6 +12,7 @@ import type { RunState } from '@core/state/RunState';
 import { ACTS, WAVES_PER_ACT } from '@data/acts';
 import { WAVES_DATA } from '@data/waves';
 import { fitBox, TOUCH_ONLY } from '../ui/TextStyles';
+import { fitCamera, WORLD_H, WORLD_W } from '../ui/Display';
 
 /** « [ПРОБЕЛ]» on the start button with a keyboard, nothing on a touch screen. */
 const spaceHint = (ru: boolean): string => (TOUCH_ONLY ? '' : ru ? ' [ПРОБЕЛ]' : ' [SPACE]');
@@ -21,14 +23,16 @@ export class MenuScene extends Phaser.Scene {
   private gears: Phaser.GameObjects.Sprite[] = [];
   private archiveModal!: ArchiveModal;
   private campaignModal!: CampaignModal;
+  private settingsModal!: SettingsModal;
 
   constructor() {
     super('MenuScene');
   }
 
   public create(): void {
-    const width = this.cameras.main.width;
-    const height = this.cameras.main.height;
+    fitCamera(this);
+    const width = WORLD_W;
+    const height = WORLD_H;
 
     // Background gradient / dark casino chamber
     this.add.rectangle(width / 2, height / 2, width, height, 0x14100c);
@@ -55,9 +59,13 @@ export class MenuScene extends Phaser.Scene {
 
     soundBtn.on('pointerdown', () => {
       SoundManager.getInstance().init();
-      const muted = SoundManager.getInstance().toggleMute();
-      soundText.setText(muted ? '🔇' : '🔊');
+      SoundManager.getInstance().toggleMute();
     });
+    // the icon follows the settings window too
+    const offSound = SoundManager.getInstance().onChange(() => {
+      if (soundText.active) soundText.setText(SoundManager.getInstance().getMuted() ? '🔇' : '🔊');
+    });
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, offSound);
 
     // Title & Subtitle
     this.add.text(width / 2, 220, 'BRASSREEL', {
@@ -172,12 +180,13 @@ export class MenuScene extends Phaser.Scene {
 
     startBtn.on('pointerdown', startGame);
     const startFromKeys = () => {
-      if (!this.campaignModal?.visible && !this.archiveModal?.visible) startGame();
+      if (!this.anyModalOpen()) startGame();
     };
     this.input.keyboard?.on('keydown-SPACE', startFromKeys);
     this.input.keyboard?.on('keydown-ENTER', startFromKeys);
     this.input.keyboard?.on('keydown-ESC', () => {
-      if (canResume && !this.campaignModal?.visible && !this.archiveModal?.visible) resumeRun();
+      if (this.settingsModal?.visible) this.settingsModal.hide();
+      else if (canResume && !this.anyModalOpen()) resumeRun();
     });
 
     // New run while one is paused: the second click within 3 s confirms (the paused run is lost)
@@ -230,11 +239,11 @@ export class MenuScene extends Phaser.Scene {
     this.archiveModal = new ArchiveModal(this);
 
     // Archive Button
-    const archiveBtn = this.add.rectangle(width / 2 - 140, 630, 240, 48, 0x2b221a);
+    const archiveBtn = this.add.rectangle(width / 2 - 270, 630, 240, 48, 0x2b221a);
     archiveBtn.setStrokeStyle(2, 0xffd166);
     archiveBtn.setInteractive({ useHandCursor: true });
 
-    this.add.text(width / 2 - 140, 630, isRu ? '📜 Архив Кузницы' : '📜 Archives', {
+    this.add.text(width / 2 - 270, 630, isRu ? '📜 Архив Кузницы' : '📜 Archives', {
       fontFamily: 'monospace',
       fontSize: '15px',
       color: '#ffd166',
@@ -247,12 +256,28 @@ export class MenuScene extends Phaser.Scene {
       this.archiveModal.open();
     });
 
+    // Settings: sound and screen resolution
+    this.settingsModal = new SettingsModal(this);
+    const settingsBtn = this.add.rectangle(width / 2, 630, 240, 48, 0x2b221a);
+    settingsBtn.setStrokeStyle(2, 0xffd166);
+    settingsBtn.setInteractive({ useHandCursor: true });
+    this.add.text(width / 2, 630, isRu ? '⚙ Настройки' : '⚙ Settings', {
+      fontSize: '15px',
+      color: '#ffd166',
+      fontStyle: 'bold'
+    }).setOrigin(0.5);
+    settingsBtn.on('pointerdown', () => {
+      SoundManager.getInstance().init();
+      SoundManager.getInstance().playButtonClick();
+      this.settingsModal.open();
+    });
+
     // Language Toggle Button (RU / EN)
-    const langBtn = this.add.rectangle(width / 2 + 140, 630, 220, 48, 0x2b221a);
+    const langBtn = this.add.rectangle(width / 2 + 270, 630, 220, 48, 0x2b221a);
     langBtn.setStrokeStyle(2, 0x8c5836);
     langBtn.setInteractive({ useHandCursor: true });
 
-    this.langBtnText = this.add.text(width / 2 + 140, 630, `ЯЗЫК / LANG: ${getLocale().toUpperCase()}`, {
+    this.langBtnText = this.add.text(width / 2 + 270, 630, `ЯЗЫК / LANG: ${getLocale().toUpperCase()}`, {
       fontFamily: 'monospace',
       fontSize: '15px',
       color: '#adb5bd',
@@ -342,5 +367,9 @@ export class MenuScene extends Phaser.Scene {
     if (this.gears[1]) this.gears[1].rotation -= rotSpeed * 0.8;
     if (this.gears[2]) this.gears[2].rotation += rotSpeed * 0.6;
     if (this.gears[3]) this.gears[3].rotation -= rotSpeed * 0.7;
+  }
+
+  private anyModalOpen(): boolean {
+    return Boolean(this.campaignModal?.visible || this.archiveModal?.visible || this.settingsModal?.visible);
   }
 }

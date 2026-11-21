@@ -33,8 +33,13 @@
       font-family: 'Courier New', Courier, monospace;
     }
     body {
-      /* keep clear of the camera cut-out and rounded corners on phones */
-      padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+      /* keep clear of the camera cut-out and rounded corners on phones: browsers give env(),
+         the Android app also passes them as --safe-area-inset-* (Capacitor SystemBars) */
+      padding:
+        max(env(safe-area-inset-top), var(--safe-area-inset-top, 0px))
+        max(env(safe-area-inset-right), var(--safe-area-inset-right, 0px))
+        max(env(safe-area-inset-bottom), var(--safe-area-inset-bottom, 0px))
+        max(env(safe-area-inset-left), var(--safe-area-inset-left, 0px));
     }
     #game-container {
       width: 100%;

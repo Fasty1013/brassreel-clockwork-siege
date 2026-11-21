@@ -5,6 +5,24 @@
  * 100% original, zero external audio assets, works instantly in browser.
  */
 
+function readSetting(key: string): string | null {
+  try {
+    return typeof window !== 'undefined' ? window.localStorage.getItem(key) : null;
+  } catch {
+    return null;
+  }
+}
+
+function writeSetting(key: string, value: string): void {
+  try {
+    window.localStorage.setItem(key, value);
+  } catch {
+    // blocked storage: the setting lasts until the page closes
+  }
+}
+
+const clamp01 = (v: number): number => (Number.isFinite(v) ? Math.min(1, Math.max(0, v)) : 1);
+
 export class SoundManager {
   private static instance: SoundManager;
   private ctx: AudioContext | null = null;
@@ -15,12 +33,16 @@ export class SoundManager {
   private isAmbientPlaying = false;
   private ambientOsc: OscillatorNode | null = null;
   private ambientTickTimer: number | null = null;
+  /** Effects volume 0..1 (settings) and the background hum 0..1 (0 = off). */
+  private volume = 1;
+  private ambientVolume = 1;
+  private listeners = new Set<() => void>();
 
   private constructor() {
-    // Check saved mute preference
-    if (typeof window !== 'undefined' && window.localStorage) {
-      this.isMuted = localStorage.getItem('brassreel_muted') === 'true';
-    }
+    // saved preferences (storage may be blocked: then the defaults stay)
+    this.isMuted = readSetting('brassreel_muted') === 'true';
+    this.volume = clamp01(Number(readSetting('brassreel_volume') ?? 1));
+    this.ambientVolume = clamp01(Number(readSetting('brassreel_ambient') ?? 1));
   }
 
   public static getInstance(): SoundManager {
@@ -42,11 +64,11 @@ export class SoundManager {
 
       this.ctx = new AudioCtxClass();
       this.masterGain = this.ctx.createGain();
-      this.masterGain.gain.setValueAtTime(this.isMuted ? 0 : 0.4, this.ctx.currentTime);
+      this.masterGain.gain.setValueAtTime(this.masterLevel(), this.ctx.currentTime);
       this.masterGain.connect(this.ctx.destination);
 
       this.ambientGain = this.ctx.createGain();
-      this.ambientGain.gain.setValueAtTime(0.15, this.ctx.currentTime);
+      this.ambientGain.gain.setValueAtTime(this.ambientLevel(), this.ctx.currentTime);
       this.ambientGain.connect(this.masterGain);
 
       this.isInitialized = true;
@@ -62,21 +84,65 @@ export class SoundManager {
   }
 
   public toggleMute(): boolean {
-    this.isMuted = !this.isMuted;
-    if (typeof window !== 'undefined' && window.localStorage) {
-      localStorage.setItem('brassreel_muted', String(this.isMuted));
-    }
-
-    if (this.masterGain && this.ctx) {
-      this.masterGain.gain.cancelScheduledValues(this.ctx.currentTime);
-      this.masterGain.gain.setValueAtTime(this.isMuted ? 0 : 0.4, this.ctx.currentTime);
-    }
-
+    this.setMuted(!this.isMuted);
     return this.isMuted;
+  }
+
+  public setMuted(muted: boolean): void {
+    this.isMuted = muted;
+    writeSetting('brassreel_muted', String(muted));
+    this.applyLevels();
   }
 
   public getMuted(): boolean {
     return this.isMuted;
+  }
+
+  /** Effects volume, 0..1. */
+  public getVolume(): number {
+    return this.volume;
+  }
+
+  public setVolume(v: number): void {
+    this.volume = clamp01(v);
+    writeSetting('brassreel_volume', String(this.volume));
+    this.applyLevels();
+  }
+
+  /** Background factory hum, 0..1 (0 = off). */
+  public getAmbientVolume(): number {
+    return this.ambientVolume;
+  }
+
+  public setAmbientVolume(v: number): void {
+    this.ambientVolume = clamp01(v);
+    writeSetting('brassreel_ambient', String(this.ambientVolume));
+    this.applyLevels();
+  }
+
+  /** Called after any sound setting changes (the HUD speaker icon follows the settings window). */
+  public onChange(fn: () => void): () => void {
+    this.listeners.add(fn);
+    return () => this.listeners.delete(fn);
+  }
+
+  private masterLevel(): number {
+    return this.isMuted ? 0 : 0.4 * this.volume;
+  }
+
+  private ambientLevel(): number {
+    return 0.15 * this.ambientVolume;
+  }
+
+  private applyLevels(): void {
+    if (this.masterGain && this.ambientGain && this.ctx) {
+      const now = this.ctx.currentTime;
+      this.masterGain.gain.cancelScheduledValues(now);
+      this.masterGain.gain.setValueAtTime(this.masterLevel(), now);
+      this.ambientGain.gain.cancelScheduledValues(now);
+      this.ambientGain.gain.setValueAtTime(this.ambientLevel(), now);
+    }
+    this.listeners.forEach((fn) => fn());
   }
 
   // ==========================================

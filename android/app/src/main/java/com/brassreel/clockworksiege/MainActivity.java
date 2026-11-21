@@ -1,5 +1,6 @@
 package com.brassreel.clockworksiege;
 
+import android.os.Build;
 import android.os.Bundle;
 import android.view.WindowManager;
 import androidx.core.view.WindowCompat;
@@ -11,6 +12,9 @@ import com.getcapacitor.BridgeActivity;
  * The game runs full screen in landscape (orientation is fixed in AndroidManifest.xml):
  * status and navigation bars are hidden (a swipe from the edge shows them for a moment)
  * and the screen stays on while playing.
+ *
+ * The page also covers the strip beside the camera cut-out (no black band there); Capacitor's
+ * SystemBars passes the cut-out size to the page, which keeps the game itself clear of it.
  */
 public class MainActivity extends BridgeActivity {
 
@@ -18,6 +22,11 @@ public class MainActivity extends BridgeActivity {
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            WindowManager.LayoutParams params = getWindow().getAttributes();
+            params.layoutInDisplayCutoutMode = WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES;
+            getWindow().setAttributes(params);
+        }
         hideSystemBars();
     }
 

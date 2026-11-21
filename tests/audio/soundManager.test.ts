@@ -46,3 +46,25 @@ describe('SoundManager Procedural WebAudio Engine', () => {
   });
 });
 
+
+describe('SoundManager volume settings', () => {
+  it('keeps volumes within 0..1 and tells listeners', () => {
+    const sm = SoundManager.getInstance();
+    let calls = 0;
+    const off = sm.onChange(() => calls++);
+    sm.setVolume(1.7);
+    expect(sm.getVolume()).toBe(1);
+    sm.setVolume(-0.2);
+    expect(sm.getVolume()).toBe(0);
+    sm.setAmbientVolume(0.3);
+    expect(sm.getAmbientVolume()).toBeCloseTo(0.3);
+    sm.setMuted(true);
+    expect(sm.getMuted()).toBe(true);
+    sm.setMuted(false);
+    expect(calls).toBe(5);
+    off();
+    sm.setVolume(1);
+    expect(calls).toBe(5);
+    sm.setAmbientVolume(1);
+  });
+});
