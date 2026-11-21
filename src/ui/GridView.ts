@@ -21,8 +21,10 @@ export class GridView extends Phaser.GameObjects.Container {
   private divider: Phaser.GameObjects.Rectangle;
   private boilerLine: Phaser.GameObjects.Rectangle;
 
-  constructor(scene: Phaser.Scene, x: number, y: number) {
+  /** `tileWidth`: column width (wider on wide screens, a multiple of 4). */
+  constructor(scene: Phaser.Scene, x: number, y: number, tileWidth = 140) {
     super(scene, x, y);
+    this.tileWidth = tileWidth;
 
     // Build discrete grid matching lawn coordinates
     for (let c = 0; c < BALANCE.GRID_COLS; c++) {

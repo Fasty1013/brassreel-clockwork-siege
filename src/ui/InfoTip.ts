@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
 import { UI } from './ModalKit';
 import { SMALL_SCREEN } from './TextStyles';
-import { leftEdge, rightEdge, WORLD_H, worldPoint } from './Display';
+import { shownArea, worldPoint } from './Display';
 
 type Body = string | (() => string);
 
@@ -106,14 +106,15 @@ export class InfoTip {
 
   private place(px: number, py: number): void {
     const h = this.bg.height;
-    const left = leftEdge(this.scene);
-    const width = rightEdge(this.scene);
-    const height = WORLD_H;
+    const area = shownArea(this.scene);
+    const left = area.x0;
+    const width = area.x1;
+    const height = area.y1;
     let x = px + 22;
     let y = py + 26;
     if (x + W > width - 8) x = px - W - 16;
     if (y + h > height - 8) y = py - h - 16;
-    this.box.setPosition(Math.max(left + 8, x), Math.max(8, y));
+    this.box.setPosition(Math.max(left + 8, x), Math.max(area.y0 + 8, y));
   }
 
   private hide(obj: Phaser.GameObjects.GameObject): void {

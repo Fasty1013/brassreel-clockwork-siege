@@ -5,6 +5,8 @@ import { SoundManager } from '../audio/SoundManager';
 import { ArchiveModal } from '../ui/ArchiveModal';
 import { CampaignModal } from '../ui/CampaignModal';
 import { SettingsModal } from '../ui/SettingsModal';
+import { DialogueModal } from '../ui/DialogueModal';
+
 import { MetaManager } from '@core/meta/metaManager';
 import { CampaignManager } from '@core/campaign/campaign';
 import { CHAPTERS, THREAT_LEVELS } from '@data/story';
@@ -12,7 +14,10 @@ import type { RunState } from '@core/state/RunState';
 import { ACTS, WAVES_PER_ACT } from '@data/acts';
 import { WAVES_DATA } from '@data/waves';
 import { fitBox, TOUCH_ONLY } from '../ui/TextStyles';
-import { FULL_W, fitCamera, sideMargin, WORLD_H, WORLD_RESIZE, WORLD_W } from '../ui/Display';
+import { FULL_VIEW, FULL_W, fitCamera, setView, shownArea, WORLD_H, WORLD_RESIZE, WORLD_W, type View } from '../ui/Display';
+
+/** The menu's content: title to the briefing box (shown as large as the screen allows). */
+const MENU_VIEW: View = { x0: 380, x1: 1540, y0: 150, y1: 975 };
 
 /** « [ПРОБЕЛ]» on the start button with a keyboard, nothing on a touch screen. */
 const spaceHint = (ru: boolean): string => (TOUCH_ONLY ? '' : ru ? ' [ПРОБЕЛ]' : ' [SPACE]');
@@ -24,13 +29,16 @@ export class MenuScene extends Phaser.Scene {
   private archiveModal!: ArchiveModal;
   private campaignModal!: CampaignModal;
   private settingsModal!: SettingsModal;
+  private zoomedOut = false;
 
   constructor() {
     super('MenuScene');
   }
 
   public create(): void {
-    fitCamera(this);
+    // the menu shows its content as large as the screen allows; a window zooms back out (update())
+    fitCamera(this, MENU_VIEW);
+    this.zoomedOut = false;
     // the screen changed shape (cut-out reported late, window resized): lay the menu out again
     const relayout = (): void => {
       if (this.scene.isActive() && !this.anyModalOpen()) this.scene.restart();
@@ -40,28 +48,29 @@ export class MenuScene extends Phaser.Scene {
     const width = WORLD_W;
     const height = WORLD_H;
 
-    // Background gradient / dark casino chamber
-    // the world may be wider than 1920 (wide phones): background and frame span it all
-    const m = sideMargin(this);
-    this.add.rectangle(width / 2, height / 2, FULL_W, height, 0x14100c);
+    // Background, frame, gears and the sound button follow the screen's edges
+    const area = shownArea(this);
+    const aw = area.x1 - area.x0;
+    const ah = area.y1 - area.y0;
+    this.add.rectangle(width / 2, height / 2, FULL_W, FULL_W, 0x14100c);
 
     // Decorative rotating background gears
-    const gear1 = this.add.sprite(180 - m, 200, 'sym_cog').setScale(3.5).setAlpha(0.18);
-    const gear2 = this.add.sprite(width - 200 + m, 260, 'sym_cog').setScale(4.5).setAlpha(0.18);
-    const gear3 = this.add.sprite(width / 2 - 400, height - 180, 'sym_cog').setScale(3.0).setAlpha(0.15);
-    const gear4 = this.add.sprite(width / 2 + 450, height - 160, 'sym_cog').setScale(3.2).setAlpha(0.15);
+    const gear1 = this.add.sprite(area.x0 + 110, area.y0 + 110, 'sym_cog').setScale(3.5).setAlpha(0.18);
+    const gear2 = this.add.sprite(area.x1 - 130, area.y0 + 150, 'sym_cog').setScale(4.5).setAlpha(0.18);
+    const gear3 = this.add.sprite(area.x0 + 150, area.y1 - 120, 'sym_cog').setScale(3.0).setAlpha(0.15);
+    const gear4 = this.add.sprite(area.x1 - 150, area.y1 - 110, 'sym_cog').setScale(3.2).setAlpha(0.15);
     this.gears = [gear1, gear2, gear3, gear4];
 
     // Marquee Frame
-    const border = this.add.rectangle(width / 2, height / 2, width + 2 * m - 80, height - 80);
+    const border = this.add.rectangle((area.x0 + area.x1) / 2, (area.y0 + area.y1) / 2, aw - 40, ah - 40);
     border.setStrokeStyle(3, 0xd4a373, 0.5);
 
     // Sound toggle at top right
-    const soundBtn = this.add.rectangle(width - 70 + m, 50, 48, 40, 0x2b221a);
+    const soundBtn = this.add.rectangle(area.x1 - 50, area.y0 + 42, 48, 40, 0x2b221a);
     soundBtn.setStrokeStyle(1, 0x8c5836);
     soundBtn.setInteractive({ useHandCursor: true });
 
-    const soundText = this.add.text(width - 70 + m, 50, SoundManager.getInstance().getMuted() ? '🔇' : '🔊', {
+    const soundText = this.add.text(area.x1 - 50, area.y0 + 42, SoundManager.getInstance().getMuted() ? '🔇' : '🔊', {
       fontSize: '20px'
     }).setOrigin(0.5);
 
@@ -225,15 +234,15 @@ export class MenuScene extends Phaser.Scene {
     this.campaignModal = new CampaignModal(this, newRun);
     const meta = MetaManager.load();
     const threat = CampaignManager.activeThreat(meta);
-    const campBtn = this.add.rectangle(width / 2, 690, 380, 52, 0x2b221a);
+    const campBtn = this.add.rectangle(width / 2, 698, 460, 56, 0x2b221a);
     campBtn.setStrokeStyle(3, 0xffd166);
     campBtn.setInteractive({ useHandCursor: true });
-    this.add.text(width / 2, 690,
+    fitBox(this.add.text(width / 2, 698,
       isRu ? `📖 Кампания · Регулятор ${CampaignManager.partsFound(meta)}/${CHAPTERS.length}` : `📖 Campaign · Regulator ${CampaignManager.partsFound(meta)}/${CHAPTERS.length}`, {
       fontSize: '18px',
       color: '#ffd166',
       fontStyle: 'bold'
-    }).setOrigin(0.5);
+    }).setOrigin(0.5), 440, 52);
     if (threat > 0) {
       this.add.text(width / 2, 478, `Угроза: ${THREAT_LEVELS[threat].name}`, { fontSize: '16px', color: '#ff8a7a' }).setOrigin(0.5);
     }
@@ -247,16 +256,16 @@ export class MenuScene extends Phaser.Scene {
     this.archiveModal = new ArchiveModal(this);
 
     // Archive Button
-    const archiveBtn = this.add.rectangle(width / 2 - 270, 630, 240, 48, 0x2b221a);
+    const archiveBtn = this.add.rectangle(width / 2 - 320, 630, 300, 56, 0x2b221a);
     archiveBtn.setStrokeStyle(2, 0xffd166);
     archiveBtn.setInteractive({ useHandCursor: true });
 
-    this.add.text(width / 2 - 270, 630, isRu ? '📜 Архив Кузницы' : '📜 Archives', {
+    fitBox(this.add.text(width / 2 - 320, 630, isRu ? '📜 Архив Кузницы' : '📜 Archives', {
       fontFamily: 'monospace',
       fontSize: '15px',
       color: '#ffd166',
       fontStyle: 'bold'
-    }).setOrigin(0.5);
+    }).setOrigin(0.5), 284, 52);
 
     archiveBtn.on('pointerdown', () => {
       SoundManager.getInstance().init();
@@ -266,14 +275,14 @@ export class MenuScene extends Phaser.Scene {
 
     // Settings: sound and screen resolution
     this.settingsModal = new SettingsModal(this);
-    const settingsBtn = this.add.rectangle(width / 2, 630, 240, 48, 0x2b221a);
+    const settingsBtn = this.add.rectangle(width / 2, 630, 300, 56, 0x2b221a);
     settingsBtn.setStrokeStyle(2, 0xffd166);
     settingsBtn.setInteractive({ useHandCursor: true });
-    this.add.text(width / 2, 630, isRu ? '⚙ Настройки' : '⚙ Settings', {
+    fitBox(this.add.text(width / 2, 630, isRu ? '⚙ Настройки' : '⚙ Settings', {
       fontSize: '15px',
       color: '#ffd166',
       fontStyle: 'bold'
-    }).setOrigin(0.5);
+    }).setOrigin(0.5), 284, 52);
     settingsBtn.on('pointerdown', () => {
       SoundManager.getInstance().init();
       SoundManager.getInstance().playButtonClick();
@@ -281,16 +290,16 @@ export class MenuScene extends Phaser.Scene {
     });
 
     // Language Toggle Button (RU / EN)
-    const langBtn = this.add.rectangle(width / 2 + 270, 630, 220, 48, 0x2b221a);
+    const langBtn = this.add.rectangle(width / 2 + 320, 630, 300, 56, 0x2b221a);
     langBtn.setStrokeStyle(2, 0x8c5836);
     langBtn.setInteractive({ useHandCursor: true });
 
-    this.langBtnText = this.add.text(width / 2 + 270, 630, `ЯЗЫК / LANG: ${getLocale().toUpperCase()}`, {
+    this.langBtnText = fitBox(this.add.text(width / 2 + 320, 630, `ЯЗЫК / LANG: ${getLocale().toUpperCase()}`, {
       fontFamily: 'monospace',
       fontSize: '15px',
       color: '#adb5bd',
       fontStyle: 'bold'
-    }).setOrigin(0.5);
+    }).setOrigin(0.5), 284, 52);
 
     langBtn.on('pointerdown', () => {
       SoundManager.getInstance().init();
@@ -359,17 +368,26 @@ export class MenuScene extends Phaser.Scene {
     rulesText.setY(rulesHead.y + rulesHead.height / 2 + 8 + rulesText.height / 2);
 
     // Footer info
-    fitBox(this.add.text(width / 2, height - 30, 'BRASSREEL v0.4.0 • случайное зерно каждый забег (?seed=… повторяет забег) • TypeScript + Phaser 3', {
-      fontFamily: 'monospace',
-      fontSize: '13px',
-      color: '#6c757d'
-    }).setOrigin(0.5), width - 120, 34);
+    // version line: developer info, only with a keyboard (no room for it on a phone)
+    if (!TOUCH_ONLY) {
+      fitBox(this.add.text(width / 2, area.y1 - 40, 'BRASSREEL v0.4.0 • случайное зерно каждый забег (?seed=… повторяет забег) • TypeScript + Phaser 3', {
+        fontFamily: 'monospace',
+        fontSize: '13px',
+        color: '#6c757d'
+      }).setOrigin(0.5), area.x1 - area.x0 - 120, 30);
+    }
 
     // pixel-art 9-slice skin for every framed panel/button in the scene
     UISkin.install(this);
   }
 
   public update(_time: number, delta: number): void {
+    // windows (archive, campaign, settings, story) are laid out for the whole design: zoom out for them
+    const out = this.anyModalOpen() || DialogueModal.isBusy(0);
+    if (out !== this.zoomedOut) {
+      this.zoomedOut = out;
+      setView(this, out ? FULL_VIEW : MENU_VIEW);
+    }
     const rotSpeed = (delta / 1000) * 0.4;
     if (this.gears[0]) this.gears[0].rotation += rotSpeed;
     if (this.gears[1]) this.gears[1].rotation -= rotSpeed * 0.8;

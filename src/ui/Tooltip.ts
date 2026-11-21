@@ -5,7 +5,7 @@ import { QUIRKS_DATA } from '@data/quirks';
 import { BALANCE } from '@data/balance';
 import { UI } from './ModalKit';
 import { fitBox, SMALL_SCREEN } from './TextStyles';
-import { leftEdge, rightEdge, WORLD_H } from './Display';
+import { shownArea } from './Display';
 
 // wider on phones, where the text is larger
 const W = SMALL_SCREEN ? 520 : 400;
@@ -111,8 +111,9 @@ export class Tooltip extends Phaser.GameObjects.Container {
     this.bg.setSize(W, totalHeight);
 
     // keep on-screen
-    const clampedX = Math.min(rightEdge(this.scene) - W - 10, Math.max(leftEdge(this.scene) + 10, screenX + 20));
-    const clampedY = Math.min(WORLD_H - totalHeight - 10, Math.max(10, screenY - 60));
+    const area = shownArea(this.scene);
+    const clampedX = Math.min(area.x1 - W - 10, Math.max(area.x0 + 10, screenX + 20));
+    const clampedY = Math.min(area.y1 - totalHeight - 10, Math.max(area.y0 + 10, screenY - 60));
     this.setPosition(clampedX, clampedY);
     this.setVisible(true);
   }

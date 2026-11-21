@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import type { RunState } from '@core/state/RunState';
 import { SkillManager } from '@core/skills/skills';
 import { SKILL_BRANCHES, SKILLS, SkillNode } from '@data/skills';
+import { fitBox } from './TextStyles';
 import { backdrop, button, card, panel, pips, text, title, UI } from './ModalKit';
 
 const COL_W = 350;
@@ -102,11 +103,12 @@ export class SkillTreeModal extends Phaser.GameObjects.Container {
     if (!unlocked) bg.setAlpha(0.55);
 
     const nameColor = unlocked ? UI.GOLD : UI.MUTED;
-    text(c, x, y - 64, node.name, 21, nameColor, { fontStyle: 'bold', align: 'center', wordWrap: { width: 300 } });
+    fitBox(text(c, x, y - 64, node.name, 21, nameColor, { fontStyle: 'bold', align: 'center', wordWrap: { width: 300 } }), 310, 34);
     pips(c, x, y - 36, rank, node.maxRank, isMax ? 0x5ae0d0 : tint);
-    text(c, x, y + 2, node.desc.replace('{n}', `${node.perRank}`), 17, unlocked ? UI.CREAM : UI.MUTED, {
+    // between the rank pips and the button
+    fitBox(text(c, x, y + 2, node.desc.replace('{n}', `${node.perRank}`), 17, unlocked ? UI.CREAM : UI.MUTED, {
       align: 'center', wordWrap: { width: 296 }, lineSpacing: 2
-    });
+    }), 306, 56);
 
     if (isMax) {
       button(c, x, y + 56, 230, 46, 'МАКСИМУМ', () => undefined, { size: 20, disabled: true, color: UI.TEAL });

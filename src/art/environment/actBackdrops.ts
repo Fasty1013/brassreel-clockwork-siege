@@ -15,36 +15,41 @@ export const BG_H = 219;
 export const BG_SCALE = 4;
 
 /**
- * Extra art painted on each side (native px): wide screens show more of the field
- * (up to 80 × 4 = 320 world px per side, a 2560-wide world). RunScene crops the
- * texture to the width the screen needs (backdropCrop).
+ * Wide screens widen the battle window by `side` native px on each side, and the grid
+ * columns get wider (`tileW`) to take that room instead of plain grass. Each layout gets
+ * its own texture (ensureBackdrop); the painters draw in the 342-wide design space and
+ * the span below says how far past it to paint.
  */
-export const BG_SIDE = 80;
-export const BG_FULL_W = BG_W + 2 * BG_SIDE;
+let X0 = 0;
+let X1 = BG_W;
+let SPAN = BG_W;
+/** Scattered details keep their density over a wider span. */
+let DENS = 1;
 
-/** Painted span in the 342-wide design coordinates. */
-const X0 = -BG_SIDE;
-const X1 = BG_W + BG_SIDE;
-const SPAN = X1 - X0;
-/** Scattered details keep their density over the wider span. */
-const DENS = SPAN / BG_W;
-
-/** Crop of the wide texture for a world reaching `margin` px past 1920 on each side. */
-export function backdropCrop(margin: number): { x: number; w: number } {
-  const side = Math.max(0, Math.min(BG_SIDE, Math.floor(margin / BG_SCALE)));
-  return { x: BG_SIDE - side, w: BG_W + 2 * side };
-}
-
-/** Ground layout in native px (matches GridView at x=560,y=580 on screen). */
-const GRID_X = 17;
+/** Ground layout in native px (matches GridView at x=560,y=580 on screen in the 16:9 layout). */
+const BASE_GRID_X = 17;
+let GRID_X = BASE_GRID_X;
 const GRID_Y = 119;
-const TILE_W = 35;
+export const BASE_TILE_W = 35;
+let TILE_W = BASE_TILE_W;
 const TILE_H = 18;
 const GRID_BOTTOM = GRID_Y + TILE_H * 5;
 const HORIZON = 112;
 /** Grid columns that cover the painted span (iron seams in act 3). */
-const COL0 = Math.floor((X0 - GRID_X) / TILE_W);
-const COL1 = Math.ceil((X1 - GRID_X) / TILE_W);
+let COL0 = -1;
+let COL1 = 9;
+
+/** Set the painted span: `side` px past the design on each side, grid moved left by as much, columns `tileW` wide. */
+function setLayout(side: number, tileW: number): void {
+  X0 = -side;
+  X1 = BG_W + side;
+  SPAN = X1 - X0;
+  DENS = SPAN / BG_W;
+  GRID_X = BASE_GRID_X - side;
+  TILE_W = tileW;
+  COL0 = Math.floor((X0 - GRID_X) / TILE_W);
+  COL1 = Math.ceil((X1 - GRID_X) / TILE_W);
+}
 
 type Ctx = CanvasRenderingContext2D;
 
@@ -165,7 +170,7 @@ function fence(ctx: Ctx, post: string, postLit: string, rail: string, railDark: 
   r(ctx, X0, y + 5, SPAN, 1, railDark);
   r(ctx, X0, y + 9, SPAN, 2, rail);
   r(ctx, X0, y + 11, SPAN, 1, railDark);
-  for (let x = 4 - 15 * Math.ceil(BG_SIDE / 15); x < X1; x += 15) {
+  for (let x = 4 - 15 * Math.ceil(-X0 / 15); x < X1; x += 15) {
     r(ctx, x, y, 3, 14, post);
     r(ctx, x, y, 1, 14, postLit);
     r(ctx, x, y - 1, 3, 1, postLit);
@@ -344,7 +349,7 @@ function paintAct3(ctx: Ctx): void {
   // ember sparks in the air
   for (let i = 0; i < Math.round(26 * DENS); i++) r(ctx, Math.floor(X0 + rand() * SPAN), Math.floor(40 + rand() * 70), 1, 1, '#ffb347');
   fence(ctx, '#3a3648', '#5a556e', '#4a4658', '#1c1a26');
-  for (let x = 4 - 15 * Math.ceil(BG_SIDE / 15); x < X1; x += 15) r(ctx, x + 1, GRID_BOTTOM - 1, 1, 1, '#c9283a');
+  for (let x = 4 - 15 * Math.ceil(-X0 / 15); x < X1; x += 15) r(ctx, x + 1, GRID_BOTTOM - 1, 1, 1, '#c9283a');
 }
 
 export const PAINTERS: Record<string, (ctx: Ctx) => void> = {
@@ -353,20 +358,33 @@ export const PAINTERS: Record<string, (ctx: Ctx) => void> = {
   bg_act3: paintAct3
 };
 
+/** Texture key of an act's backdrop for a layout (side extension and column width, native px). */
+export function backdropKey(act: number, side = 0, tileW = BASE_TILE_W): string {
+  const base = actBackdropKey(act);
+  return side === 0 && tileW === BASE_TILE_W ? base : `${base}_${side}_${tileW}`;
+}
+
+/** Paint (once) and return the backdrop texture for an act and layout: (342 + 2·side) × 219 native px. */
+export function ensureBackdrop(tm: Phaser.Textures.TextureManager, act: number, side = 0, tileW = BASE_TILE_W): string {
+  const key = backdropKey(act, side, tileW);
+  if (tm.exists(key)) return key;
+  const paint = PAINTERS[actBackdropKey(act)];
+  const canvas = document.createElement('canvas');
+  canvas.width = BG_W + 2 * side;
+  canvas.height = BG_H;
+  const ctx = canvas.getContext('2d');
+  if (!ctx || !paint) return actBackdropKey(act);
+  ctx.imageSmoothingEnabled = false;
+  setLayout(side, tileW);
+  ctx.translate(side, 0);
+  paint(ctx);
+  setLayout(0, BASE_TILE_W);
+  tm.addCanvas(key, canvas);
+  return key;
+}
+
 export function registerActBackdrops(tm: Phaser.Textures.TextureManager): void {
-  for (const [key, paint] of Object.entries(PAINTERS)) {
-    if (tm.exists(key)) continue;
-    const canvas = document.createElement('canvas');
-    canvas.width = BG_FULL_W;
-    canvas.height = BG_H;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) continue;
-    ctx.imageSmoothingEnabled = false;
-    // painters draw in the 342-wide design space; the side strips extend it both ways
-    ctx.translate(BG_SIDE, 0);
-    paint(ctx);
-    tm.addCanvas(key, canvas);
-  }
+  for (let act = 1; act <= 3; act++) ensureBackdrop(tm, act);
 }
 
 export function actBackdropKey(act: number): string {

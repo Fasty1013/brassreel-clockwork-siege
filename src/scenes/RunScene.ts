@@ -26,7 +26,7 @@ import { CampaignManager } from '@core/campaign/campaign';
 import { CHAPTERS, STORY_SCENES, WAVE_LINES, chapterForWave } from '@data/story';
 import { DialogueModal } from '@ui/DialogueModal';
 import { fitBox, keyHint } from '@ui/TextStyles';
-import { fitCamera, FULL_W, sideMargin } from '@ui/Display';
+import { fitCamera, FULL_W, sideMargin, type View } from '@ui/Display';
 import { EconomyManager } from '@core/economy/economy';
 import { CoreEffects } from '@core/cores/coreEffects';
 import { MUTATIONS_DATA } from '@data/mutations';
@@ -41,7 +41,7 @@ import { AnimationFX } from '../fx/AnimationFX';
 import { SteampunkAtmosphere } from '../fx/SteampunkAtmosphere';
 import { ParticleKit } from '../presentation/ParticleKit';
 import { SpriteForge } from '../art/forge/SpriteForge';
-import { actBackdropKey, backdropCrop, BG_H, BG_SCALE } from '../art/environment/actBackdrops';
+import { BASE_TILE_W, BG_SCALE, ensureBackdrop } from '../art/environment/actBackdrops';
 import { fieldScale, playAttack as playForgeAttack, playLoop } from '../art/forge/play';
 
 interface EnemyVisual {
@@ -61,6 +61,9 @@ interface EnemyVisual {
 
 /** Feet of a combatant sit this far below the tile centre. */
 const FOOT_DY = 26;
+
+/** Part of the design the run needs: the HUD at the top to the battle window's bottom edge. */
+const RUN_VIEW: View = { x0: 0, x1: 1920, y0: 8, y1: 1008 };
 
 export class RunScene extends Phaser.Scene {
   /** 9-digit numeric seed from the browser's crypto RNG. */
@@ -96,8 +99,11 @@ export class RunScene extends Phaser.Scene {
   private partIcons: Phaser.GameObjects.Image[] = [];
   private lastWaveReward = 0;
   private battleBg!: Phaser.GameObjects.Image;
-  /** How far the world reaches past the 1920 design on each side (wide screens); set in create(). */
+  /** How far the shown area reaches past the 1920 design on each side (wide screens); set in create(). */
   private margin = 0;
+  /** Battlefield growth per side (multiple of 4: the ×4 art stays pixel-exact) and its art layout. */
+  private fieldGrow = 0;
+  private fieldTileW = BASE_TILE_W;
 
   // Controls
   private spinButton?: Phaser.GameObjects.Rectangle;
@@ -142,11 +148,15 @@ export class RunScene extends Phaser.Scene {
   }
 
   public create(): void {
-    fitCamera(this);
+    // the run fills y 8..1008: on wide screens it is shown that much larger (no empty strip below)
+    fitCamera(this, RUN_VIEW);
     // wide screens: the slot machine and reserve keep to the left edge, the battle buttons to the
-    // right one, and the battlefield grows into the space between (its grid stays where it was)
-    const m = sideMargin(this);
+    // right one, and the battlefield grows into the space between: its columns get wider
+    const m = Math.max(0, sideMargin(this));
     this.margin = m;
+    const grow = Math.floor(m / 4) * 4;
+    this.fieldGrow = grow;
+    this.fieldTileW = BASE_TILE_W + Math.floor(grow / 4 / 4);
     // 1. Initialize deterministic run state & PRNG
     // Fresh random seed every run (the core stays deterministic for a given seed).
     // `?seed=12345` in the URL replays a specific run.
@@ -178,15 +188,13 @@ export class RunScene extends Phaser.Scene {
     // Battle Window positioned at x: 1176, y: 540 (width 1416, height 924)
     const winX = 1176;
     const winY = 540;
-    const winW = 1416 + 2 * m;
+    const winW = 1416 + 2 * grow;
     const winH = 924;
 
     // Meadow Backdrop
     // Act backdrop, painted at native res and shown at an exact ×4
-    const bgKey = actBackdropKey(this.state.actNumber);
-    this.battleBg = this.add.image(winX, winY, this.textures.exists(bgKey) ? bgKey : 'bg_meadow_day');
-    if (this.textures.exists(bgKey)) this.showBackdrop(bgKey);
-    else this.battleBg.setDisplaySize(winW - 50, winH - 50);
+    this.battleBg = this.add.image(winX, winY, 'bg_meadow_day');
+    this.showBackdrop(this.state.actNumber);
 
     // Parchment/Brass Window Frame
     // nine-slice: the corner brackets keep their size when the window is wider than ×3 of the art
@@ -198,12 +206,12 @@ export class RunScene extends Phaser.Scene {
     this.createScoutBanner(winX + 125, 150);
 
     // Foreman Cogsworth in arch niche
-    this.createForemanGuide(540 - m, 138);
+    this.createForemanGuide(540 - grow, 138);
 
     // 3. Mount Sub-Views & Presentation Components
     this.hud = new HUD(this, m);
     this.reelView = new ReelView(this, 224 - m, 460);
-    this.gridView = new GridView(this, 560, 580);
+    this.gridView = new GridView(this, 560 - grow, 580, this.fieldTileW * BG_SCALE);
     this.tooltip = new Tooltip(this);
     this.shopView = new ShopView(this);
     this.evolutionModal = new EvolutionModal(this);
@@ -278,10 +286,10 @@ export class RunScene extends Phaser.Scene {
   }
 
   /** Scouting line under the campaign ribbon; hover it for what each mutation does and how to beat it. */
-  /** Act backdrop at ×4, cropped to the battle window's width (wider on wide screens). */
-  private showBackdrop(key: string): void {
-    const crop = backdropCrop(this.margin);
-    this.battleBg.setTexture(key).setScale(BG_SCALE).setCrop(crop.x, 0, crop.w, BG_H);
+  /** Act backdrop at ×4, painted for this battle window (wider, with wider columns, on wide screens). */
+  private showBackdrop(act: number): void {
+    const key = ensureBackdrop(this.textures, act, this.fieldGrow / BG_SCALE, this.fieldTileW);
+    this.battleBg.setTexture(key).setScale(BG_SCALE);
   }
 
   private createScoutBanner(x: number, y: number): void {
@@ -558,6 +566,8 @@ export class RunScene extends Phaser.Scene {
       align: 'center',
       wordWrap: { width: 440 }
     }).setOrigin(0.5);
+    // the plate is ~80 px tall: long lines shrink instead of spilling out
+    fitBox(this.speechBubbleText, 450, 74);
   }
 
   private createBenchArea(): void {
@@ -1316,10 +1326,9 @@ export class RunScene extends Phaser.Scene {
 
     const currentWave = this.state.waveNumber;
     const act = this.state.actNumber;
-    const bgKey = actBackdropKey(act);
-    if (this.battleBg && this.textures.exists(bgKey) && this.battleBg.texture.key !== bgKey) {
-      this.battleBg.setTexture(bgKey);
-      this.showBackdrop(bgKey);
+    const bgKey = ensureBackdrop(this.textures, act, this.fieldGrow / BG_SCALE, this.fieldTileW);
+    if (this.battleBg && this.battleBg.texture.key !== bgKey) {
+      this.showBackdrop(act);
       this.cameras.main.flash(500, 255, 240, 200);
     }
     this.waveInfoText.setText(`Волна ${currentWave} / 30 [АКТ ${act}]\nПодготовьте позиции и крутите горн-слот!`);

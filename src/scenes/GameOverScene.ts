@@ -6,7 +6,10 @@ import { ArchiveModal } from '../ui/ArchiveModal';
 import { CampaignManager } from '@core/campaign/campaign';
 import { CHAPTERS, THREAT_LEVELS, chapterForWave } from '@data/story';
 import { fitBox } from '../ui/TextStyles';
-import { FULL_W, fitCamera, sideMargin, WORLD_H, WORLD_W } from '../ui/Display';
+import { FULL_VIEW, FULL_W, fitCamera, setView, shownArea, WORLD_H, WORLD_W, type View } from '../ui/Display';
+
+/** Title to the buttons (shown as large as the screen allows). */
+const SUMMARY_VIEW: View = { x0: 460, x1: 1460, y0: 170, y1: 900 };
 
 export interface GameOverData {
   victory: boolean;
@@ -28,6 +31,7 @@ const DEFEAT_LINES = [
 ];
 
 export class GameOverScene extends Phaser.Scene {
+  private zoomedOut = false;
   private archiveModal!: ArchiveModal;
 
   constructor() {
@@ -35,7 +39,9 @@ export class GameOverScene extends Phaser.Scene {
   }
 
   public create(data: GameOverData): void {
-    fitCamera(this);
+    // the summary shows as large as the screen allows; the archive window zooms back out (update())
+    fitCamera(this, SUMMARY_VIEW);
+    this.zoomedOut = false;
     const width = WORLD_W;
     const height = WORLD_H;
 
@@ -63,9 +69,10 @@ export class GameOverScene extends Phaser.Scene {
 
     // Background overlay
     const bgColor = data.victory ? 0x0f241d : 0x240f0f;
-    this.add.rectangle(width / 2, height / 2, FULL_W, height, bgColor);
+    this.add.rectangle(width / 2, height / 2, FULL_W, FULL_W, bgColor);
 
-    const frame = this.add.rectangle(width / 2, height / 2, width + 2 * sideMargin(this) - 200, height - 160);
+    const area = shownArea(this);
+    const frame = this.add.rectangle((area.x0 + area.x1) / 2, (area.y0 + area.y1) / 2, area.x1 - area.x0 - 40, area.y1 - area.y0 - 40);
     frame.setStrokeStyle(4, data.victory ? 0xffd166 : 0xe63946);
 
     // Title
@@ -108,13 +115,13 @@ export class GameOverScene extends Phaser.Scene {
       `Награда архива: +${earnedRefined} Очищенных Шестерней ⚙️\n` +
       `Баланс в Архиве: ${meta.refinedCogs} ⚙️`;
 
-    this.add.text(width / 2, 490, statsInfo, {
+    fitBox(this.add.text(width / 2, 490, statsInfo, {
       fontFamily: 'monospace',
       fontSize: '16px',
       color: '#ced4da',
       lineSpacing: 8,
       align: 'center'
-    }).setOrigin(0.5);
+    }).setOrigin(0.5), 600, 205);
 
     // Campaign progress: Regulator parts
     const campBox = this.add.rectangle(width / 2, 690, 900, 150, 0x14100c);
@@ -135,7 +142,7 @@ export class GameOverScene extends Phaser.Scene {
     if (campaign.unlockedThreat !== null) {
       note = `Открыта новая угроза: «${THREAT_LEVELS[campaign.unlockedThreat].name}» — выберите её в меню «Кампания».`;
     }
-    this.add.text(width / 2, 740, note, { fontSize: '16px', color: '#ced4da', align: 'center', wordWrap: { width: 860 } }).setOrigin(0.5);
+    fitBox(this.add.text(width / 2, 740, note, { fontSize: '16px', color: '#ced4da', align: 'center', wordWrap: { width: 860 } }).setOrigin(0.5), 880, 34);
 
     // New Run Button
     const restartBtn = this.add.rectangle(width / 2 - 240, 840, 210, 56, 0xd4a373);
@@ -190,5 +197,13 @@ export class GameOverScene extends Phaser.Scene {
 
     // pixel-art 9-slice skin for every framed panel/button in the scene
     UISkin.install(this);
+  }
+
+  public update(): void {
+    const out = Boolean(this.archiveModal?.visible);
+    if (out !== this.zoomedOut) {
+      this.zoomedOut = out;
+      setView(this, out ? FULL_VIEW : SUMMARY_VIEW);
+    }
   }
 }

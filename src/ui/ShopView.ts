@@ -100,7 +100,7 @@ export class ShopView extends Phaser.GameObjects.Container {
     balanceBg.setStrokeStyle(2, 0x534764);
     this.add(balanceBg);
     this.add(scene.add.image(-100, -296, 'sym_cog').setScale(1.5));
-    this.add(scene.add.text(-78, -296, 'Шестерни:', { fontSize: '22px', color: CREAM }).setOrigin(0, 0.5));
+    this.add(fitBox(scene.add.text(-78, -296, 'Шестерни:', { fontSize: '22px', color: CREAM }).setOrigin(0, 0.5), 130, 44));
     this.cogsText = scene.add.text(118, -296, '0', { fontSize: '28px', color: GOLD }).setOrigin(1, 0.5);
     this.add(this.cogsText);
 
@@ -124,7 +124,7 @@ export class ShopView extends Phaser.GameObjects.Container {
       bg.setStrokeStyle(2, 0x534764);
       bg.setInteractive({ useHandCursor: true });
       this.add(bg);
-      const label = scene.add.text(x, 76, `Барабан ${r + 1}`, { fontSize: '20px', color: CREAM }).setOrigin(0.5);
+      const label = fitBox(scene.add.text(x, 76, `Барабан ${r + 1}`, { fontSize: '20px', color: CREAM }).setOrigin(0.5), 140, 38);
       this.add(label);
       bg.on('pointerdown', () => {
         this.selectedReel = r;
@@ -146,7 +146,7 @@ export class ShopView extends Phaser.GameObjects.Container {
       btn.setInteractive({ useHandCursor: true });
       this.add(btn);
       this.add(scene.add.image(x - step / 2 + 34, y, `sym_${sym.sym}`).setScale(1.7));
-      const label = scene.add.text(x - step / 2 + 64, y - 13, `+ ${sym.name}`, { fontSize: '19px', color: sym.color }).setOrigin(0, 0.5);
+      const label = fitBox(scene.add.text(x - step / 2 + 64, y - 13, `+ ${sym.name}`, { fontSize: '19px', color: sym.color }).setOrigin(0, 0.5), step - 90, 28);
       this.add(label);
       this.registerPrice('symbol', x - step / 2 + 64, y + 15, btn, label);
       this.hover(btn);
@@ -166,7 +166,7 @@ export class ShopView extends Phaser.GameObjects.Container {
     closeBtn.setStrokeStyle(3, 0xffd166);
     closeBtn.setInteractive({ useHandCursor: true });
     this.add(closeBtn);
-    this.add(scene.add.text(205, 344, 'СЛЕДУЮЩАЯ ВОЛНА  ▶', { fontSize: '28px', color: GOLD }).setOrigin(0.5));
+    this.add(fitBox(scene.add.text(205, 344, 'СЛЕДУЮЩАЯ ВОЛНА  ▶', { fontSize: '28px', color: GOLD }).setOrigin(0.5), 370, 60));
     this.hover(closeBtn);
     closeBtn.on('pointerdown', () => this.emit('close_shop'));
 
@@ -309,23 +309,23 @@ export class ShopView extends Phaser.GameObjects.Container {
       bg.setStrokeStyle(2, g.type === 'passive' ? 0x8c5836 : 0x2e7d74);
       card.add(bg);
 
-      card.add(this.scene.add.text(0, -88, t(g.nameKey), {
+      card.add(fitBox(this.scene.add.text(0, -88, t(g.nameKey), {
         fontSize: '24px', color: GOLD, align: 'center', wordWrap: { width: 310 }
-      }).setOrigin(0.5));
+      }).setOrigin(0.5), 320, 34));
       card.add(this.scene.add.text(0, -60, g.type === 'passive' ? 'улучшение' : 'расходник', {
         fontSize: '16px', color: g.type === 'passive' ? '#d4a373' : '#5ae0d0'
       }).setOrigin(0.5));
 
-      card.add(this.scene.add.text(0, -8, t(g.descKey), {
+      card.add(fitBox(this.scene.add.text(0, -8, t(g.descKey), {
         fontSize: '18px', color: CREAM, align: 'center', wordWrap: { width: 310 }, lineSpacing: 3
-      }).setOrigin(0.5));
+      }).setOrigin(0.5), 320, 92));
 
       const afford = cogs >= cost;
       const buyBtn = this.scene.add.rectangle(0, 70, 220, 48, 0x1f1a27);
       buyBtn.setStrokeStyle(2, afford ? 0xffd166 : 0x534764);
       buyBtn.setInteractive({ useHandCursor: true });
       card.add(buyBtn);
-      const buyTxt = this.scene.add.text(-70, 70, 'КУПИТЬ', { fontSize: '22px', color: afford ? GOLD : MUTED }).setOrigin(0, 0.5);
+      const buyTxt = fitBox(this.scene.add.text(-70, 70, 'КУПИТЬ', { fontSize: '22px', color: afford ? GOLD : MUTED }).setOrigin(0, 0.5), 92, 44);
       card.add(buyTxt);
       const price = this.scene.add.text(30, 70, `${cost}`, { fontSize: '22px', color: afford ? CREAM : MUTED }).setOrigin(0, 0.5);
       card.add(price);

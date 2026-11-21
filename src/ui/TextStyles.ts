@@ -41,9 +41,9 @@ export const MIN_FONT_PX = 15;
  * (at least SMALL_SCREEN_MIN_PX); big titles are already readable and stay as they are.
  * `?ui=phone` / `?ui=desktop` in the address forces one mode (screenshots, tests).
  */
-export const SMALL_SCREEN_MIN_PX = 22;
-const SMALL_SCREEN_GROWTH = 1.15;
-const SMALL_SCREEN_LIMIT_PX = 30;
+export const SMALL_SCREEN_MIN_PX = 26;
+const SMALL_SCREEN_GROWTH = 1.3;
+const SMALL_SCREEN_LIMIT_PX = 40;
 
 function forcedMode(): string | null {
   if (typeof window === 'undefined') return null;
