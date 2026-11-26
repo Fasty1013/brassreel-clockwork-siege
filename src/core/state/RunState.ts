@@ -31,6 +31,8 @@ export interface RunState {
   lastSpinResult?: SpinResult;
   combatState?: CombatSimulationState;
   pendingEvolutionUnitId?: string;
+  /** jackpot robot just summoned and the legendaries it can still be swapped for (CHOOSE_JACKPOT) */
+  pendingJackpot?: { unitId: string; choices: string[] };
   /** in-run skill tree: node id -> bought rank */
   skills: Record<string, number>;
   /** gadget ids currently on the workshop shelf */

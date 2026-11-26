@@ -43,6 +43,14 @@ export class SoundManager {
     this.isMuted = readSetting('brassreel_muted') === 'true';
     this.volume = clamp01(Number(readSetting('brassreel_volume') ?? 1));
     this.ambientVolume = clamp01(Number(readSetting('brassreel_ambient') ?? 1));
+    // the factory hum must not keep playing while the app is in the background (phones)
+    if (typeof document !== 'undefined' && document.addEventListener) {
+      document.addEventListener('visibilitychange', () => {
+        if (!this.ctx) return;
+        if (document.visibilityState === 'hidden') void this.ctx.suspend().catch(() => undefined);
+        else void this.ctx.resume().catch(() => undefined);
+      });
+    }
   }
 
   public static getInstance(): SoundManager {

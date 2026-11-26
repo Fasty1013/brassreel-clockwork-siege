@@ -27,6 +27,8 @@ import { CHAPTERS, STORY_SCENES, WAVE_LINES, chapterForWave } from '@data/story'
 import { DialogueModal } from '@ui/DialogueModal';
 import { fitBox, keyHint } from '@ui/TextStyles';
 import { fitCamera, FULL_W, sideMargin, type View } from '@ui/Display';
+import { RunSave } from '@core/state/runSave';
+import { JackpotModal } from '@ui/JackpotModal';
 import { EconomyManager } from '@core/economy/economy';
 import { CoreEffects } from '@core/cores/coreEffects';
 import { MUTATIONS_DATA } from '@data/mutations';
@@ -96,6 +98,10 @@ export class RunScene extends Phaser.Scene {
   private benchTitle?: Phaser.GameObjects.Text;
   /** Regulator parts recovered during this run (lit in the top-left gauge) */
   private partsThisRun: string[] = [];
+  private jackpotModal: JackpotModal | null = null;
+  /** started with «Продолжить забег» from a run saved on the device */
+  private resumeRequested = false;
+  private resumed = false;
   private partIcons: Phaser.GameObjects.Image[] = [];
   private lastWaveReward = 0;
   private battleBg!: Phaser.GameObjects.Image;
@@ -148,6 +154,11 @@ export class RunScene extends Phaser.Scene {
     super('RunScene');
   }
 
+  /** `{ resume: true }`: continue the run saved on the device (RunSave) instead of a new one. */
+  public init(data?: { resume?: boolean }): void {
+    this.resumeRequested = Boolean(data?.resume);
+  }
+
   public create(): void {
     // the run fills y 8..1008: on wide screens it is shown that much larger (no empty strip below)
     fitCamera(this, RUN_VIEW);
@@ -161,17 +172,31 @@ export class RunScene extends Phaser.Scene {
     // 1. Initialize deterministic run state & PRNG
     // Fresh random seed every run (the core stays deterministic for a given seed).
     // `?seed=12345` in the URL replays a specific run.
-    const urlSeed = new URLSearchParams(window.location.search).get('seed');
-    const seed = urlSeed && /^\d+$/.test(urlSeed) ? urlSeed : RunScene.randomSeed();
-    this.state = RunStateManager.createInitialState(seed);
-    const meta = MetaManager.load();
-    MetaManager.applyMetaToRun(this.state, meta);
-    this.state.threat = CampaignManager.activeThreat(meta);
-    this.partsThisRun = [];
-    this.rng = PrngManager.createStreams(seed);
+    const saved = this.resumeRequested ? RunSave.load() : null;
+    if (saved) {
+      // a run kept on the device (the app was closed between waves)
+      const restored = RunSave.restore(saved);
+      this.state = restored.state;
+      this.rng = restored.rng;
+      this.partsThisRun = restored.parts;
+      this.resumed = true;
+    } else {
+      const urlSeed = new URLSearchParams(window.location.search).get('seed');
+      const seed = urlSeed && /^\d+$/.test(urlSeed) ? urlSeed : RunScene.randomSeed();
+      this.state = RunStateManager.createInitialState(seed);
+      const meta = MetaManager.load();
+      MetaManager.applyMetaToRun(this.state, meta);
+      this.state.threat = CampaignManager.activeThreat(meta);
+      this.partsThisRun = [];
+      this.rng = PrngManager.createStreams(seed);
+      this.resumed = false;
+      RunSave.clear();
+    }
     this.eventBus = new EventBus();
+    this.watchAppBackground();
 
-    // Reset collections
+    // Reset collections (the scene object outlives a restart; its windows do not)
+    this.jackpotModal = null;
     this.unitCards.clear();
     this.enemyVisuals.clear();
     this.benchSlots = [];
@@ -257,8 +282,65 @@ export class RunScene extends Phaser.Scene {
     UISkin.install(this);
 
     this.refreshStoryPlate();
-    this.playStory(CHAPTERS[0].intro);
+    if (this.resumed) {
+      this.reelView.updateHolds(this.state.heldReels);
+      this.refreshScout();
+      this.offerJackpotChoice();
+      this.showFloatingText(960, 360, `Забег продолжен: волна ${this.state.waveNumber}`, '#ffd166');
+    } else {
+      this.playStory(CHAPTERS[0].intro);
+    }
+    this.saveRun();
   }
+
+  /** Jackpot: let the player swap the summoned legendary for another (state.pendingJackpot). */
+  private offerJackpotChoice(): void {
+    const pending = this.state.pendingJackpot;
+    if (!pending) return;
+    const current = [...this.state.reserveBench, ...this.state.deployedUnits].find((u) => u.instanceId === pending.unitId);
+    if (!current) {
+      this.state.pendingJackpot = undefined;
+      return;
+    }
+    this.hideHints();
+    if (!this.jackpotModal) {
+      this.jackpotModal = new JackpotModal(this);
+      this.jackpotModal.on('jackpot_selected', (defId: string) => {
+        RunReducer.dispatch(this.state, { type: 'CHOOSE_JACKPOT', defId }, this.rng, this.eventBus);
+        SoundManager.getInstance().playSmelt();
+        this.syncUnitCards();
+        this.refreshHUD();
+        this.saveRun();
+      });
+    }
+    this.jackpotModal.showChoices(pending.choices, current.defId);
+  }
+
+  /** A window opens over the field: robot cards and hints under it go away. */
+  private hideHints(): void {
+    this.tooltip?.hide();
+    InfoTip.of(this).hideNow();
+  }
+
+  /** Keep the run on the device (between waves only; see RunSave). */
+  private saveRun(): void {
+    RunSave.save(this.state, this.rng, this.partsThisRun);
+  }
+
+  /** Phones close apps in the background: save the run when the game is hidden. */
+  private watchAppBackground(): void {
+    const onHidden = (): void => {
+      if (document.visibilityState === 'hidden') this.saveRun();
+    };
+    document.addEventListener('visibilitychange', onHidden);
+    window.addEventListener('pagehide', this.saveRunListener);
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+      document.removeEventListener('visibilitychange', onHidden);
+      window.removeEventListener('pagehide', this.saveRunListener);
+    });
+  }
+
+  private readonly saveRunListener = (): void => this.saveRun();
 
   // ------------------------------------------------------------ campaign
 
@@ -550,6 +632,7 @@ export class RunScene extends Phaser.Scene {
   }
 
   private openCampaignMap(): void {
+    this.hideHints();
     if (!this.campaignMap) return;
     this.tooltip?.hide();
     this.campaignMap.open(this.state.waveNumber);
@@ -826,12 +909,14 @@ export class RunScene extends Phaser.Scene {
 
     // Evolution ready event from core
     this.eventBus.on('evolution_ready', (data) => {
+      this.hideHints();
       const evoUnit = [...this.state.reserveBench, ...this.state.deployedUnits].find((u) => u.instanceId === data.unitInstanceId);
       this.evolutionModal.showEvolution(data.unitInstanceId, data.branchA, data.branchB, evoUnit?.starRank);
     });
 
     // Engine Core draft ready event
     this.eventBus.on('core_draft_ready', (data) => {
+      this.hideHints();
       this.coreDraftModal.showDraft(data.choices);
     });
 
@@ -906,6 +991,8 @@ export class RunScene extends Phaser.Scene {
     this.reelView.playSpinAnimation(finalGrid, this.state.heldReels, () => {
       this.isSpinning = false;
       this.refreshHUD();
+      // three crowns: choose the legendary once the reels have stopped
+      this.offerJackpotChoice();
 
       if (this.state.lastSpinResult) {
         this.reelView.highlightWinningLines(this.state.lastSpinResult);
@@ -1299,6 +1386,7 @@ export class RunScene extends Phaser.Scene {
   }
 
   public openShop(): void {
+    this.hideHints();
     if (this.state.phase === 'RESULT') {
       RunReducer.dispatch(this.state, { type: 'ADVANCE_TO_SHOP' }, this.rng, this.eventBus);
     }
@@ -1358,9 +1446,12 @@ export class RunScene extends Phaser.Scene {
 
     this.refreshHUD();
     this.syncUnitCards();
+    this.saveRun();
   }
 
   private handleGameOver(victory: boolean): void {
+    // the run is over: nothing to continue
+    RunSave.clear();
     const go = (): void => {
       this.scene.start('GameOverScene', {
         victory,
@@ -1471,6 +1562,7 @@ export class RunScene extends Phaser.Scene {
     SoundManager.getInstance().playButtonClick();
     this.tooltip?.hide();
     this.campaignMap.hide();
+    this.saveRun();
     this.scene.sleep();
     this.scene.run('MenuScene');
   }
@@ -1480,6 +1572,7 @@ export class RunScene extends Phaser.Scene {
     this.skillTreeModal = new SkillTreeModal(this);
     const open = (): void => {
       if (this.state.phase === 'GAME_OVER' || this.state.phase === 'VICTORY') return;
+      this.hideHints();
       this.skillTreeModal.open(this.state, RunReducer.canArrange(this.state));
     };
     this.hud.on('open_skills', open);

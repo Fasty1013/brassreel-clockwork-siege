@@ -199,6 +199,13 @@ export class GameOverScene extends Phaser.Scene {
     UISkin.install(this);
   }
 
+  /** Android back: closes the archive, otherwise goes to the main menu. */
+  public handleBack(): boolean {
+    if (this.archiveModal?.visible) this.archiveModal.hide();
+    else this.scene.start('MenuScene');
+    return true;
+  }
+
   public update(): void {
     const out = Boolean(this.archiveModal?.visible);
     if (out !== this.zoomedOut) {

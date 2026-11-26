@@ -30,6 +30,7 @@ export type RunCommand =
       targetModIndexToReplace?: number;
     }
   | { type: 'CHOOSE_EVOLUTION'; unitId: string; chosenBranchDefId: string }
+  | { type: 'CHOOSE_JACKPOT'; defId: string }
   | { type: 'BUY_SKILL'; skillId: string }
   | { type: 'START_BATTLE' }
   | { type: 'STEP_BATTLE'; dt: number }
@@ -42,6 +43,13 @@ export type RunCommand =
   | { type: 'EQUIP_CORE'; coreId: string }
   | { type: 'REROLL_SHOP' }
   | { type: 'START_NEXT_WAVE' };
+
+/** A jackpot (three crowns) offers these; the first one is summoned until the player picks another. */
+export const JACKPOT_LEGENDARIES: readonly string[] = [
+  'unit_legendary_steam_leviathan',
+  'unit_legendary_solarion_sun_forge',
+  'unit_legendary_chrono_warden'
+];
 
 /** Symbols the workshop sells. */
 export const BUYABLE_SYMBOLS: readonly SlotSymbol[] = ['cog', 'spring', 'fuse', 'coil', 'wrench'];
@@ -169,16 +177,12 @@ export class RunReducer {
         }
 
         if (evalResult.isJackpot) {
-          eventBus?.emit('jackpot', {
-            choices: [
-              'unit_legendary_steam_leviathan',
-              'unit_legendary_solarion_sun_forge',
-              'unit_legendary_chrono_warden'
-            ]
-          });
-          // Summon 1st legendary by default or add to bench
-          const legendary = UnitFactory.createUnit('unit_legendary_steam_leviathan', rng.loot, { customStarRank: 3 });
+          const choices = [...JACKPOT_LEGENDARIES];
+          eventBus?.emit('jackpot', { choices });
+          // the first legendary arrives at once; the player may swap it for another (CHOOSE_JACKPOT)
+          const legendary = UnitFactory.createUnit(choices[0], rng.loot, { customStarRank: 3 });
           RunReducer.addToBench(state, legendary, eventBus);
+          state.pendingJackpot = { unitId: legendary.instanceId, choices };
           CoreEffects.onJackpot(state);
         }
 
@@ -388,6 +392,24 @@ export class RunReducer {
           SmeltManager.evolveUnit(unit, command.chosenBranchDefId, rng.loot);
           state.pendingEvolutionUnitId = undefined;
         }
+        return state;
+      }
+
+      case 'CHOOSE_JACKPOT': {
+        const pending = state.pendingJackpot;
+        state.pendingJackpot = undefined;
+        if (!pending || !pending.choices.includes(command.defId)) return state;
+        const swap = (list: UnitInstance[]): boolean => {
+          const i = list.findIndex((u) => u.instanceId === pending.unitId);
+          if (i < 0) return false;
+          const old = list[i];
+          if (old.defId === command.defId) return true;
+          const chosen = UnitFactory.createUnit(command.defId, rng.loot, { customStarRank: old.starRank });
+          if (old.deployedSlot) chosen.deployedSlot = { ...old.deployedSlot };
+          list[i] = chosen;
+          return true;
+        };
+        if (!swap(state.reserveBench)) swap(state.deployedUnits);
         return state;
       }
 

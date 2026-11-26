@@ -34,6 +34,14 @@ export class UnitFactory {
     nextUnitSequence = 1;
   }
 
+  /** After a saved run is loaded: new robots get numbers above every robot in it (ids stay unique). */
+  public static continueAfter(instanceIds: string[]): void {
+    for (const id of instanceIds) {
+      const n = Number(/^unit_(\d+)_/.exec(id)?.[1]);
+      if (Number.isFinite(n) && n >= nextUnitSequence) nextUnitSequence = n + 1;
+    }
+  }
+
   /**
    * Creates an active UnitInstance from definition with rolled mods and computed stats.
    */

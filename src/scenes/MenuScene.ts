@@ -6,6 +6,7 @@ import { ArchiveModal } from '../ui/ArchiveModal';
 import { CampaignModal } from '../ui/CampaignModal';
 import { SettingsModal } from '../ui/SettingsModal';
 import { DialogueModal } from '../ui/DialogueModal';
+import { RunSave } from '@core/state/runSave';
 
 import { MetaManager } from '@core/meta/metaManager';
 import { CampaignManager } from '@core/campaign/campaign';
@@ -118,20 +119,23 @@ export class MenuScene extends Phaser.Scene {
       }
     ).setOrigin(0.5);
 
-    // A run left through the «МЕНЮ» button sleeps in RunScene: offer to continue it.
-    const canResume = this.scene.isSleeping('RunScene');
+    // A run left through the «МЕНЮ» button sleeps in RunScene; a run from an earlier launch
+    // (the app was closed between waves) is kept on the device. Either one can be continued.
+    const sleeping = this.scene.isSleeping('RunScene');
+    const savedRun = sleeping ? null : RunSave.load();
+    const canResume = sleeping || savedRun !== null;
     const startLabel = (ru: boolean): string =>
       canResume
         ? ru ? `ПРОДОЛЖИТЬ ЗАБЕГ${spaceHint(ru)} ▶` : `CONTINUE RUN${spaceHint(ru)} ▶`
         : ru ? `В БОЙ${spaceHint(ru)} ⚔` : `START DEFENSE${spaceHint(ru)} ⚔`;
     if (canResume) {
-      const run = (this.scene.get('RunScene') as Phaser.Scene & { state?: RunState }).state;
+      const run = sleeping ? (this.scene.get('RunScene') as Phaser.Scene & { state?: RunState }).state : savedRun?.state;
       if (run) {
         const act = ACTS[Math.min(ACTS.length, Math.ceil(run.waveNumber / WAVES_PER_ACT)) - 1];
         this.add.text(
           width / 2, 446,
           isRu
-            ? `Забег на паузе: акт ${act.act} «${act.name}» · волна ${run.waveNumber} из ${WAVES_DATA.length} · котёл ${run.boilerHp}/${run.maxBoilerHp}`
+            ? `${sleeping ? 'Забег на паузе' : 'Сохранённый забег'}: акт ${act.act} «${act.name}» · волна ${run.waveNumber} из ${WAVES_DATA.length} · котёл ${run.boilerHp}/${run.maxBoilerHp}`
             : `Run paused: act ${act.act} · wave ${run.waveNumber} of ${WAVES_DATA.length} · boiler ${run.boilerHp}/${run.maxBoilerHp}`,
           { fontSize: '20px', color: '#ffd166', fontStyle: 'bold' }
         ).setOrigin(0.5);
@@ -144,12 +148,12 @@ export class MenuScene extends Phaser.Scene {
     startBtn.setStrokeStyle(4, 0xffd166);
     startBtn.setInteractive({ useHandCursor: true });
 
-    this.startBtnText = this.add.text(startX, 540, startLabel(isRu), {
+    this.startBtnText = fitBox(this.add.text(startX, 540, startLabel(isRu), {
       fontFamily: 'monospace',
       fontSize: '22px',
       color: '#1f1610',
       fontStyle: 'bold'
-    }).setOrigin(0.5);
+    }).setOrigin(0.5), (canResume ? 460 : 380) - 24, 64);
 
     startBtn.on('pointerover', () => {
       startBtn.setFillStyle(0xffd166);
@@ -189,8 +193,12 @@ export class MenuScene extends Phaser.Scene {
       SoundManager.getInstance().playButtonClick();
       this.cameras.main.fade(200, 20, 16, 12);
       this.time.delayedCall(200, () => {
-        this.scene.wake('RunScene');
-        this.scene.stop();
+        if (sleeping) {
+          this.scene.wake('RunScene');
+          this.scene.stop();
+        } else {
+          this.scene.start('RunScene', { resume: true });
+        }
       });
     };
     const startGame = canResume ? resumeRun : newRun;
@@ -393,6 +401,16 @@ export class MenuScene extends Phaser.Scene {
     if (this.gears[1]) this.gears[1].rotation -= rotSpeed * 0.8;
     if (this.gears[2]) this.gears[2].rotation += rotSpeed * 0.6;
     if (this.gears[3]) this.gears[3].rotation -= rotSpeed * 0.7;
+  }
+
+  /** Android back: closes an open window; with none open the app goes to the background (false). */
+  public handleBack(): boolean {
+    if (DialogueModal.isBusy(0)) return false;
+    if (this.settingsModal?.visible) this.settingsModal.hide();
+    else if (this.archiveModal?.visible) this.archiveModal.hide();
+    else if (this.campaignModal?.visible) this.campaignModal.setVisible(false);
+    else return false;
+    return true;
   }
 
   private anyModalOpen(): boolean {

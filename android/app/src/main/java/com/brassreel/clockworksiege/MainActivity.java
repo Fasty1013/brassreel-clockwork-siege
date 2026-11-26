@@ -3,6 +3,8 @@ package com.brassreel.clockworksiege;
 import android.os.Build;
 import android.os.Bundle;
 import android.view.WindowManager;
+import android.webkit.WebView;
+import androidx.activity.OnBackPressedCallback;
 import androidx.core.view.WindowCompat;
 import androidx.core.view.WindowInsetsCompat;
 import androidx.core.view.WindowInsetsControllerCompat;
@@ -15,6 +17,10 @@ import com.getcapacitor.BridgeActivity;
  *
  * The page also covers the strip beside the camera cut-out (no black band there); Capacitor's
  * SystemBars passes the cut-out size to the page, which keeps the game itself clear of it.
+ *
+ * The back gesture goes to the game (window.__brassBack: close a window, pause into the menu…);
+ * when the game has nothing to go back to, the app moves to the background instead of closing,
+ * so a run in progress is kept.
  */
 public class MainActivity extends BridgeActivity {
 
@@ -28,6 +34,23 @@ public class MainActivity extends BridgeActivity {
             getWindow().setAttributes(params);
         }
         hideSystemBars();
+
+        getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
+            @Override
+            public void handleOnBackPressed() {
+                WebView webView = getBridge() != null ? getBridge().getWebView() : null;
+                if (webView == null) {
+                    moveTaskToBack(true);
+                    return;
+                }
+                webView.evaluateJavascript(
+                    "(function(){try{return window.__brassBack ? window.__brassBack() : false;}catch(e){return false;}})()",
+                    value -> {
+                        if (!"true".equals(value)) moveTaskToBack(true);
+                    }
+                );
+            }
+        });
     }
 
     @Override

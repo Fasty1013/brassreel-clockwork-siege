@@ -100,6 +100,12 @@ export class InfoTip {
     });
   }
 
+  /** Hide whatever hint is showing (a window opened over it). */
+  public hideNow(): void {
+    this.owner = null;
+    this.box.setVisible(false);
+  }
+
   /** Invisible hover area for things that are not objects of their own. */
   public zone(x: number, y: number, w: number, h: number, title: string, body: Body, depth = 0): Phaser.GameObjects.Zone {
     const z = this.scene.add.zone(x, y, w, h).setDepth(depth);

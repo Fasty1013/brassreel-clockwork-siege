@@ -49,7 +49,40 @@ void loadUiFont().then(() => {
   (window as any).game = game;
   keepCanvasSharp(game);
   followScreen(game);
+  installBackHandler(game);
 });
+
+/**
+ * Android back gesture / button (the app calls window.__brassBack, see MainActivity):
+ * in a run it does what Esc does (close a window, skip a story scene, pause into the menu);
+ * in the menu it closes a window. Returns false when there is nothing to go back to —
+ * the app then goes to the background (the run is kept).
+ */
+function installBackHandler(game: Phaser.Game): void {
+  const pressEscape = (): void => {
+    const ev = new KeyboardEvent('keydown', { key: 'Escape', code: 'Escape', bubbles: true });
+    // Phaser reads keyCode, which a constructed event does not carry
+    Object.defineProperty(ev, 'keyCode', { get: () => 27 });
+    Object.defineProperty(ev, 'which', { get: () => 27 });
+    window.dispatchEvent(ev);
+    const up = new KeyboardEvent('keyup', { key: 'Escape', code: 'Escape', bubbles: true });
+    Object.defineProperty(up, 'keyCode', { get: () => 27 });
+    Object.defineProperty(up, 'which', { get: () => 27 });
+    window.setTimeout(() => window.dispatchEvent(up), 30);
+  };
+  (window as unknown as { __brassBack: () => boolean }).__brassBack = (): boolean => {
+    const active = game.scene.getScenes(true).map((s) => s.scene.key);
+    if (active.includes('RunScene')) {
+      pressEscape();
+      return true;
+    }
+    const menu = game.scene.getScene('MenuScene') as Phaser.Scene & { handleBack?: () => boolean };
+    if (active.includes('MenuScene')) return menu.handleBack?.() ?? false;
+    const over = game.scene.getScene('GameOverScene') as Phaser.Scene & { handleBack?: () => boolean };
+    if (active.includes('GameOverScene')) return over.handleBack?.() ?? false;
+    return false;
+  };
+}
 
 /**
  * Nearest-neighbour scaling keeps pixel art crisp when the canvas is shown at
