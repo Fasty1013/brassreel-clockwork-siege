@@ -197,9 +197,12 @@ export class UISkin {
         scan();
       });
     };
+    const onPostUpdate = (): void => this.sync(list);
     scene.sys.events.on(Phaser.Scenes.Events.ADDED_TO_SCENE, onAdded);
-    scene.events.on(Phaser.Scenes.Events.POST_UPDATE, () => this.sync(list));
+    scene.events.on(Phaser.Scenes.Events.POST_UPDATE, onPostUpdate);
+    // scene events outlive a restart (a new run): without this every run stacked one more handler
     scene.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+      scene.events.off(Phaser.Scenes.Events.POST_UPDATE, onPostUpdate);
       scene.sys.events.off(Phaser.Scenes.Events.ADDED_TO_SCENE, onAdded);
       this.skins.delete(scene);
     });
