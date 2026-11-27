@@ -28,7 +28,7 @@
 src/
   main.ts            запуск Phaser, шрифт Rubik, масштабирование холста (keepCanvasSharp)
   core/              ЛОГИКА
-    state/           RunState (состояние забега), reducer.ts (все команды)
+    state/           RunState (состояние забега), reducer.ts (все команды), runSave.ts (сохранение между волнами)
     prng/            SFC32 и четыре потока случайности
     reels/           ленты, остановка, 8 линий, джокер, джекпот
     heat/            жар и заклинивание
@@ -45,7 +45,7 @@ src/
     events/          типы событий и EventBus
   data/              ДАННЫЕ
     balance.ts       все числа баланса, рост врагов (ENEMY_SCALE_ANCHORS, enemyWaveScale)
-    units.ts         32 робота          quirks.ts   24 черты
+    units.ts         39 роботов         quirks.ts   39 черт
     mods.ts          40 модулей         cores.ts    20 ядер
     gadgets.ts       30 гаджетов        skills.ts   12 узлов древа
     enemies.ts       20 врагов + 3 босса   mutations.ts  6 мутаций врагов
@@ -63,8 +63,9 @@ src/
   fx/                старый генератор текстур (proceduralAssets.ts), атмосфера, анимации
   audio/             SoundManager.ts — синтез звуков WebAudio
   ui/                окна и элементы: HUD, ReelView, GridView, UnitCard, ShopView, SkillTreeModal,
-                     EvolutionModal, CoreDraftModal, ArchiveModal, CampaignModal, CampaignMapModal,
-                     DialogueModal, InfoTip, Tooltip, ModalKit, TextStyles
+                     EvolutionModal, CoreDraftModal, JackpotModal, ArchiveModal, CampaignModal, CampaignMapModal,
+                     DialogueModal, SettingsModal, InfoTip, Tooltip, ModalKit, TextStyles,
+                     Display и resolutions (ширина мира, разрешение, вид сцены)
   scenes/            BootScene, MenuScene, RunScene, GameOverScene;
                      отладочные GalleryScene (?debug=gallery), AnimationViewerScene, ReferenceScene
 tests/               Vitest: core/, combat/, meta/, audio/; e2e/playtestBrowser.ts (Puppeteer)
@@ -95,7 +96,7 @@ data/animation/      JSON с таймингами анимаций из план
 Сцена не меняет состояние сама: она отправляет команду в `RunReducer.dispatch(state, command, rng, eventBus)`
 (`src/core/state/reducer.ts`). Команды:
 
-`SPIN`, `HOLD_REEL`, `NUDGE_REEL`, `DEPLOY_UNIT`, `UNDEPLOY_UNIT`, `SMELT_UNITS`, `CHOOSE_EVOLUTION`,
+`SPIN`, `CHOOSE_JACKPOT`, `HOLD_REEL`, `NUDGE_REEL`, `DEPLOY_UNIT`, `UNDEPLOY_UNIT`, `SMELT_UNITS`, `CHOOSE_EVOLUTION`,
 `BUY_SKILL`, `START_BATTLE`, `STEP_BATTLE`, `USE_VALVE`, `ADVANCE_TO_SHOP`, `BUY_SYMBOL`, `REMOVE_SYMBOL`,
 `GILD_SYMBOL`, `BUY_GADGET`, `EQUIP_CORE`, `REROLL_SHOP`, `START_NEXT_WAVE`.
 
@@ -153,7 +154,7 @@ data/animation/      JSON с таймингами анимаций из план
 
 ## 8. Проверки
 
-- `npm test` — Vitest, 203 теста в 26 файлах (ноябрь 2026).
+- `npm test` — Vitest, 217 тестов в 29 файлах (27.11.2026).
 - `npm run typecheck` — TypeScript в режиме `strict`.
 - `npm run sim -- --runs 1000 --bot veteran --waves 30` — баланс; таблица по волнам, зависшие бои отдельно.
 - `npx tsx tools/qa/verifyPlayability.ts` — браузер: меню → барабаны → бой.

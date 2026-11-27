@@ -378,7 +378,7 @@ export class MenuScene extends Phaser.Scene {
     // Footer info
     // version line: developer info, only with a keyboard (no room for it on a phone)
     if (!TOUCH_ONLY) {
-      fitBox(this.add.text(width / 2, area.y1 - 40, 'BRASSREEL v0.4.0 • случайное зерно каждый забег (?seed=… повторяет забег) • TypeScript + Phaser 3', {
+      fitBox(this.add.text(width / 2, area.y1 - 40, 'BRASSREEL v0.5.0 • случайное зерно каждый забег (?seed=… повторяет забег) • TypeScript + Phaser 3', {
         fontFamily: 'monospace',
         fontSize: '13px',
         color: '#6c757d'
